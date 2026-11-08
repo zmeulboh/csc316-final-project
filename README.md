@@ -35,14 +35,32 @@ The story has six frames, organized as hook → rising insights → main message
 
 ## Data
 
+All data is stored in one SQLite database, [`prototype/data/project.db`](prototype/data/project.db).
+
 | Data | Source |
 |------|--------|
-| 10-year Treasury yield | FRED `GS10` |
-| Unemployment rate | FRED `UNRATE` |
-| 10-year minus 2-year spread | FRED `T10Y2Y` |
-| U.S. recession periods | FRED `USREC` |
-| 30-year U.S. mortgage rate | FRED `MORTGAGE30US` |
-| Ontario employment by industry | Statistics Canada, Table 14-10-0355 (seasonally adjusted) |
+| U.S. 10-year and 2-year Treasury yields (the 10-minus-2 spread is computed) | Bloomberg `USGG10YR`, `USGG2YR` |
+| U.S. and Canadian unemployment rates | Bloomberg `USURTOT`, `EHUPCA` |
+| U.S. 30-year and 15-year mortgage rates | Bloomberg `NMCMFR30`, `NMCMFR15` |
+| S&P 500 | Bloomberg `SPX` |
+| Canadian employment by industry (Labour Force Survey) | Bloomberg |
+| U.S. payroll employment by industry (CES) | Bloomberg |
+| Government of Canada 5- and 10-year bond yields | Bank of Canada Valet API |
+| U.S. recession periods; 10-year yield and 30-year mortgage history before 1990 | FRED `USREC`, `GS10`, `MORTGAGE30US` |
+
+Coverage runs from 1990 to November 2026. The two exceptions are the Bank of Canada series, which start in 2001, and U.S. jobs by industry, which start in Nov 1993.
+
+### Rebuilding the data
+
+The raw Bloomberg Excel exports are not in the repo; the team keeps them in a shared cloud folder. To rebuild:
+
+```bash
+pip install -r scripts/requirements.txt
+python scripts/build_db.py path/to/xlsx-folder   # Excel exports + Bank of Canada + FRED -> project.db
+python scripts/export_data.py                    # project.db -> data inlined in the prototype pages
+```
+
+`export_data.py` rewrites the block between `/* @data:begin */` and `/* @data:end */` in each prototype page. Don't edit that block by hand.
 
 **Budget scenarios** in frame 4 are illustrative examples, not real households or companies:
 - the household has a $400k mortgage with a 25-year amortization and Canadian semi-annual compounding;
@@ -77,8 +95,9 @@ src/
     components/    # shared UI: axis, tooltip, slider, stage badge, scroll step
     theme.js       # colours, fonts, stage colours
     finance.js     # mortgage and loan calculations
-static/data/       # cleaned CSV data from FRED and Statistics Canada
-scripts/           # data download and cleaning scripts
+static/data/       # page data exported from prototype/data/project.db
+scripts/           # build_db.py (raw exports -> SQLite), export_data.py (SQLite -> pages)
+prototype/         # standalone HTML prototypes and data/project.db
 docs/              # process book and design documentation
 CLAUDE.md          # project context for the AI coding assistant
 ```

@@ -111,7 +111,7 @@ a.btn{text-decoration:none;display:inline-block}
     </div>
     <div class="trackwrap"><svg id="track" viewBox="0 0 1000 74" role="img" aria-label="Leo's life bar: 10-year Treasury yield by year, 2007 to 2030"></svg></div>
     <div class="yld">
-      <div class="v" id="hudYield">4.63%</div>
+      <div class="v" id="hudYield"></div>
       <div class="l" id="hudYieldLbl">US 10-yr yield · avg</div>
     </div>
   </header>
@@ -153,9 +153,9 @@ a.btn{text-decoration:none;display:inline-block}
       <div class="chooser" id="chooser" hidden>
         <div class="speaker"><span class="name" style="background:var(--what)">YOU</span><span class="tag what">YOU CHOOSE</span></div>
         <label for="pick">Leo just started at U of T. Where does the 10-year yield go by his graduation in 2030?</label>
-        <div class="bandline"><span class="big" id="pickVal">5.3%</span><span id="pickBand" style="font-weight:800"></span></div>
+        <div class="bandline"><span class="big" id="pickVal"></span><span id="pickBand" style="font-weight:800"></span></div>
         <input type="range" id="pick" min="2" max="9" step="0.1" value="5.3">
-        <div class="scale"><span>2% · cheap money</span><span>today 5.31%</span><span>9% · 1990-style</span></div>
+        <div class="scale"><span>2% · cheap money</span><span id="pickToday"></span><span>9% · 1990-style</span></div>
         <div class="row" style="justify-content:space-between">
           <span class="small" id="pickHint" style="color:var(--text-2);font-size:.85rem"></span>
           <button class="btn" id="liveBtn">Live these four years ▸</button>
@@ -168,12 +168,21 @@ a.btn{text-decoration:none;display:inline-block}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
 /* ================= DATA (real) ================= */
-// US 10-year Treasury, annual averages of FRED GS10; 2026 is the Oct 5 close (DGS10).
-const US10 = {2007:4.63,2008:3.67,2009:3.26,2010:3.21,2011:2.79,2012:1.80,2013:2.35,2014:2.54,2015:2.14,2016:1.84,2017:2.33,2018:2.91,2019:2.14,2020:0.89,2021:1.44,2022:2.95,2023:3.96,2024:4.21,2025:4.29,2026:5.31};
+// Generated from prototype/data/project.db by scripts/export_data.py. Don't edit by hand.
+/* @data:begin */ const DATA = {"asof":{"yield":"2026-11-06","jobs":"2026-10","built":"2026-11-08"},"us10":{"last":{"d":"2026-11-06","v":4.86},"peak":{"d":"2026-10-05","v":5.3},"prevAbovePeak":"2002-04-02","low":{"d":"2020-08-04","v":0.51}},"us10Annual":{"2007":4.62,"2008":3.64,"2009":3.24,"2010":3.2,"2011":2.77,"2012":1.78,"2013":2.33,"2014":2.53,"2015":2.13,"2016":1.84,"2017":2.33,"2018":2.91,"2019":2.14,"2020":0.89,"2021":1.43,"2022":2.94,"2023":3.95,"2024":4.2,"2025":4.29,"2026":4.55},"us10AnnualMin":["2012",1.78],"ca5Annual":{"2007":4.2,"2008":3.05,"2009":2.33,"2010":2.48,"2011":2.06,"2012":1.38,"2013":1.62,"2014":1.58,"2015":0.85,"2016":0.73,"2017":1.37,"2018":2.15,"2019":1.54,"2020":0.59,"2021":0.94,"2022":2.77,"2023":3.56,"2024":3.29,"2025":2.83,"2026":3.2},"canUnemp":{"d":"2026-09-30","v":6.43}}; /* @data:end */
+const DAY = s => new Date(s+'T12:00:00').toLocaleDateString('en-CA',{month:'long',day:'numeric',year:'numeric'});
+const MONTH = s => new Date(s.slice(0,7)+'-15T12:00:00').toLocaleDateString('en-CA',{month:'long',year:'numeric'});
+// US 10-year Treasury, annual averages (Bloomberg USGG10YR daily closes).
+// 2026 is the year Leo starts university, so it shows the 2026 peak close instead of the average.
+const PEAK = DATA.us10.peak, LAST = DATA.us10.last;
+const US10 = Object.fromEntries(Object.entries(DATA.us10Annual).map(([y,v]) => [+y, v]));
+US10[2026] = PEAK.v;
 // Government of Canada 5-year benchmark yield, annual averages (Bank of Canada).
-const CA5 = {2007:4.21,2012:1.38,2017:1.36,2022:2.77};
+const CA5 = Object.fromEntries(Object.entries(DATA.ca5Annual).map(([y,v]) => [+y, v]));
 const SPREAD = 1.5;            // assumption: 5-yr fixed mortgage ≈ GoC 5-yr + 1.5 pts
-const TODAY = 5.31;
+const TODAY = PEAK.v;
+document.getElementById('pickToday').textContent = `2026 peak ${TODAY.toFixed(2)}%`;
+document.getElementById('pick').value = TODAY.toFixed(1);
 
 /* ================= helpers ================= */
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -217,7 +226,7 @@ const PAST = [
     ['LEO','I’m five, and this playground is my whole world.','happy'],
     ['MOM',`Our five years were up, so we renewed the mortgage. The new rate is ${m12.toFixed(1)}%.`,'happy'],
     ['DAD',`Same house, and the payment dropped from ${fmt$(P07)} to ${fmt$(P12)}. That’s ${fmt$(P07-P12)} a month back in our pockets.`,'happy'],
-    ['FACT','In 2012 the 10-year yield averaged 1.80%, the lowest yearly average on record at the time (records start in 1953).']]},
+    ['FACT',`In 2012 the 10-year yield averaged ${US10[2012].toFixed(2)}%${DATA.us10AnnualMin[0]==='2012' ? ', the lowest yearly average since at least 1962' : ''}.`]]},
   {year:2016, age:9, y:US10[2016], bg:'street', props:{mode:'sold'}, cast:['dad'], mood:'happy', lines:[
     ['LEO','Grade four. Every adult on our street talks about the same thing: house prices.'],
     ['DAD','The neighbours sold for way over asking. Cheap mortgages mean everyone can borrow more, so everyone bids more.'],
@@ -227,7 +236,7 @@ const PAST = [
     ['DAD',`The new mortgage is $750,000. At ${m17.toFixed(1)}%, the payment is ${fmt$(P17)} a month. Rates will stay this low forever, right?`,'happy'],
     ['LEO','Spoiler: they did not stay low forever.','neutral']]},
   {year:2020, age:13, y:US10[2020], bg:'bedroom', cast:[], mood:'neutral', lines:[
-    ['FACT','2020. A pandemic. On August 4, the 10-year yield closes at 0.52%, the lowest ever recorded.'],
+    ['FACT',`2020. A pandemic. On ${DAY(DATA.us10.low.d)}, the 10-year yield closes at ${DATA.us10.low.v.toFixed(2)}%, the lowest ever recorded.`],
     ['LEO','School is a laptop on my desk now. Everyone is stuck at home.'],
     ['LEO','Money has never been cheaper. Mom says half her coworkers are refinancing or buying cottages.','happy'],
     ['FACT','Near-free borrowing helped push Toronto home prices to record highs by early 2022.']]},
@@ -240,11 +249,11 @@ const PAST = [
   {year:2024, age:17, y:US10[2024], bg:'cafe', outfit:'apron', cast:[], mood:'neutral', lines:[
     ['LEO','I got a part-time job at a café on Bloor. A latte is $5.75 now.'],
     ['LEO','My manager says the regulars come in less often. Everyone’s budget is squeezed.','worried'],
-    ['FACT','The 10-year yield averaged 4.21% in 2024, almost five times its 2020 level.']]},
+    ['FACT',`The 10-year yield averaged ${US10[2024].toFixed(2)}% in 2024, ${(US10[2024]/US10[2020]).toFixed(1)} times its 2020 level.`]]},
   {year:2026, age:19, y:TODAY, bg:'campus', outfit:'uni', cast:[], mood:'happy', key:'uni', lines:[
     ['FACT','September 2026. Leo starts at the University of Toronto, St. George campus.'],
     ['LEO','Front campus. University College. I made it!','happy'],
-    ['FACT','On October 5, 2026, the 10-year yield closes at 5.31%, its highest since May 2002.'],
+    ['FACT',`On ${DAY(PEAK.d)}, the 10-year yield closes at ${PEAK.v.toFixed(2)}%, its highest since ${MONTH(DATA.us10.prevAbovePeak)}. By ${DAY(LAST.d)} it is back to ${LAST.v.toFixed(2)}%, but nobody knows where it goes next.`],
     ['LEO','Friends at Rotman say all of Bay Street is watching that number. I still don’t know what it means for me.','neutral'],
     ['MOM','(on the phone) Our next renewal is in 2027. Your dad checks rates every morning now.','worried'],
     ['WHATIF','Every rate up to here is real. From now on, the story is one possible future.']]}
@@ -258,9 +267,9 @@ function band(R){
 }
 function future(R){
   const b = band(R);
-  // path from today's 5.31% to R by 2030; most of the move happens early
+  // path from the 2026 peak (TODAY) to R by 2030; most of the move happens early
   const ys = [1,2,3,4].map(t => +(TODAY + (R-TODAY)*Math.sqrt(t/4)).toFixed(2));
-  const m27 = +clamp(ys[0] - 0.2, 1.5, 12).toFixed(2);   // assumption: mortgage ≈ US 10-yr − 0.2 (today 5.31 ↔ ~5.1)
+  const m27 = +clamp(ys[0] - 0.2, 1.5, 12).toFixed(2);   // assumption: mortgage ≈ US 10-yr − 0.2
   const P27 = MORT(B27, m27, 180), d = P27 - P22;
   const more = d >= 0 ? `${fmt$(d)} more` : `${fmt$(-d)} less`;
   const T = {
@@ -680,7 +689,7 @@ function renderScene(sc){
   $('hudWho').textContent = sc.age === 0 ? 'Leo, newborn' : `Leo, age ${sc.age}`;
   $('hudYield').textContent = sc.y.toFixed(2) + '%';
   $('hudYield').style.color = sc.y >= 5 ? 'var(--hot)' : sc.y < 2.5 ? 'var(--calm)' : 'var(--text)';
-  const lbl = sc.future ? '<span class="tag what">WHAT IF</span> 10-yr yield' : sc.year === 2026 ? 'Oct 5 close · 10-yr' : 'US 10-yr · year avg';
+  const lbl = sc.future ? '<span class="tag what">WHAT IF</span> 10-yr yield' : sc.year === 2026 ? `${new Date(PEAK.d+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'})} close · 10-yr` : 'US 10-yr · year avg';
   $('hudYieldLbl').innerHTML = `${lbl} · ${wxName(sc.y)}`;
   drawTrack(sc.year + (sc.year===2026 ? 0.5 : 0), sc.y);
 }
@@ -771,7 +780,7 @@ function finish(){
       <dt>Career-fair booths hiring in 2028</dt><dd>${story[2].props.booths} of 5</dd>
       <dt>Leo in 2030</dt><dd>${{A:'Bay Street job',B:'Job at a smaller firm',C:'Six-month contract',D:'Moving back home'}[f.b.id]}</dd>
     </dl>
-    <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: FRED (GS10, DGS10), Bank of Canada, Statistics Canada.</p>
+    <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR); Government of Canada 5-year yield, Bank of Canada Valet API; 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada.</p>
     <div class="row">
       <button class="btn" id="againBtn">Choose another future</button>
       <button class="btn ghost" id="replayBtn">Replay from 2007</button>
