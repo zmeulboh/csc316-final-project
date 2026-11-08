@@ -40,15 +40,42 @@ Narrative flow: personal worry → economic indicators → mechanism → persona
 
 ## Data
 
-| Use | Source | Series / table |
-|-----|--------|----------------|
-| 10-yr Treasury yield | FRED | `GS10` |
-| Unemployment rate | FRED | `UNRATE` |
-| 10-yr minus 2-yr spread (warning light) | FRED | `T10Y2Y` |
-| Recession periods | FRED | `USREC` |
-| 30-yr U.S. mortgage rate | FRED | `MORTGAGE30US` |
-| Ontario jobs by industry | Statistics Canada | Table 14-10-0355 (seasonally adjusted); compare Feb 2022 (when rate hikes began) with the latest month |
-| Canadian rates/context | Bank of Canada | as needed |
+**All project data lives in one SQLite database: `prototype/data/project.db`.** Query it; don't hard-code numbers. The raw Bloomberg `.xlsx` exports it was built from are *not* in the repo (the team keeps them in the shared cloud folder).
+
+| Use | Source | `series_id` in the DB | Coverage |
+|-----|--------|------------------------|----------|
+| US 10-yr Treasury yield (daily closes) | Bloomberg | `USGG10YR` | 1990-01 → latest |
+| US 10-yr yield before 1990 (monthly) | FRED | `GS10` | 1960 → latest; use only before 1990 |
+| US 2-yr Treasury yield (month-end) | Bloomberg | `USGG2YR` | 1990 → latest |
+| 10-yr minus 2-yr spread (warning light) | computed | `USGG10YR` − `USGG2YR` (monthly view) | 1990 → latest |
+| US unemployment rate | Bloomberg | `USURTOT` | monthly, 1990 → latest |
+| Canada unemployment rate | Bloomberg | `EHUPCA` | **quarterly** (Mar/Jun/Sep/Dec), 1990 → latest |
+| US 30-yr / 15-yr fixed mortgage rate (weekly) | Bloomberg | `NMCMFR30`, `NMCMFR15` | 1990 / 1991 → latest |
+| US 30-yr mortgage rate, long history | FRED (Freddie Mac) | `MORTGAGE30US` | 1971 → latest |
+| S&P 500 (daily close) | Bloomberg | `SPX` | 1989-12 → latest |
+| US recession months (NBER) | FRED | `USREC` | 1960 → latest |
+| Government of Canada 5-yr / 10-yr bond yield (daily) | Bank of Canada Valet | `CA5Y`, `CA10Y` | 2001 → latest |
+| **Canada** jobs by industry (Labour Force Survey, thousands) | Bloomberg | `CANLEMPL` (total), `CAIECONS`, `CAIEMANU`, `CAIETRDE`, `CAIEFIRE`, `CADEPSTS`, `CADEEDUS`, `CADEHCSA`, `CADEACFS`, `CAIEPUBL`, … | monthly, 1990-01 → latest |
+| US payroll jobs by industry (CES, thousands) | Bloomberg | `NFP T` (total) and ~870 sub-series; use `parent_id` / `depth` | monthly, **1993-11** → latest |
+
+Data notes:
+- Industry data is **national (Canada)**, not Ontario. Compare Feb 2022 (the month before rate hikes began) with the latest month.
+- The US jobs export labelled "Jan 1990 – Nov 1993" was a duplicate of the Nov 1993 – Jun 2000 file, so US industry data starts in Nov 1993.
+- Monthly yield values are averages of daily closes (the `monthly` view). The newest month is month-to-date; say so on the page.
+- Things not in the DB (e.g. CPI inflation, the Bank of Canada policy rate, Toronto rent) are cited facts from Statistics Canada / Bank of Canada / CMHC. Cite them on the page, and add them to `scripts/build_db.py` if a chart needs the full series.
+
+**Schema:** `series(series_id, name, country, category, unit, frequency, parent_id, depth, source, source_file)`, `observations(series_id, date 'YYYY-MM-DD', value)`, `meta(key, value)`, view `monthly(series_id, month 'YYYY-MM', value, n)`.
+
+```sql
+-- example: monthly 10-yr minus 2-yr spread
+SELECT a.month, round(a.value - b.value, 2) AS spread
+FROM monthly a JOIN monthly b USING(month)
+WHERE a.series_id = 'USGG10YR' AND b.series_id = 'USGG2YR' ORDER BY a.month;
+```
+
+**Pipeline** (Python 3.10+, `pip install -r scripts/requirements.txt`):
+1. `python scripts/build_db.py <folder with the .xlsx exports>`: rebuilds `project.db` from the exports, and downloads the Bank of Canada and FRED series.
+2. `python scripts/export_data.py`: queries the DB, writes `prototype/data/bundle.json`, and rewrites the inlined data block between `/* @data:begin */ … /* @data:end */` in each prototype page. Never edit that block by hand; change the query in `export_data.py` and rerun.
 
 **Scenario assumptions (frame 4):**
 - Household: $400k mortgage, 25-year amortization, **Canadian semi-annual compounding**.
@@ -62,7 +89,7 @@ Narrative flow: personal worry → economic indicators → mechanism → persona
 - The six research insights in the process book come from published studies, **not from our own analysis**. Don't present them as findings calculated from our dataset.
 - Never claim that a rising 10-yr yield *always* leads to higher unemployment, bankruptcies or recessions. Use wording like "can", "is associated with", "historically".
 - No industry is "immune"; describe industries as *more exposed* or *more sheltered*, based on the data.
-- Numbers shown in the storyboard sketches (e.g. "5.3% now", "4.2% now") are placeholders. **Always compute displayed values from the data files**, and show the "as of" date.
+- Numbers shown in the storyboard sketches (e.g. "5.3% now", "4.2% now") are placeholders. **Always compute displayed values from the database** (`prototype/data/project.db`, via `scripts/export_data.py`), and show the "as of" date.
 - Put source citations on the page (footer per frame or a sources section).
 
 Key references: Patrabansh et al. 2014 (FHFA, yields and mortgage rates); Estrella & Mishkin 1998 (yield curve predicts recessions); Oreopoulos, von Wachter & Heisz 2012 (graduating in a recession: about a 9% earnings loss that takes 8–10 years to fade); Singh, Suda & Zervou 2022 (sector differences: manufacturing and construction are more sensitive); Romer & Romer 2023 (monetary tightening and unemployment); Sarikov & Kuprianov 2020 (rates and corporate bankruptcies).
@@ -95,8 +122,8 @@ Key references: Patrabansh et al. 2014 (FHFA, yields and mortgage rates); Estrel
 - `src/lib/components/`: shared pieces (axis, tooltip, slider, stage badge, scroll step)
 - `src/lib/theme.js`: shared colours, fonts and stage colours (one source of truth)
 - `src/lib/finance.js`: mortgage/loan math, with Canadian semi-annual compounding for the household mortgage
-- `static/data/` (or `public/data/`): cleaned CSVs from FRED / StatCan; record the download date in the filename or in a README
-- `scripts/`: data-cleaning scripts, so the data can be pulled again and re-cleaned
+- `static/data/` (or `public/data/`): JSON/CSV exported from `project.db` by a script (extend `scripts/export_data.py`), never hand-edited
+- `scripts/`: `build_db.py` (raw exports → SQLite) and `export_data.py` (SQLite → page data)
 
 ## Working conventions
 
