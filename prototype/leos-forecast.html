@@ -1,0 +1,806 @@
+<title>Leo's Forecast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a one-screen story game. Three rows: life-bar HUD on top, the illustrated stage in the middle,
+   the dialogue box at the bottom. Deliberately single-theme: an indigo game frame around a painted stage. */
+:root{
+  --frame:#1d1b33; --frame-2:#2a2747; --frame-3:#3a3660; --text:#f4f2ff; --text-2:#b9b4dc;
+  --hot:#ff5a3c; --sun:#ffc23d; --calm:#3fbf8f; --what:#a98bff;
+  --leo:#ff8a3d; --mom:#33b3a6; --dad:#e0a83a;
+  --display:"Bungee","Arial Black",Impact,sans-serif;
+  --body:"Nunito","Trebuchet MS",system-ui,sans-serif;
+  --mono:"DM Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--frame);color:var(--text);font-family:var(--body);font-size:17px}
+button,input{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.app{height:100%;min-height:460px;display:grid;grid-template-rows:auto minmax(200px,1fr) auto;grid-template-columns:minmax(0,1fr)}
+
+/* HUD */
+.hud{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:clamp(10px,2vw,24px);align-items:center;padding:6px max(16px,2vw);background:var(--frame);border-bottom:3px solid #000}
+.hud .when{font-family:var(--display);font-size:clamp(1.4rem,3.4vw,2.2rem);line-height:1}
+.hud .who{font-size:.8rem;color:var(--text-2);font-weight:700;margin-top:4px;white-space:nowrap}
+.hud .yld{text-align:right}
+.hud .yld .v{font-family:var(--display);font-size:clamp(1.4rem,3.4vw,2.2rem);line-height:1;font-variant-numeric:tabular-nums}
+.hud .yld .l{font-family:var(--mono);font-size:.68rem;color:var(--text-2);letter-spacing:.06em;text-transform:uppercase;margin-top:4px;white-space:nowrap}
+.tag{display:inline-block;font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;padding:2px 6px;border-radius:4px;vertical-align:middle}
+.tag[hidden]{display:none}
+.tag.real{background:#2e4d40;color:#9ff0c8}
+.tag.what{background:#4a3a86;color:#e2d8ff}
+#track{width:100%;height:auto;display:block;max-height:60px}
+#track text{font-family:var(--mono)}
+
+/* stage */
+.stage{position:relative;overflow:hidden;background:#000;min-height:200px}
+#scene{width:100%;height:100%;display:block}
+#rain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.stage .fadeable{transition:opacity .35s ease}
+.stage.fading .fadeable{opacity:0}
+.drift{animation:drift linear infinite alternate}
+@keyframes drift{from{transform:translateX(-30px)}to{transform:translateX(30px)}}
+.talk{animation:bob .5s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+
+/* overlays */
+.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:16px;overflow-y:auto;background:rgba(18,16,36,.72);backdrop-filter:blur(2px)}
+.overlay[hidden]{display:none!important}
+.card{background:var(--frame-2);border:3px solid #000;box-shadow:6px 6px 0 #000;border-radius:14px;padding:clamp(18px,3vw,32px);max-width:640px;width:100%;display:grid;gap:14px}
+.card h1{font-family:var(--display);font-weight:400;font-size:clamp(2rem,6vw,3.4rem);line-height:.95;margin:0;color:var(--sun);text-wrap:balance}
+.card h2{font-family:var(--display);font-weight:400;font-size:clamp(1.4rem,4vw,2rem);line-height:1;margin:0;text-wrap:balance}
+.card p{margin:0;line-height:1.5;color:var(--text)}
+.card .small{font-size:.85rem;color:var(--text-2)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font-family:var(--display);font-size:.95rem;letter-spacing:.02em;background:var(--sun);color:#1d1b33;border:3px solid #000;border-radius:10px;padding:.55em 1.1em;box-shadow:3px 3px 0 #000}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.btn.ghost{background:var(--frame-3);color:var(--text)}
+a.btn{text-decoration:none;display:inline-block}
+.stats{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:.92rem}
+.stats dd{margin:0;font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+
+/* dialogue */
+.dlg{background:var(--frame);border-top:3px solid #000;padding:8px max(16px,2vw) calc(8px + env(safe-area-inset-bottom,0px))}
+.box{max-width:960px;margin-inline:auto;background:var(--frame-2);border:3px solid #000;border-radius:14px;box-shadow:5px 5px 0 #000;padding:10px 16px 8px;display:grid;gap:6px;min-height:118px}
+.speaker{display:flex;gap:10px;align-items:center}
+.name{font-family:var(--display);font-size:.95rem;padding:3px 10px;border-radius:6px;border:2px solid #000;color:#1d1b33}
+#line{font-size:clamp(1rem,2.2vw,1.2rem);line-height:1.5;min-height:3em;font-weight:500}
+#line b{color:var(--sun)}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.controls .hint{font-family:var(--mono);font-size:.7rem;color:var(--text-2)}
+.navbtn{font-family:var(--display);background:var(--frame-3);color:var(--text);border:2px solid #000;border-radius:8px;padding:.35em .8em}
+.navbtn.next{background:var(--sun);color:#1d1b33}
+.navbtn[disabled]{opacity:.35;cursor:default}
+.chooser{display:grid;gap:10px}
+.chooser input[type=range]{width:100%;accent-color:var(--hot)}
+.chooser .big{font-family:var(--display);font-size:2rem;line-height:1}
+.chooser .bandline{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.66rem;color:var(--text-2)}
+.chooser[hidden],.talkbox[hidden]{display:none!important}
+.talkbox{display:grid;gap:8px}
+
+@media (max-height:640px){
+  #line{min-height:2.6em;font-size:1rem}
+  .hud .when,.hud .yld .v{font-size:1.4rem}
+  .box{min-height:104px}
+}
+@media (max-width:640px){
+  .hud{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}
+  .hud .yld .l{white-space:normal;max-width:160px;margin-left:auto}
+  .controls .hint{display:none}
+  .hud .trackwrap{grid-column:1/-1;order:3}
+  .box{min-height:150px}
+}
+@media (prefers-reduced-motion:reduce){
+  .drift,.talk{animation:none}
+  .stage .fadeable{transition:none}
+}
+</style>
+
+<div class="app">
+  <header class="hud">
+    <div>
+      <div class="when" id="hudYear">2007</div>
+      <div class="who" id="hudWho">Leo, newborn</div>
+    </div>
+    <div class="trackwrap"><svg id="track" viewBox="0 0 1000 74" role="img" aria-label="Leo's life bar: 10-year Treasury yield by year, 2007 to 2030"></svg></div>
+    <div class="yld">
+      <div class="v" id="hudYield">4.63%</div>
+      <div class="l" id="hudYieldLbl">US 10-yr yield · avg</div>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <svg id="scene" viewBox="110 140 1060 530" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <canvas id="rain"></canvas>
+    <div id="flash"></div>
+
+    <div class="overlay" id="titleCard">
+      <div class="card">
+        <div class="row"><span class="tag real">REAL RATES 2007–2026</span><span class="tag what">IMAGINED 2027–2030</span></div>
+        <h1>Leo's Forecast</h1>
+        <p>Leo is born in Toronto in 2007. You'll watch him grow up one year at a time while the bar at the top tracks the number Wall Street is worried about: the US 10-year Treasury yield.</p>
+        <p class="small">The rates up to October 2026 are real. Leo, his family and their numbers are fictional examples. Use Next, the → key or Space to move through the story.</p>
+        <div class="row">
+          <button class="btn" id="startBtn">Start the story</button>
+          <button class="btn ghost" id="skipBtn">Skip to 2026</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="endCard" hidden>
+      <div class="card" id="endInner"></div>
+    </div>
+  </main>
+
+  <footer class="dlg">
+    <div class="box">
+      <div class="talkbox" id="talkbox">
+        <div class="speaker"><span class="name" id="who">LEO</span><span class="tag" id="whoTag" hidden></span></div>
+        <div id="line" aria-live="polite"></div>
+        <div class="controls">
+          <button class="navbtn" id="back" aria-label="Previous line">◂ Back</button>
+          <span class="hint" id="progress"></span>
+          <button class="navbtn next" id="next">Next ▸</button>
+        </div>
+      </div>
+      <div class="chooser" id="chooser" hidden>
+        <div class="speaker"><span class="name" style="background:var(--what)">YOU</span><span class="tag what">YOU CHOOSE</span></div>
+        <label for="pick">Leo just started at U of T. Where does the 10-year yield go by his graduation in 2030?</label>
+        <div class="bandline"><span class="big" id="pickVal">5.3%</span><span id="pickBand" style="font-weight:800"></span></div>
+        <input type="range" id="pick" min="2" max="9" step="0.1" value="5.3">
+        <div class="scale"><span>2% · cheap money</span><span>today 5.31%</span><span>9% · 1990-style</span></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="small" id="pickHint" style="color:var(--text-2);font-size:.85rem"></span>
+          <button class="btn" id="liveBtn">Live these four years ▸</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+/* ================= DATA (real) ================= */
+// US 10-year Treasury, annual averages of FRED GS10; 2026 is the Oct 5 close (DGS10).
+const US10 = {2007:4.63,2008:3.67,2009:3.26,2010:3.21,2011:2.79,2012:1.80,2013:2.35,2014:2.54,2015:2.14,2016:1.84,2017:2.33,2018:2.91,2019:2.14,2020:0.89,2021:1.44,2022:2.95,2023:3.96,2024:4.21,2025:4.29,2026:5.31};
+// Government of Canada 5-year benchmark yield, annual averages (Bank of Canada).
+const CA5 = {2007:4.21,2012:1.38,2017:1.36,2022:2.77};
+const SPREAD = 1.5;            // assumption: 5-yr fixed mortgage ≈ GoC 5-yr + 1.5 pts
+const TODAY = 5.31;
+
+/* ================= helpers ================= */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const fmt$ = v => '$' + Math.round(v).toLocaleString('en-CA');
+const MORT = (L, rate, n) => { const r = Math.pow(1+rate/200, 1/6)-1; return L*r/(1-Math.pow(1+r,-n)); };
+const BAL = (L, rate, n, k) => { const r = Math.pow(1+rate/200, 1/6)-1, P = MORT(L,rate,n); return L*Math.pow(1+r,k) - P*(Math.pow(1+r,k)-1)/r; };
+const storm = y => clamp((y-2)/5, 0, 1);
+const wxName = y => y < 2.5 ? 'Sunny' : y < 3.8 ? 'Fair' : y < 5 ? 'Cloudy' : y < 6.5 ? 'Storm' : 'Hurricane';
+
+/* ================= the family's mortgage (fictional, real rates) ================= */
+const m07 = +(CA5[2007]+SPREAD).toFixed(2), P07 = MORT(320000, m07, 300);
+const B12 = BAL(320000, m07, 300, 60);
+const m12 = +(CA5[2012]+SPREAD).toFixed(2), P12 = MORT(B12, m12, 240);
+const m17 = +(CA5[2017]+SPREAD).toFixed(2), P17 = MORT(750000, m17, 300);
+const B22 = BAL(750000, m17, 300, 60);
+const m22 = +(CA5[2022]+SPREAD).toFixed(2), P22 = MORT(B22, m22, 240);
+const B27 = BAL(B22, m22, 240, 60);
+
+/* ================= cast ================= */
+const LEO = {skin:'#f1c8a0', hair:'short', hairColor:'#3b2a20'};
+const MOM = {skin:'#e3b08a', hair:'long', hairColor:'#5a3a28', top:'#2f9c95', bottom:'#34405e', cm:166, age:40};
+const DAD = {skin:'#d39b74', hair:'short', hairColor:'#262626', top:'#d9a43c', bottom:'#474c57', cm:181, age:42, beard:true};
+const HEIGHT = {0:0,1:76,5:110,9:133,10:138,13:157,15:170,17:177,19:180,20:181,21:181,22:181,23:181};
+const SPK = {LEO:{c:'var(--leo)'}, MOM:{c:'var(--mom)'}, DAD:{c:'var(--dad)'}, FACT:{c:'#9ff0c8',label:'DATA',tag:'real'}, WHATIF:{c:'#d8c9ff',label:'WHAT IF',tag:'what'}};
+
+/* ================= story ================= */
+const PAST = [
+  {year:2007, age:0, y:US10[2007], bg:'nursery', outfit:'baby', cast:['mom','dad'], lines:[
+    ['FACT','Toronto, 2007. Meet Leo. The bar at the top is his life: each step is one year, and the number is the US 10-year Treasury yield, averaged over that year.'],
+    ['LEO','Hi, that’s me in the blanket. The 10-year yield is what the US government pays to borrow money for ten years.','happy'],
+    ['LEO','Why should a baby care? Because loans everywhere are priced off numbers like it, including the one my parents just signed.'],
+    ['DAD',`We did it. A $400,000 townhouse, 20% down. The bank gave us ${m07.toFixed(1)}% for five years.`,'happy'],
+    ['MOM',`So the mortgage is ${fmt$(P07)} a month. Tight, but we’ll manage.`]]},
+  {year:2008, age:1, y:US10[2008], bg:'kitchen', props:{tv:'MARKETS IN FREEFALL'}, cast:['mom','dad'], mood:'neutral', lines:[
+    ['FACT','2008. The global financial crisis. Big US banks collapse, and central banks slash interest rates to keep the economy alive.'],
+    ['DAD','Two guys on my line got laid off today.','worried'],
+    ['LEO','I was busy learning to walk. But look at the bar: the yield is falling. Money is getting cheaper.']]},
+  {year:2012, age:5, y:US10[2012], bg:'playground', cast:['mom','dad'], mood:'happy', lines:[
+    ['LEO','I’m five, and this playground is my whole world.','happy'],
+    ['MOM',`Our five years were up, so we renewed the mortgage. The new rate is ${m12.toFixed(1)}%.`,'happy'],
+    ['DAD',`Same house, and the payment dropped from ${fmt$(P07)} to ${fmt$(P12)}. That’s ${fmt$(P07-P12)} a month back in our pockets.`,'happy'],
+    ['FACT','In 2012 the 10-year yield averaged 1.80%, the lowest yearly average on record at the time (records start in 1953).']]},
+  {year:2016, age:9, y:US10[2016], bg:'street', props:{mode:'sold'}, cast:['dad'], mood:'happy', lines:[
+    ['LEO','Grade four. Every adult on our street talks about the same thing: house prices.'],
+    ['DAD','The neighbours sold for way over asking. Cheap mortgages mean everyone can borrow more, so everyone bids more.'],
+    ['FACT','When money is cheap, prices of things people buy with loans tend to climb: homes, cars, stocks. Toronto home prices jumped through 2016 and early 2017.']]},
+  {year:2017, age:10, y:US10[2017], bg:'street', props:{mode:'move'}, cast:['mom','dad'], mood:'happy', lines:[
+    ['MOM','We sold the townhouse and bought a bigger house. $950,000!','happy'],
+    ['DAD',`The new mortgage is $750,000. At ${m17.toFixed(1)}%, the payment is ${fmt$(P17)} a month. Rates will stay this low forever, right?`,'happy'],
+    ['LEO','Spoiler: they did not stay low forever.','neutral']]},
+  {year:2020, age:13, y:US10[2020], bg:'bedroom', cast:[], mood:'neutral', lines:[
+    ['FACT','2020. A pandemic. On August 4, the 10-year yield closes at 0.52%, the lowest ever recorded.'],
+    ['LEO','School is a laptop on my desk now. Everyone is stuck at home.'],
+    ['LEO','Money has never been cheaper. Mom says half her coworkers are refinancing or buying cottages.','happy'],
+    ['FACT','Near-free borrowing helped push Toronto home prices to record highs by early 2022.']]},
+  {year:2022, age:15, y:US10[2022], bg:'kitchen', props:{tv:'INFLATION HITS 8.1%', bills:true}, cast:['mom','dad'], mood:'worried', lines:[
+    ['FACT','2022. Prices rise fast everywhere. Canada’s inflation peaks at 8.1% in June, the highest in about 40 years.'],
+    ['FACT','To cool prices, the Bank of Canada lifts its rate from 0.25% to 4.25% in under a year. Bond yields shoot up.'],
+    ['DAD',`Our five-year term is up. New rate: ${m22.toFixed(1)}%. The payment goes from ${fmt$(P17)} to ${fmt$(P22)}.`,'worried'],
+    ['MOM',`That’s ${fmt$(P22-P17)} more every month, and groceries cost more every week. We’re cancelling the summer trip.`,'worried'],
+    ['LEO','It was the first time I heard my parents argue about money.','sad']]},
+  {year:2024, age:17, y:US10[2024], bg:'cafe', outfit:'apron', cast:[], mood:'neutral', lines:[
+    ['LEO','I got a part-time job at a café on Bloor. A latte is $5.75 now.'],
+    ['LEO','My manager says the regulars come in less often. Everyone’s budget is squeezed.','worried'],
+    ['FACT','The 10-year yield averaged 4.21% in 2024, almost five times its 2020 level.']]},
+  {year:2026, age:19, y:TODAY, bg:'campus', outfit:'uni', cast:[], mood:'happy', key:'uni', lines:[
+    ['FACT','September 2026. Leo starts at the University of Toronto, St. George campus.'],
+    ['LEO','Front campus. University College. I made it!','happy'],
+    ['FACT','On October 5, 2026, the 10-year yield closes at 5.31%, its highest since May 2002.'],
+    ['LEO','Friends at Rotman say all of Bay Street is watching that number. I still don’t know what it means for me.','neutral'],
+    ['MOM','(on the phone) Our next renewal is in 2027. Your dad checks rates every morning now.','worried'],
+    ['WHATIF','Every rate up to here is real. From now on, the story is one possible future.']]}
+];
+
+function band(R){
+  if (R < 3.5) return {id:'A', name:'Clear skies', hint:'Rates fall back. Borrowing gets cheaper again.'};
+  if (R < 5.0) return {id:'B', name:'Passing clouds', hint:'Rates ease a little from today.'};
+  if (R < 6.5) return {id:'C', name:'Storm', hint:'Rates stay high or keep climbing.'};
+  return {id:'D', name:'Hurricane', hint:'Rates surge to levels last seen in the 1990s.'};
+}
+function future(R){
+  const b = band(R);
+  // path from today's 5.31% to R by 2030; most of the move happens early
+  const ys = [1,2,3,4].map(t => +(TODAY + (R-TODAY)*Math.sqrt(t/4)).toFixed(2));
+  const m27 = +clamp(ys[0] - 0.2, 1.5, 12).toFixed(2);   // assumption: mortgage ≈ US 10-yr − 0.2 (today 5.31 ↔ ~5.1)
+  const P27 = MORT(B27, m27, 180), d = P27 - P22;
+  const more = d >= 0 ? `${fmt$(d)} more` : `${fmt$(-d)} less`;
+  const T = {
+    A:{
+      f1:[['MOM',`That’s ${more} than before. We’re finally booking a trip.`,'happy'],['LEO','My landlord didn’t even raise the rent this year.','happy']],
+      f2:[['LEO','The career fair is packed. Builders, banks, startups: everyone wants interns.','happy'],['WHATIF','When borrowing gets cheaper, the companies that run on loans expand first, and they need people.']],
+      f3:[['LEO','Final year. I already have a return offer from my internship.','happy']],
+      f4:[['LEO','Convocation Hall. Mom is crying, the happy kind.','happy']],
+      f5:[['LEO','First day on Bay Street. Every floor is lit and the elevators are full.','happy'],['WHATIF','In this future, Leo graduates into sunshine.']], office:{lit:.9,lease:0,ruin:false}, booths:5},
+    B:{
+      f1:[['MOM',`That’s ${more} than before. Not great, not a disaster.`,'neutral'],['LEO','Rent went up again, so I found a roommate.','neutral']],
+      f2:[['LEO','About half the booths are hiring. The rest say “check back next year.”','neutral'],['WHATIF','When rates ease a little, hiring recovers slowly, starting with the least rate-sensitive industries.']],
+      f3:[['LEO','Sixty applications, four interviews. Second round tomorrow.','worried']],
+      f4:[['LEO','Convocation Hall. I have an offer: a smaller firm, but it’s a real job.','happy']],
+      f5:[['LEO','Some floors downtown are dark, some are busy. Mine is busy enough.','neutral'],['WHATIF','In this future, Leo graduates into a cloudy but working job market.']], office:{lit:.6,lease:1,ruin:false}, booths:3},
+    C:{
+      f1:[['MOM',`That’s ${more} every month. Your dad picked up weekend shifts.`,'worried'],['LEO','My landlord raised the rent. He says his mortgage went up too.','worried']],
+      f2:[['LEO','Most booths are empty. The construction firm I wanted says “hiring freeze.”','worried'],['WHATIF','When borrowing stays expensive, companies that depend on loans tend to cut hiring first: construction, real estate, startups.']],
+      f3:[['LEO','Robarts at 2 a.m. 120 applications, three replies.','sad']],
+      f4:[['LEO','Convocation Hall. Mom smiles for photos, then checks the mortgage app in the car.','neutral']],
+      f5:[['LEO','I got a six-month contract. Half the tower has FOR LEASE on the windows.','worried'],['WHATIF','In this future, Leo graduates into a storm.']], office:{lit:.35,lease:3,ruin:false}, booths:1},
+    D:{
+      f1:[['MOM',`That’s ${more} every month, on top of everything else. If your dad’s hours get cut, we might have to sell the house.`,'sad'],['LEO','I moved into a basement with three roommates. The landlord says his mortgage jumped too.','sad']],
+      f2:[['LEO','Career fair. Half the hall is empty tables. Every company I wanted: hiring freeze.','shocked'],['WHATIF','When borrowing stays expensive for years, companies that run on loans cut hiring first: construction, real estate, startups.']],
+      f3:[['DAD','(on the phone) The plant cut a shift. I’m down to three days a week.','sad'],['LEO','Robarts at 2 a.m. 140 applications. Two replies, both no.','sad']],
+      f4:[['LEO','I graduated. Mom cried. I’m not sure they were only happy tears.','sad']],
+      f5:[['LEO','Peak rates. The offices I dreamed about are dark, with FOR LEASE on every other floor.','sad'],['LEO','I’m 23, I have a U of T degree, and I’m moving back home.','sad']], office:{lit:.08,lease:5,ruin:true}, booths:0}
+  }[b.id];
+  const scenes = [
+    {year:2027, age:20, y:ys[0], future:true, bg: b.id==='D' ? 'basement' : 'kitchen', props: b.id==='D' ? {} : {tv: b.id==='A'?'RATES FALL':'RATES CLIMB', bills: b.id!=='A'}, outfit:'uni', cast: b.id==='D' ? [] : ['mom','dad'], mood:'neutral', lines:[
+      ['WHATIF',`2027, in this future: the 10-year yield moves to ${ys[0].toFixed(2)}%.`],
+      ['DAD',`Our mortgage renewed. New rate: ${m27.toFixed(1)}%. The payment is now ${fmt$(P27)} a month.`, d > 150 ? 'worried' : 'neutral'],
+      ...T.f1]},
+    {year:2028, age:21, y:ys[1], future:true, bg:'fair', props:{booths:T.booths}, outfit:'uni', cast:[], mood:'neutral', lines:T.f2},
+    {year:2029, age:22, y:ys[2], future:true, bg:'robarts', outfit:'uni', cast:[], mood:'neutral', lines:T.f3},
+    {year:2030, age:23, y:ys[3], future:true, bg:'convocation', props:{caps: b.id==='A'||b.id==='B'}, outfit:'gown', cast:['mom','dad'], mood:'neutral', lines:T.f4},
+    {year:2030, age:23, y:ys[3], future:true, bg:'office', props:T.office, outfit:'suit', cast:[], mood:'neutral', lines:T.f5}
+  ];
+  return {R, b, ys, m27, P27, d, scenes};
+}
+
+/* ================= state ================= */
+let MAIN = future(7.4);
+MAIN.scenes[MAIN.scenes.length-1].lines.push(['WHATIF','That was one possible future. Let’s go back to October 2026, the day Leo started university. This time, you choose where rates go.']);
+let story = PAST.concat(MAIN.scenes, [{choice:true, year:2026, age:19, y:TODAY, bg:'campus', outfit:'uni', cast:[], mood:'neutral', lines:[]}]);
+let pathYs = MAIN.ys;        // future values shown on the life bar
+let si = 0, li = 0, mode = 'main', chosen = null;
+
+/* ================= life bar ================= */
+const track = d3.select('#track');
+const TX = d3.scaleLinear().domain([2006.6, 2030.4]).range([10, 990]);
+const TY = d3.scaleLinear().domain([0, 9]).range([56, 6]);
+const trackDefs = track.append('defs');
+const hatch = trackDefs.append('pattern').attr('id','thatch').attr('width',6).attr('height',6).attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
+hatch.append('rect').attr('width',2).attr('height',6).attr('fill','#a98bff').attr('opacity',.5);
+const tg = {
+  base: track.append('rect').attr('x',10).attr('y',6).attr('width',980).attr('height',50).attr('rx',6).attr('fill','#2a2747').attr('stroke','#000').attr('stroke-width',2),
+  ghost: track.append('path').attr('fill','#3a3660'),
+  futGhost: track.append('path').attr('fill','url(#thatch)'),
+  fill: track.append('path'),
+  line: track.append('path').attr('fill','none').attr('stroke','#fff').attr('stroke-width',2),
+  futLine: track.append('path').attr('fill','none').attr('stroke','#d8c9ff').attr('stroke-width',2).attr('stroke-dasharray','4 4'),
+  divider: track.append('line').attr('x1',TX(2026.5)).attr('x2',TX(2026.5)).attr('y1',4).attr('y2',58).attr('stroke','#d8c9ff').attr('stroke-dasharray','2 3'),
+  cursor: track.append('g')
+};
+tg.cursor.append('line').attr('y1',2).attr('y2',60).attr('stroke','#ffc23d').attr('stroke-width',3);
+tg.cursorDot = tg.cursor.append('circle').attr('r',6).attr('fill','#ffc23d').attr('stroke','#000').attr('stroke-width',2);
+[[2007,'BORN'],[2012,'5'],[2017,'10'],[2022,'15'],[2026,'UNI'],[2030,'GRAD']].forEach(([yr,t]) => {
+  track.append('text').attr('x',TX(yr)).attr('y',70).attr('text-anchor','middle').attr('font-size',10).attr('fill', yr===2026?'#ffc23d':'#b9b4dc').text(yr===2026||yr===2007||yr===2030 ? `${t} ${yr}` : `AGE ${t}`);
+});
+track.append('text').attr('x',TX(2028.5)).attr('y',20).attr('text-anchor','middle').attr('font-size',9).attr('fill','#d8c9ff').text('WHAT IF');
+const fillGrad = trackDefs.append('linearGradient').attr('id','tfill').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+fillGrad.append('stop').attr('offset',0).attr('stop-color','#ff5a3c');
+fillGrad.append('stop').attr('offset',1).attr('stop-color','#ffc23d');
+
+function pastPts(){ return Object.entries(US10).map(([k,v]) => [+k, v]); }
+function drawTrack(curYear, curY){
+  const past = pastPts();
+  const fut = [[2026, TODAY]].concat(pathYs.map((v,i)=>[2027+i, v]));
+  const area = d3.area().x(d=>TX(d[0])).y0(56).y1(d=>TY(d[1])).curve(d3.curveMonotoneX);
+  const line = d3.line().x(d=>TX(d[0])).y(d=>TY(d[1])).curve(d3.curveMonotoneX);
+  tg.ghost.attr('d', area(past));
+  tg.futGhost.attr('d', area(fut));
+  const seen = past.filter(d=>d[0] <= curYear).concat(curYear > 2026 ? fut.filter(d=>d[0] > 2026 && d[0] <= curYear) : []);
+  tg.fill.attr('d', seen.length>1 ? area(seen) : null).attr('fill','url(#tfill)').attr('opacity',.9);
+  tg.line.attr('d', line(past.filter(d=>d[0] <= Math.min(curYear,2026))));
+  tg.futLine.attr('d', curYear > 2026 || mode==='choice' ? line(fut.filter(d=> mode==='choice' || d[0] <= curYear)) : null);
+  tg.cursor.attr('transform', `translate(${TX(curYear)},0)`);
+  tg.cursorDot.attr('cy', TY(curY));
+}
+
+/* ================= stage drawing ================= */
+const W=1280, H=720, G=600;
+const svg = d3.select('#scene');
+const defs = svg.append('defs');
+const skyG = defs.append('linearGradient').attr('id','sky').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+const skyTop = skyG.append('stop').attr('offset',0), skyBot = skyG.append('stop').attr('offset',1);
+const nightG = defs.append('linearGradient').attr('id','night').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+nightG.append('stop').attr('offset',0).attr('stop-color','#0f1330'); nightG.append('stop').attr('offset',1).attr('stop-color','#2b3266');
+const grain = defs.append('filter').attr('id','grain');
+grain.append('feTurbulence').attr('type','fractalNoise').attr('baseFrequency',.9).attr('numOctaves',2).attr('stitchTiles','stitch');
+grain.append('feColorMatrix').attr('values','0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0');
+const world = svg.append('g').attr('class','fadeable');
+const gBg = world.append('g'), gCast = world.append('g'), gFx = world.append('g');
+const shade = svg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('fill','#1a2030').attr('opacity',0).attr('pointer-events','none');
+svg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('filter','url(#grain)').attr('pointer-events','none');
+
+const A = (sel, tag, at={}) => { const e = sel.append(tag); for (const k in at) e.attr(k, at[k]); return e; };
+const R = (g,x,y,w,h,fill,at={}) => A(g,'rect',Object.assign({x,y,width:w,height:h,fill},at));
+const P = (g,d,fill,at={}) => A(g,'path',Object.assign({d,fill},at));
+const Cc = (g,cx,cy,r,fill,at={}) => A(g,'circle',Object.assign({cx,cy,r,fill},at));
+const Tt = (g,x,y,txt,at={}) => { const t = A(g,'text',Object.assign({x,y,'font-family':'Bungee, Arial Black, sans-serif'},at)); t.text(txt); return t; };
+const mix = (a,b,t) => d3.interpolateRgb(a,b)(t);
+
+function setSky(y){
+  const t = storm(y);
+  skyTop.attr('stop-color', mix(mix('#62b6ec','#7d8b9c',Math.min(1,t*1.6)), '#2c3442', clamp((t-.55)*2.2,0,1)));
+  skyBot.attr('stop-color', mix(mix('#d6eefb','#c0c8cf',Math.min(1,t*1.6)), '#5b6571', clamp((t-.55)*2.2,0,1)));
+}
+function sky(g, night){ R(g,-1400,-800,W+2800,G+800, night ? 'url(#night)' : 'url(#sky)'); }
+function weather(g, y, night){
+  const t = storm(y);
+  if (!night && t < .55){
+    const s = A(g,'g',{transform:'translate(1110,120)',opacity:clamp(1-t*1.8,0,1)});
+    for (let k=0;k<10;k++) A(s,'line',{x1:0,y1:-70,x2:0,y2:-92,stroke:'#ffc23d','stroke-width':7,'stroke-linecap':'round',transform:`rotate(${k*36})`});
+    Cc(s,0,0,56,'#ffc23d');
+  }
+  if (night){ for (let k=0;k<60;k++) Cc(g, (k*197)%W, (k*89)%300+10, (k%3)*.6+.8, '#fff', {opacity:.35+.4*((k*7)%5)/5}); }
+  const n = 2 + Math.round(t*7), col = mix('#ffffff', '#4b5562', t), op = night ? .5+.4*t : .85;
+  for (let k=0;k<n;k++){
+    const x = (k*233 + 90) % (W+120) - 60, yy = 40 + (k*67)%130, s = .8 + ((k*37)%10)/10 * (0.6+t);
+    const c = A(g,'g',{transform:`translate(${x},${yy}) scale(${s})`,opacity:op});
+    const d = A(c,'g',{class:'drift',style:`animation-duration:${9+k*2}s`});
+    [[-60,10,34],[-20,-10,44],[30,-2,40],[70,12,30],[0,16,38]].forEach(([dx,dy,r]) => Cc(d,dx,dy,r,col));
+  }
+}
+function ground(g, fill, top){ R(g,-1400,G,W+2800,H-G+800,fill); if (top) R(g,-1400,G,W+2800,8,top); }
+function win(g,x,y,w,h){ R(g,x-8,y-8,w+16,h+16,'#f6f1e7',{rx:4}); R(g,x,y,w,h,'url(#sky)'); A(g,'line',{x1:x+w/2,x2:x+w/2,y1:y,y2:y+h,stroke:'#f6f1e7','stroke-width':8}); A(g,'line',{x1:x,x2:x+w,y1:y+h/2,y2:y+h/2,stroke:'#f6f1e7','stroke-width':8}); }
+function skyline(g, x0, base, scale=1, col='#4a5a78'){
+  [[0,90,46],[50,140,40],[96,110,52],[156,170,44],[206,120,40]].forEach(([dx,h,w]) => R(g,x0+dx*scale,base-h*scale,w*scale,h*scale,col,{opacity:.85}));
+  const cx = x0 + 140*scale;   // CN Tower
+  P(g,`M${cx-5*scale},${base} L${cx-2*scale},${base-300*scale} L${cx+2*scale},${base-300*scale} L${cx+5*scale},${base}Z`, col);
+  A(g,'ellipse',{cx,cy:base-210*scale,rx:16*scale,ry:9*scale,fill:col});
+  A(g,'line',{x1:cx,x2:cx,y1:base-300*scale,y2:base-360*scale,stroke:col,'stroke-width':2*scale});
+}
+
+const BG = {
+  nursery(g,sc){
+    R(g,-1400,-800,W+2800,G+800,'#efd3dc');
+    for (let i=0;i<14;i++) for (let j=0;j<6;j++) Cc(g,40+i*92+(j%2)*46,40+j*95,5,'#e4b9c7');
+    win(g,420,110,440,330); skyline(g,470,440,1.05);
+    R(g,380,96,46,380,'#e98aa6',{rx:6}); R(g,854,96,46,380,'#e98aa6',{rx:6});
+    ground(g,'#c9946a','#b07f57');
+    for (let i=0;i<9;i++) A(g,'line',{x1:i*150,x2:i*150+60,y1:G+20,y2:H,stroke:'#b07f57','stroke-width':3});
+    const cx=1000; R(g,cx,430,220,14,'#ffffff'); R(g,cx,520,220,16,'#ffffff'); for (let i=0;i<=10;i++) R(g,cx+i*21,430,6,G-430,'#ffffff');
+    R(g,cx-4,420,8,G-420,'#f2e6da'); R(g,cx+216,420,8,G-420,'#f2e6da');
+    A(g,'line',{x1:cx+110,x2:cx+110,y1:0,y2:250,stroke:'#999','stroke-width':2});
+    [[-50,'#ffc23d'],[0,'#7fc8f8'],[50,'#ff8a3d']].forEach(([dx,c]) => { A(g,'line',{x1:cx+110,x2:cx+110+dx,y1:250,y2:290,stroke:'#999'}); P(g,`M${cx+110+dx},${280} l8,18 l-18,-10 h20 l-18,10z`,c); });
+  },
+  kitchen(g,sc){
+    R(g,-1400,-800,W+2800,G+800,'#cfe3d4');
+    win(g,70,120,300,240);
+    R(g,0,G-170,W,6,'#b8d1bf');
+    const tv = (sc.props||{}).tv;
+    R(g,450,90,380,230,'#1c1c1c',{rx:10}); R(g,466,106,348,198, tv && /FALL|CRASH|INFLATION|CLIMB/.test(tv) ? '#2b3a55' : '#2e6b55');
+    if (tv){ R(g,466,250,348,44,'#d63b2a'); Tt(g,640,280,tv,{'text-anchor':'middle','font-size':22,fill:'#fff'});
+      A(g,'polyline',{points: /FALL|CLIMB|INFLATION/.test(tv) && !/RATES FALL/.test(tv) ? '486,140 560,170 620,150 690,210 790,236' : '486,236 560,200 620,214 690,160 790,130', fill:'none', stroke:'#ffc23d','stroke-width':5}); }
+    R(g,900,100,340,130,'#f7f4ec',{stroke:'#c9c2b0','stroke-width':3}); [980,1070,1160].forEach(x=>R(g,x,150,24,6,'#9b8f78',{rx:3}));
+    R(g,900,430,340,G-430,'#f7f4ec',{stroke:'#c9c2b0','stroke-width':3}); R(g,890,420,360,16,'#8a6b52');
+    ground(g,'#b7c4c9'); for (let i=0;i<16;i++) for (let j=0;j<2;j++) if ((i+j)%2) R(g,i*80,G+j*60,80,60,'#a8b6bc');
+    R(g,380,500,520,18,'#8a6b52',{rx:4}); R(g,400,518,14,G-518,'#6f5541'); R(g,866,518,14,G-518,'#6f5541');
+    if ((sc.props||{}).bills){ [[450,486,-8],[520,490,6],[700,484,-3],[780,492,10]].forEach(([x,y,r]) => { const b=A(g,'g',{transform:`rotate(${r},${x},${y})`}); R(b,x,y,60,14,'#ffffff',{stroke:'#ccc'}); Tt(b,x+30,y+12,'$',{'text-anchor':'middle','font-size':12,fill:'#d63b2a'}); }); }
+  },
+  playground(g,sc){
+    sky(g); weather(g,sc.y);
+    A(g,'ellipse',{cx:300,cy:G+20,rx:520,ry:140,fill:'#7cb86a'}); A(g,'ellipse',{cx:1050,cy:G+30,rx:520,ry:160,fill:'#69a95c'});
+    [[90,460],[200,440],[1160,450],[1240,470]].forEach(([x,y]) => { R(g,x-6,y,12,G-y,'#7a5236'); Cc(g,x,y-30,52,'#4f9a52'); Cc(g,x-30,y,36,'#5aa65a'); Cc(g,x+30,y-5,40,'#468f4a'); });
+    ground(g,'#93c96f','#82b960');
+    A(g,'ellipse',{cx:640,cy:G+60,rx:420,ry:40,fill:'#e2cf9a'});
+    R(g,230,370,10,G-370,'#3d6fb6'); R(g,300,370,10,G-370,'#3d6fb6'); for (let k=0;k<6;k++) R(g,230,390+k*35,80,6,'#3d6fb6');
+    R(g,222,362,96,12,'#ff6b4a'); P(g,`M318,362 C420,380 460,560 560,${G-6} L560,${G} L540,${G} C450,570 410,400 318,378Z`,'#ff6b4a');
+    const sx=880; A(g,'line',{x1:sx,y1:G,x2:sx+40,y2:350,stroke:'#e0a020','stroke-width':10}); A(g,'line',{x1:sx+80,y1:G,x2:sx+40,y2:350,stroke:'#e0a020','stroke-width':10});
+    A(g,'line',{x1:sx+300,y1:G,x2:sx+340,y2:350,stroke:'#e0a020','stroke-width':10}); A(g,'line',{x1:sx+380,y1:G,x2:sx+340,y2:350,stroke:'#e0a020','stroke-width':10});
+    R(g,sx+30,342,320,12,'#e0a020',{rx:6});
+    [[sx+120],[sx+250]].forEach(([x]) => { A(g,'line',{x1:x,x2:x,y1:354,y2:500,stroke:'#555','stroke-width':3}); A(g,'line',{x1:x+50,x2:x+50,y1:354,y2:500,stroke:'#555','stroke-width':3}); R(g,x-6,498,62,10,'#3d6fb6',{rx:4}); });
+  },
+  street(g,sc){
+    sky(g); weather(g,sc.y);
+    skyline(g,880,G-120,.7,'#8fa0b8');
+    const move = (sc.props||{}).mode === 'move';
+    const houses = move ? [[60,'#d98c6a',220,170],[340,'#7fa7c9',260,260],[960,'#c4b07a',240,180]] : [[30,'#d98c6a',230,170],[300,'#7fa7c9',230,190],[570,'#c4b07a',230,175],[840,'#a98bc9',230,185],[1100,'#8fbf8a',200,170]];
+    houses.forEach(([x,c,w,h],k) => {
+      const top = G-40-h;
+      R(g,x,top,w,h,c); P(g,`M${x-16},${top} L${x+w/2},${top-90} L${x+w+16},${top}Z`, d3.color(c).darker(1).formatHex());
+      R(g,x+w/2-24,G-40-78,48,78,'#5a3d2b'); R(g,x+24,top+30,50,44,'#fdf3d0'); R(g,x+w-74,top+30,50,44,'#fdf3d0');
+      if (h > 200){ R(g,x+24,top+110,50,44,'#fdf3d0'); R(g,x+w-74,top+110,50,44,'#fdf3d0'); }
+      if (!move || k===1){ const sx=x+w-10; R(g,sx,G-110,6,80,'#6b4f3a'); R(g,sx-40,G-120,86,42,'#ffffff',{stroke:'#d63b2a','stroke-width':3}); Tt(g,sx+3,G-92,'SOLD',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'}); }
+    });
+    R(g,-1400,G-40,W+2800,40,'#cfcfcf'); ground(g,'#5d6670'); for (let i=0;i<10;i++) R(g,i*140+20,G+56,70,8,'#e8e8e8');
+    if (move){
+      R(g,700,G-210,250,170,'#f2f2f2',{stroke:'#999','stroke-width':3,rx:6}); Tt(g,825,G-118,'MOVING',{'text-anchor':'middle','font-size':26,fill:'#3d6fb6'});
+      R(g,950,G-150,110,110,'#3d6fb6',{rx:8}); R(g,980,G-140,60,40,'#bfe0f6'); Cc(g,760,G-30,26,'#222'); Cc(g,1000,G-30,26,'#222');
+      [[620,G-80,60],[640,G-130,50],[1080,G-70,50]].forEach(([x,y,s]) => { R(g,x,y,s,s,'#c99a62',{stroke:'#8a6b42','stroke-width':2}); R(g,x,y+s/2-3,s,6,'#e6cfa0'); });
+    }
+  },
+  bedroom(g,sc){
+    R(g,-1400,-800,W+2800,G+800,'#c9bfe6');
+    win(g,860,110,320,260);
+    [[910,170,'#ff6b4a'],[930,180,'#ffc23d'],[950,190,'#3fbf8f'],[970,200,'#3d6fb6']].forEach(([x,y,c],i) => P(g,`M${910+i*10},300 A${120-i*10},${120-i*10} 0 0 1 ${1130-i*10},300`,'none',{stroke:c,'stroke-width':10,opacity:.9}));
+    R(g,90,120,180,240,'#2a2747',{rx:6}); Cc(g,180,210,50,'#ff8a3d'); A(g,'ellipse',{cx:180,cy:210,rx:80,ry:16,fill:'none',stroke:'#ffc23d','stroke-width':6});
+    ground(g,'#9c8b7a');
+    R(g,40,470,330,G-470,'#3d6fb6',{rx:12}); R(g,40,440,90,50,'#ffffff',{rx:12});
+    R(g,700,470,420,16,'#8a6b52'); R(g,716,486,14,G-486,'#6f5541'); R(g,1090,486,14,G-486,'#6f5541');
+    const lx=820; P(g,`M${lx},466 L${lx+20},400 L${lx+200},400 L${lx+220},466Z`,'#333'); R(g,lx+26,406,168,56,'#bfe0f6');
+    for (let i=0;i<3;i++) for (let j=0;j<2;j++){ R(g,lx+30+i*55,410+j*27,52,24,'#5b6c88'); Cc(g,lx+56+i*55,420+j*27,6,['#f1c8a0','#d39b74','#e3b08a'][(i+j)%3]); }
+  },
+  cafe(g,sc){
+    R(g,-1400,-800,W+2800,G+800,'#b9603f'); for (let i=0;i<30;i++) for (let j=0;j<12;j++) R(g,i*44+(j%2)*22,j*44,40,40,'#c06a49',{opacity:.6});
+    R(g,90,80,420,260,'#20211f',{stroke:'#7a5236','stroke-width':12});
+    Tt(g,300,130,'MENU',{'text-anchor':'middle','font-size':30,fill:'#f4f2ff'});
+    [['LATTE','$5.75'],['MUFFIN','$4.25'],['SANDWICH','$12.50']].forEach(([a,b],i) => { Tt(g,130,190+i*50,a,{'font-size':22,fill:'#e8e6dc'}); Tt(g,470,190+i*50,b,{'text-anchor':'end','font-size':22,fill:'#ffc23d'}); });
+    win(g,780,90,400,250); Tt(g,980,320,'OPEN',{'text-anchor':'middle','font-size':26,fill:'#3fbf8f'});
+    ground(g,'#7a5236');
+    R(g,560,420,700,G-420,'#5a3d2b'); R(g,550,410,720,18,'#3a2a1f');
+    R(g,940,330,150,82,'#c9ced3',{rx:6}); R(g,960,350,110,30,'#20211f'); Cc(g,985,395,6,'#555'); Cc(g,1045,395,6,'#555');
+    [[200,'#e6ded0'],[360,'#e6ded0']].forEach(([x,c]) => { A(g,'ellipse',{cx:x,cy:500,rx:70,ry:14,fill:c}); R(g,x-5,500,10,G-500,'#3a2a1f'); });
+  },
+  campus(g,sc){
+    sky(g); weather(g,sc.y);
+    [[60,380],[160,360],[1140,370],[1240,390]].forEach(([x,y]) => { R(g,x-8,y,16,G-y,'#6b4a33'); Cc(g,x,y-30,70,'#4f8f4f'); Cc(g,x-40,y+10,50,'#5a9a56'); Cc(g,x+40,y,54,'#447f45'); });
+    const stone='#cdab7c', dark='#a8855a', roof='#5c4d45', y0=270, base=G-60;
+    P(g,`M180,${y0} L230,${y0-46} L1050,${y0-46} L1100,${y0}Z`, roof);
+    R(g,180,y0,920,base-y0,stone); R(g,180,y0+70,920,8,dark); R(g,180,base-20,920,20,dark);
+    [[150,250],[1030,250]].forEach(([x,w]) => { R(g,x,y0-30,100,base-y0+30,stone); P(g,`M${x-10},${y0-30} L${x+50},${y0-90} L${x+110},${y0-30}Z`,roof); });
+    for (let i=0;i<12;i++){ if (i===5||i===6) continue; const x=230+i*70; [y0+16,y0+96].forEach(yy => P(g,`M${x},${yy+46} V${yy+14} A17,17 0 0 1 ${x+34},${yy+14} V${yy+46}Z`,'#3e3a4a')); }
+    R(g,560,110,160,base-110,stone); R(g,560,170,160,8,dark); P(g,`M548,110 L640,30 L732,110Z`,roof);
+    P(g,`M604,140 V128 A10,10 0 0 1 624,128 V140Z`,'#3e3a4a'); P(g,`M656,140 V128 A10,10 0 0 1 676,128 V140Z`,'#3e3a4a');
+    P(g,`M590,${base} V${base-110} A50,50 0 0 1 690,${base-110} V${base}Z`,'#4a3326'); P(g,`M600,${base} V${base-106} A40,40 0 0 1 680,${base-106} V${base}Z`,'#6b4a33');
+    R(g,-1400,base,W+2800,G-base,'#79b45e');
+    ground(g,'#86c06a'); A(g,'ellipse',{cx:640,cy:G+70,rx:560,ry:58,fill:'#9bd07a'});
+    P(g,`M560,${G} L720,${G} L860,${H} L420,${H}Z`,'#d7c9a7',{opacity:.9});
+  },
+  basement(g,sc){
+    R(g,-1400,-800,W+2800,G+800,'#77705f'); for (let i=0;i<20;i++) for (let j=0;j<10;j++) R(g,i*68+(j%2)*34,j*40+60,64,36,'#7f7766',{opacity:.7});
+    R(g,0,0,W,50,'#4b463c'); A(g,'line',{x1:0,x2:W,y1:66,y2:66,stroke:'#9a9a92','stroke-width':12});
+    win(g,880,80,300,100); R(g,880,160,300,20,'#5a8a4f');
+    A(g,'line',{x1:640,x2:640,y1:50,y2:140,stroke:'#333','stroke-width':2}); Cc(g,640,150,14,'#ffe9a8'); Cc(g,640,150,60,'#ffe9a8',{opacity:.12});
+    R(g,250,250,170,120,'#ffe36e',{transform:'rotate(-4,335,310)'}); Tt(g,335,300,'RENT',{'text-anchor':'middle','font-size':26,fill:'#d63b2a',transform:'rotate(-4,335,310)'}); Tt(g,335,340,'+$150',{'text-anchor':'middle','font-size':26,fill:'#d63b2a',transform:'rotate(-4,335,310)'});
+    ground(g,'#5a524a');
+    R(g,40,540,380,60,'#8aa0c0',{rx:10}); R(g,50,526,100,26,'#f0f0f0',{rx:8});
+    R(g,980,470,200,G-470,'#c99a62',{stroke:'#8a6b42','stroke-width':3}); R(g,1010,420,140,50,'#c99a62',{stroke:'#8a6b42','stroke-width':3});
+  },
+  fair(g,sc){
+    R(g,-1400,-800,W+2800,G+800,'#e4def0'); for (let i=0;i<9;i++) R(g,i*160,0,6,G,'#d6cfe6');
+    R(g,340,40,600,70,'#2a2747',{rx:8}); Tt(g,640,88,'CAREER FAIR 2028',{'text-anchor':'middle','font-size':32,fill:'#ffc23d'});
+    ground(g,'#b9b3a8');
+    const n = (sc.props||{}).booths ?? 2;
+    const cols = ['#3d6fb6','#d9a43c','#3fbf8f','#d63b2a','#8a7ab3'];
+    [80,320,560,800,1040].forEach((x,k) => {
+      const on = k < n;
+      R(g,x,200,180,220,on?cols[k]:'#a9a4b8',{rx:6}); Cc(g,x+90,270,34,'#ffffff',{opacity:on?.9:.4});
+      R(g,x-10,440,200,90,on?'#ffffff':'#d6d2cc',{rx:4}); R(g,x-10,440,200,14,on?cols[k]:'#bdb8b0');
+      if (on){ Cc(g,x+60,404,16,'#e3b08a'); R(g,x+44,420,32,30,cols[(k+2)%5],{rx:8}); }
+      R(g,x+20,470,140,36,on?'#3fbf8f':'#d63b2a',{rx:4}); Tt(g,x+90,495,on?'NOW HIRING':'HIRING FREEZE',{'text-anchor':'middle','font-size':on?17:14,fill:'#fff'});
+    });
+  },
+  robarts(g,sc){
+    sky(g,true); weather(g,sc.y,true);
+    const c1='#8e8f8a', c2='#74756f', c3='#a3a49e';
+    P(g,`M300,${G-40} L420,250 L540,${G-40}Z`,c2); P(g,`M740,${G-40} L860,250 L980,${G-40}Z`,c2);
+    P(g,`M460,${G-40} L520,170 L640,90 L760,170 L820,${G-40}Z`,c1);
+    P(g,`M520,170 L640,90 L760,170 L700,190 L580,190Z`,c3);
+    for (let i=0;i<9;i++) for (let j=0;j<7;j++){ const x=520+i*28, y=220+j*44; if (x>500 && x<770) R(g,x,y,16,22,((i*7+j*3)%5<2)?'#ffd86b':'#3a3b38'); }
+    for (let j=0;j<5;j++){ R(g,400,320+j*44,14,20,'#ffd86b',{opacity:j%2?1:.3}); R(g,860,320+j*44,14,20,'#ffd86b',{opacity:j%2?.3:1}); }
+    ground(g,'#4f5652','#5d6560');
+    R(g,1000,G-200,10,200,'#2a2a2a'); Cc(g,1005,G-206,16,'#ffe9a8'); Cc(g,1005,G-206,80,'#ffe9a8',{opacity:.12});
+    R(g,180,G-60,240,14,'#6b4a33'); R(g,190,G-46,10,46,'#3a2a1f'); R(g,400,G-46,10,46,'#3a2a1f');
+  },
+  convocation(g,sc){
+    sky(g); weather(g,sc.y);
+    const stone='#e2d4b4', patina='#7fa596', base=G-50;
+    R(g,300,250,680,base-250,stone); R(g,300,250,680,14,'#c8b892');
+    P(g,`M330,250 A310,150 0 0 1 950,250Z`,patina); R(g,620,80,40,30,patina); P(g,`M612,82 L640,50 L668,82Z`,patina);
+    P(g,`M430,330 L640,262 L850,330Z`,'#d4c4a0');
+    for (let i=0;i<8;i++) R(g,450+i*55,330,22,base-330,'#f4ecda');
+    R(g,430,330,420,12,'#c8b892');
+    for (let k=0;k<3;k++) R(g,400-k*30,base+k*16,480+k*60,16,'#d4c4a0');
+    ground(g,'#86c06a');
+    if ((sc.props||{}).caps) [[240,180,-20],[420,140,15],[900,170,30],[1060,130,-10]].forEach(([x,y,r]) => { const c=A(g,'g',{transform:`translate(${x},${y}) rotate(${r})`}); P(c,'M-24,0 L0,-10 L24,0 L0,10Z','#1a1a1a'); A(c,'line',{x1:0,x2:10,y1:0,y2:18,stroke:'#ffc23d','stroke-width':2}); });
+  },
+  office(g,sc){
+    const o = Object.assign({lit:.5,lease:0,ruin:false}, sc.props||{});
+    sky(g); weather(g,sc.y);
+    const towers = [[20,170,330,'#5b6f8a'],[210,150,420,'#3f5068'],[380,200,480,'#6c7f96'],[600,180,380,'#2f3d52'],[800,160,450,'#58708e'],[980,200,360,'#465a75'],[1200,140,300,'#3a4a62']];
+    let rnd = 3; const r = () => (rnd = (rnd*9301+49297)%233280)/233280;
+    towers.forEach(([x,w,h,c],ti) => {
+      const top = G-40-h; R(g,x,top,w,h,c); R(g,x,top,w,10,d3.color(c).darker(.6).formatHex());
+      for (let yy=top+24; yy<G-60; yy+=28) for (let xx=x+12; xx<x+w-16; xx+=22) R(g,xx,yy,14,18, r()<o.lit ? '#ffe28a' : d3.color(c).darker(.9).formatHex());
+      if (ti < o.lease){ R(g,x+10,top+60,w-20,40,'#ffffff',{stroke:'#d63b2a','stroke-width':3}); Tt(g,x+w/2,top+88,'FOR LEASE',{'text-anchor':'middle','font-size':Math.min(22,w/7.5),fill:'#d63b2a'}); }
+      if (o.ruin && ti%2===0) P(g,`M${x+w*.3},${top+20} l18,40 l-14,30 l22,50 l-10,40`,'none',{stroke:'#11151c','stroke-width':3});
+    });
+    R(g,-1400,G-40,W+2800,40,'#a9aeb3'); ground(g,'#5f656c');
+    if (o.ruin){
+      R(g,1020,G-110,10,90,'#444'); R(g,960,G-150,130,50,'#d63b2a',{rx:4}); Tt(g,1025,G-117,'HIRING FREEZE',{'text-anchor':'middle','font-size':15,fill:'#fff'});
+      R(g,180,G-70,60,70,'#3c4a3e',{rx:6}); [[250,G+20,20],[300,G+40,-15],[380,G+15,35],[880,G+30,-25]].forEach(([x,y,rr]) => R(g,x,y,26,18,'#f2f2f2',{transform:`rotate(${rr},${x},${y})`,opacity:.85}));
+    }
+  }
+};
+
+/* ================= characters ================= */
+function person(g, o){
+  const S = 1.75, h = o.cm*S, feet = G - 4, x = o.x;
+  const hr = h * (o.age<3 ? .125 : o.age<8 ? .1 : o.age<13 ? .088 : o.age<17 ? .078 : .068);
+  const cy = feet - h + hr, neck = cy + hr, sh = neck + hr*.2, hip = feet - h*.47;
+  const tw = h*(o.age<13 ? .27 : .25), lw = tw*.36;
+  const g2 = A(g,'g',{class: o.talking && !REDUCED ? 'talk' : null});
+  A(g2,'ellipse',{cx:x,cy:feet+2,rx:tw*.9,ry:8,fill:'#000',opacity:.18});
+  const top = o.outfit==='uni' ? '#1e3765' : o.outfit==='suit' ? '#2b2f38' : o.outfit==='gown' ? '#151515' : o.top;
+  const bottom = o.outfit==='suit' ? '#2b2f38' : o.bottom;
+  if (o.hair==='long') A(g2,'ellipse',{cx:x,cy:cy+hr*.5,rx:hr*1.18,ry:hr*1.55,fill:o.hairColor});
+  // legs
+  R(g2,x-tw*.42,hip,lw,feet-hip-4,bottom,{rx:lw/2}); R(g2,x+tw*.42-lw,hip,lw,feet-hip-4,bottom,{rx:lw/2});
+  A(g2,'ellipse',{cx:x-tw*.42+lw/2-3,cy:feet-4,rx:lw*.75,ry:6,fill:'#222'}); A(g2,'ellipse',{cx:x+tw*.42-lw/2+3,cy:feet-4,rx:lw*.75,ry:6,fill:'#222'});
+  // torso and arms
+  const aw = tw*.22, al = (hip - sh)*1.02;
+  R(g2,x-tw/2-aw+3,sh+4,aw,al,top,{rx:aw/2}); R(g2,x+tw/2-3,sh+4,aw,al,top,{rx:aw/2});
+  Cc(g2,x-tw/2-aw/2+3,sh+4+al,aw*.55,o.skin); Cc(g2,x+tw/2+aw/2-3,sh+4+al,aw*.55,o.skin);
+  R(g2,x-tw/2,sh,tw,hip-sh+10,top,{rx:tw*.22});
+  if (o.outfit==='gown') P(g2,`M${x-tw/2},${sh+10} L${x+tw/2},${sh+10} L${x+tw*.75},${feet-30} L${x-tw*.75},${feet-30}Z`,'#151515');
+  if (o.outfit==='uni'){ Tt(g2,x,sh+(hip-sh)*.45,'TORONTO',{'text-anchor':'middle','font-size':Math.max(8,tw*.15),fill:'#fff'}); P(g2,`M${x-tw*.3},${sh} Q${x},${sh+16} ${x+tw*.3},${sh}`,'none',{stroke:'#fff','stroke-width':2}); }
+  if (o.outfit==='suit'){ P(g2,`M${x-tw*.18},${sh} L${x},${sh+(hip-sh)*.5} L${x+tw*.18},${sh}Z`,'#ffffff'); P(g2,`M${x-4},${sh+4} L${x+4},${sh+4} L${x+3},${sh+(hip-sh)*.42} L${x},${sh+(hip-sh)*.48} L${x-3},${sh+(hip-sh)*.42}Z`,'#c0392b'); }
+  if (o.outfit==='apron'){ R(g2,x-tw*.38,sh+(hip-sh)*.3,tw*.76,(hip-sh)*.8,'#6b4a33',{rx:6}); }
+  if (o.outfit==='hoodie') P(g2,`M${x-tw*.36},${sh+2} Q${x},${sh-hr*.5} ${x+tw*.36},${sh+2}`,'none',{stroke:d3.color(top).darker(.6).formatHex(),'stroke-width':6});
+  // head
+  R(g2,x-hr*.25,neck-4,hr*.5,hr*.4,o.skin);
+  Cc(g2,x-hr*.98,cy+hr*.1,hr*.18,o.skin); Cc(g2,x+hr*.98,cy+hr*.1,hr*.18,o.skin);
+  Cc(g2,x,cy,hr,o.skin);
+  if (o.beard) P(g2,`M${x-hr*.8},${cy+hr*.2} Q${x},${cy+hr*1.35} ${x+hr*.8},${cy+hr*.2} Q${x},${cy+hr*.75} ${x-hr*.8},${cy+hr*.2}Z`,o.hairColor,{opacity:.85});
+  P(g2,`M${x-hr*1.04},${cy+hr*.08} A${hr*1.04},${hr*1.1} 0 0 1 ${x+hr*1.04},${cy+hr*.08} Q${x+hr*.55},${cy-hr*.5} ${x+hr*.05},${cy-hr*.38} Q${x-hr*.6},${cy-hr*.52} ${x-hr*1.04},${cy+hr*.08}Z`,o.hairColor);
+  // face
+  const ey = cy + hr*.12, ex = hr*.36, er = Math.max(2, hr*.1), m = o.mood || 'neutral';
+  Cc(g2,x-ex,ey,er,'#1d1b33'); Cc(g2,x+ex,ey,er,'#1d1b33');
+  const by = ey - hr*.26, bw = hr*.22;
+  const brow = {happy:[0,0],neutral:[0,0],worried:[-4,4],sad:[-5,5],shocked:[-5,-5]}[m] || [0,0];
+  A(g2,'line',{x1:x-ex-bw,y1:by+(m==='worried'||m==='sad'?2:0),x2:x-ex+bw,y2:by+brow[0]*(hr/40),stroke:'#1d1b33','stroke-width':Math.max(2,hr*.07),'stroke-linecap':'round'});
+  A(g2,'line',{x1:x+ex-bw,y1:by+brow[0]*(hr/40),x2:x+ex+bw,y2:by+(m==='worried'||m==='sad'?2:0),stroke:'#1d1b33','stroke-width':Math.max(2,hr*.07),'stroke-linecap':'round'});
+  const my = cy + hr*.5, mw = hr*.32, sw = Math.max(2,hr*.07);
+  if (m==='happy') P(g2,`M${x-mw},${my-2} Q${x},${my+hr*.3} ${x+mw},${my-2}`,'none',{stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
+  else if (m==='sad') P(g2,`M${x-mw},${my+6} Q${x},${my-hr*.2} ${x+mw},${my+6}`,'none',{stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
+  else if (m==='worried') P(g2,`M${x-mw},${my+2} q${mw/2},-5 ${mw},0 t${mw},0`,'none',{stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
+  else if (m==='shocked') A(g2,'ellipse',{cx:x,cy:my+3,rx:hr*.13,ry:hr*.19,fill:'#1d1b33'});
+  else A(g2,'line',{x1:x-mw*.8,x2:x+mw*.8,y1:my+2,y2:my+2,stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
+  if (o.age < 13) { Cc(g2,x-hr*.62,cy+hr*.42,hr*.13,'#ff8fa3',{opacity:.5}); Cc(g2,x+hr*.62,cy+hr*.42,hr*.13,'#ff8fa3',{opacity:.5}); }
+  if (o.outfit==='gown'){ P(g2,`M${x-hr*1.3},${cy-hr*.75} L${x},${cy-hr*1.15} L${x+hr*1.3},${cy-hr*.75} L${x},${cy-hr*.35}Z`,'#151515'); A(g2,'line',{x1:x,y1:cy-hr*.75,x2:x+hr*1.1,y2:cy-hr*.2,stroke:'#ffc23d','stroke-width':3}); }
+  if (o.carry){ A(g2,'ellipse',{cx:x+tw*.1,cy:sh+(hip-sh)*.45,rx:tw*.55,ry:tw*.32,fill:'#bfe0f6'}); Cc(g2,x+tw*.45,sh+(hip-sh)*.33,tw*.2,LEO.skin); Cc(g2,x+tw*.5,sh+(hip-sh)*.3,2.5,'#1d1b33'); P(g2,`M${x+tw*.32},${sh+(hip-sh)*.2} q10,-10 20,0`,'none',{stroke:LEO.hairColor,'stroke-width':3}); }
+  return g2;
+}
+function leoOutfit(sc){
+  if (sc.outfit) return sc.outfit;
+  if (sc.age <= 1) return 'baby';
+  if (sc.age >= 13) return 'hoodie';
+  return 'tee';
+}
+function drawCast(sc, line){
+  gCast.selectAll('*').remove();
+  const who = line ? line[0] : null, mood = (line && line[0]==='LEO' && line[2]) || sc.mood || 'neutral';
+  const pmood = (line && (line[0]==='MOM'||line[0]==='DAD') && line[2]) || (sc.mood==='happy'?'happy':sc.mood==='worried'||sc.mood==='sad'?'worried':'neutral');
+  const many = sc.cast.length;
+  const pos = many===2 ? {mom:440, leo:640, dad:840} : many===1 ? {leo:560, [sc.cast[0]]:760} : {leo:640};
+  if (sc.cast.includes('mom')) person(gCast, Object.assign({}, MOM, {x:pos.mom, mood: who==='MOM' ? (line[2]||pmood) : pmood, talking: who==='MOM', carry: sc.age===0}));
+  if (sc.cast.includes('dad')) person(gCast, Object.assign({}, DAD, {x:pos.dad, mood: who==='DAD' ? (line[2]||pmood) : pmood, talking: who==='DAD'}));
+  if (sc.age === 0) return;
+  const cols = {5:['#ffc23d','#3d6fb6'],9:['#e2483a','#34405e'],10:['#3fbf8f','#34405e'],13:['#8b8fa0','#2a3046'],15:['#2fa3b5','#2a3046'],17:['#f4efe6','#2a3046']};
+  const c = cols[sc.age] || ['#f6e7a8','#f6e7a8'];
+  person(gCast, Object.assign({}, LEO, {x:pos.leo, cm:HEIGHT[sc.age]||181, age:sc.age, outfit:leoOutfit(sc), top: leoOutfit(sc)==='baby' ? '#f6e7a8' : c[0], bottom: leoOutfit(sc)==='baby' ? '#f6e7a8' : c[1], mood, talking: who==='LEO'}));
+}
+
+/* ================= rain + lightning ================= */
+const cv = $('rain'), ctx = cv.getContext('2d');
+let drops = Array.from({length:260}, () => ({x:Math.random(), y:Math.random(), l:.5+Math.random()*.5}));
+let rainAmt = 0, lightning = false, nextFlash = 0;
+function sizeCanvas(){ const d = devicePixelRatio||1; cv.width = cv.clientWidth*d; cv.height = cv.clientHeight*d; }
+new ResizeObserver(sizeCanvas).observe($('stage')); sizeCanvas();
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(.05,(now-lastT)/1000); lastT = now;
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  const n = Math.round(rainAmt*drops.length);
+  if (n){
+    const w = cv.width, h = cv.height, d = devicePixelRatio||1;
+    ctx.strokeStyle = `rgba(200,215,235,${.35+.35*rainAmt})`; ctx.lineWidth = 1.2*d; ctx.beginPath();
+    for (let i=0;i<n;i++){ const r = drops[i]; if (!REDUCED){ r.y += dt*(1.2+r.l); if (r.y>1){ r.y-=1; r.x=Math.random(); } }
+      const x = r.x*w - r.y*40*d, y = r.y*h; ctx.moveTo(x,y); ctx.lineTo(x-4*d, y+16*r.l*d); }
+    ctx.stroke();
+  }
+  if (lightning && !REDUCED && now > nextFlash){
+    nextFlash = now + 3500 + Math.random()*5000;
+    const f = $('flash'); f.animate([{opacity:0},{opacity:.55},{opacity:0},{opacity:.35},{opacity:0}],{duration:600});
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ================= playback ================= */
+const OUTDOOR = new Set(['playground','street','campus','robarts','convocation','office']);
+let typing = null;
+function renderScene(sc){
+  setSky(sc.y);
+  gBg.selectAll('*').remove();
+  BG[sc.bg](gBg, sc);
+  const t = storm(sc.y);
+  rainAmt = OUTDOOR.has(sc.bg) ? clamp((sc.y-4.6)/2.6, 0, 1) : 0;
+  lightning = OUTDOOR.has(sc.bg) && sc.y >= 6.8;
+  shade.attr('opacity', OUTDOOR.has(sc.bg) ? t*.18 : t*.28);
+  // HUD
+  $('hudYear').textContent = sc.year;
+  $('hudWho').textContent = sc.age === 0 ? 'Leo, newborn' : `Leo, age ${sc.age}`;
+  $('hudYield').textContent = sc.y.toFixed(2) + '%';
+  $('hudYield').style.color = sc.y >= 5 ? 'var(--hot)' : sc.y < 2.5 ? 'var(--calm)' : 'var(--text)';
+  const lbl = sc.future ? '<span class="tag what">WHAT IF</span> 10-yr yield' : sc.year === 2026 ? 'Oct 5 close · 10-yr' : 'US 10-yr · year avg';
+  $('hudYieldLbl').innerHTML = `${lbl} · ${wxName(sc.y)}`;
+  drawTrack(sc.year + (sc.year===2026 ? 0.5 : 0), sc.y);
+}
+function showLine(){
+  const sc = story[si], line = sc.lines[li];
+  drawCast(sc, line);
+  const s = SPK[line[0]];
+  $('who').textContent = s.label || line[0];
+  $('who').style.background = s.c;
+  const tag = $('whoTag');
+  if (s.tag){ tag.hidden = false; tag.className = 'tag ' + s.tag; tag.textContent = s.tag==='real' ? 'REAL DATA' : 'IMAGINED'; } else tag.hidden = true;
+  const text = line[1];
+  const el = $('line');
+  clearInterval(typing);
+  if (REDUCED){ el.textContent = text; }
+  else { let k = 0; el.textContent = ''; typing = setInterval(() => { k += 2; el.textContent = text.slice(0,k); if (k >= text.length){ clearInterval(typing); typing = null; } }, 18); }
+  const total = story.filter(s=>!s.choice).reduce((a,s)=>a+s.lines.length,0);
+  const done = story.slice(0,si).filter(s=>!s.choice).reduce((a,s)=>a+s.lines.length,0) + li + 1;
+  $('progress').textContent = `${done} / ${total}`;
+  $('back').disabled = si === 0 && li === 0;
+}
+function goScene(i, lineIdx=0){
+  const stage = $('stage');
+  const sc = story[i];
+  const swap = () => {
+    si = i; li = lineIdx;
+    renderScene(sc);
+    if (sc.choice){ enterChoice(); }
+    else { $('chooser').hidden = true; $('talkbox').hidden = false; showLine(); }
+    stage.classList.remove('fading');
+  };
+  if (REDUCED){ swap(); return; }
+  stage.classList.add('fading'); setTimeout(swap, 330);
+}
+function startStory(){ $('titleCard').hidden = true; }
+function next(){
+  if (!$('titleCard').hidden){ startStory(); next(); return; }
+  if (!$('endCard').hidden || story[si].choice) return;
+  if (typing){ clearInterval(typing); typing = null; $('line').textContent = story[si].lines[li][1]; return; }
+  if (li < story[si].lines.length-1){ li++; showLine(); return; }
+  if (si < story.length-1){ goScene(si+1); return; }
+  finish();
+}
+function back(){
+  if (story[si].choice) return;
+  if (li > 0){ li--; showLine(); return; }
+  if (si > 0){ const p = si-1; if (story[p].choice) return; goScene(p, story[p].lines.length-1); }
+}
+
+/* ================= choice ================= */
+function enterChoice(){
+  mode = 'choice';
+  $('talkbox').hidden = true; $('chooser').hidden = false;
+  drawCast(story[si], ['LEO','','neutral']);
+  updatePick();
+  $('pick').focus({preventScroll:true});
+}
+function updatePick(){
+  const R = +$('pick').value, f = future(R);
+  pathYs = f.ys;
+  $('pickVal').textContent = R.toFixed(1) + '%';
+  $('pickBand').textContent = f.b.name; $('pickBand').style.color = R >= 5 ? 'var(--hot)' : R < 3.5 ? 'var(--calm)' : 'var(--sun)';
+  $('pickHint').textContent = `${f.b.hint} Parents’ 2027 renewal: ${fmt$(f.P27)}/mo (${f.d>=0?'+':'−'}${fmt$(Math.abs(f.d))}).`;
+  const sc = story[si]; sc.y = TODAY + (R-TODAY)*.35;     // preview the coming weather over campus
+  setSky(sc.y); gBg.selectAll('*').remove(); BG.campus(gBg, sc);
+  rainAmt = clamp((sc.y-4.6)/2.6,0,1); lightning = false; shade.attr('opacity', storm(sc.y)*.18);
+  drawCast(sc, ['LEO','', R >= 6.5 ? 'worried' : R < 3.5 ? 'happy' : 'neutral']);
+  drawTrack(2026.5, TODAY);
+  $('hudYield').textContent = TODAY.toFixed(2) + '%';
+}
+$('pick').addEventListener('input', updatePick);
+$('liveBtn').addEventListener('click', () => {
+  chosen = future(+$('pick').value);
+  pathYs = chosen.ys; mode = 'branch';
+  const choiceScene = {choice:true, year:2026, age:19, y:TODAY, bg:'campus', outfit:'uni', cast:[], mood:'neutral', lines:[]};
+  story = [choiceScene].concat(chosen.scenes);
+  goScene(1);
+});
+function finish(){
+  if (mode === 'main'){ return; }
+  const f = chosen;
+  $('endInner').innerHTML = `
+    <div class="row"><span class="tag what">YOUR FUTURE</span><span class="tag real">REAL RATES UNTIL OCT 2026</span></div>
+    <h2>${f.b.name}: 10-yr yield at ${f.R.toFixed(1)}% by 2030</h2>
+    <dl class="stats">
+      <dt>Parents’ mortgage in 2022</dt><dd>${fmt$(P22)}/mo</dd>
+      <dt>After the 2027 renewal at ${f.m27.toFixed(1)}%</dt><dd style="color:${f.d>0?'var(--hot)':'var(--calm)'}">${fmt$(f.P27)}/mo</dd>
+      <dt>Career-fair booths hiring in 2028</dt><dd>${story[2].props.booths} of 5</dd>
+      <dt>Leo in 2030</dt><dd>${{A:'Bay Street job',B:'Job at a smaller firm',C:'Six-month contract',D:'Moving back home'}[f.b.id]}</dd>
+    </dl>
+    <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: FRED (GS10, DGS10), Bank of Canada, Statistics Canada.</p>
+    <div class="row">
+      <button class="btn" id="againBtn">Choose another future</button>
+      <button class="btn ghost" id="replayBtn">Replay from 2007</button>
+      <a class="btn ghost" href="https://claude.ai/artifact/J9gyGiXFkU67AMGexurjUA" target="_blank" rel="noopener">See the data ▸</a>
+    </div>`;
+  $('endCard').hidden = false;
+  $('againBtn').onclick = () => { $('endCard').hidden = true; goScene(0); };
+  $('replayBtn').onclick = () => { $('endCard').hidden = true; restartMain(); };
+}
+function restartMain(){
+  MAIN = future(7.4);
+  MAIN.scenes[MAIN.scenes.length-1].lines.push(['WHATIF','That was one possible future. Let’s go back to October 2026, the day Leo started university. This time, you choose where rates go.']);
+  story = PAST.concat(MAIN.scenes, [{choice:true, year:2026, age:19, y:TODAY, bg:'campus', outfit:'uni', cast:[], mood:'neutral', lines:[]}]);
+  pathYs = MAIN.ys; mode = 'main'; goScene(0);
+}
+
+/* ================= wiring ================= */
+$('next').addEventListener('click', next);
+$('back').addEventListener('click', back);
+$('stage').addEventListener('click', e => { if (e.target.closest('.overlay')) return; next(); });
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,a')) return;
+  if (e.target.matches('button') && (e.key==='Enter' || e.key===' ')) return;
+  if (['ArrowRight','Enter',' '].includes(e.key)){ e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft'){ e.preventDefault(); back(); }
+});
+$('startBtn').addEventListener('click', () => { $('titleCard').hidden = true; $('next').focus(); });
+$('skipBtn').addEventListener('click', () => { $('titleCard').hidden = true; goScene(PAST.length-1); });
+
+// first frame: 2007 behind the title card
+renderScene(story[0]); showLine(); clearInterval(typing); typing = null; $('line').textContent = story[0].lines[0][1];
+</script>

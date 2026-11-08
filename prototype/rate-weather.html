@@ -1,0 +1,1014 @@
+<title>5.31% Weather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one long scroll story. Hero, then five numbered acts in sequence, then a coda.
+   The city (Act 4) is the widest band; everything else sits in a ~1180px column.
+   Deliberately single-theme: a pale "weather-map" daylight paper, so the storm reads as storm. */
+:root{
+  --paper:#e7ecef; --paper-2:#dbe2e7; --card:#f4f7f8; --ink:#15202b; --ink-2:#4b5967; --rule:#c2ccd4;
+  --signal:#d0442a; --sun:#efb135; --storm:#3d4957; --calm:#2e8466; --rail:#15202b;
+  --sky-top:#bcdcec; --sky-bot:#eef4f3;
+  --display:"Big Shoulders Display","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin-inline:auto;padding-inline:max(16px,4vw)}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:.95;text-wrap:balance;margin:0;letter-spacing:.005em}
+h2{font-size:clamp(2.4rem,6vw,4.2rem);text-transform:uppercase}
+h3{font-size:1.6rem;text-transform:uppercase}
+p{margin:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+button,input{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.btn{font-family:var(--mono);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);padding:.55em 1em;border-radius:999px}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn[disabled]{opacity:.4;cursor:not-allowed;background:var(--card);color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.primary:hover{background:var(--signal);border-color:var(--signal)}
+.chip{font-family:var(--mono);font-size:.76rem;border:1.5px solid var(--rule);background:var(--card);color:var(--ink);padding:.4em .8em;border-radius:999px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.note{font-size:.82rem;color:var(--ink-2);font-style:italic}
+svg text{font-family:var(--mono)}
+
+/* ---------- hero ---------- */
+.hero{padding-block:clamp(40px,7vw,88px) clamp(32px,5vw,56px)}
+.hero .big{font-family:var(--display);font-weight:900;font-size:clamp(6.5rem,24vw,17rem);line-height:.8;color:var(--signal);letter-spacing:-.01em;margin-block:.12em .08em}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:end}
+.hero .lede{font-size:clamp(1.15rem,2.2vw,1.45rem);line-height:1.4}
+.hero .lede strong{color:var(--signal)}
+#heroSpark{width:100%;height:auto;display:block}
+.scrollcue{margin-top:28px;display:flex;gap:10px;align-items:center}
+
+/* ---------- acts ---------- */
+.act{padding-block:clamp(56px,8vw,104px);border-top:1.5px solid var(--ink)}
+.act-head{display:grid;gap:14px;margin-bottom:clamp(24px,4vw,40px)}
+.act-head .eyebrow b{color:var(--signal);font-weight:600}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:10px}
+
+/* draw */
+.draw-box{padding:clamp(12px,2vw,20px)}
+#draw{width:100%;height:auto;display:block;touch-action:none;cursor:crosshair;user-select:none}
+.draw-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px}
+#drawResult{font-size:1.05rem;min-height:1.6em}
+#drawResult b{color:var(--signal)}
+
+/* scrolly */
+.scrolly{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,8fr);gap:clamp(20px,3vw,40px)}
+.scrolly .fig{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6vh);align-self:start;padding:12px}
+#ride{width:100%;height:auto;display:block}
+.steps{padding-block:10vh 30vh}
+.step{min-height:72vh;display:flex;align-items:center}
+.step .card{padding:20px 22px;border-left:4px solid var(--rule);background:var(--card);border-radius:0 10px 10px 0;opacity:.45;transition:opacity .4s,border-color .4s}
+.step.active .card{opacity:1;border-color:var(--signal)}
+.step .card .yr{font-family:var(--display);font-weight:900;font-size:2.6rem;line-height:1}
+.step .card .yr span{color:var(--signal)}
+.step .card p{margin-top:8px}
+
+/* dominoes */
+.dominoes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;perspective:900px}
+.domino{padding:14px 14px 12px;display:flex;flex-direction:column;gap:8px;transform-origin:100% 100%;background:var(--card);border:1.5px solid var(--ink);border-radius:8px;min-width:0}
+.domino .k{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.domino .v{font-family:var(--display);font-weight:900;font-size:2.3rem;line-height:1}
+.domino p{font-size:.86rem;line-height:1.4}
+.domino svg{width:100%;height:auto;display:block}
+.domino.you{background:var(--ink);color:var(--paper)}
+.domino.you .k{color:#aebbc6}
+.domino.tip{animation:tip .55s cubic-bezier(.5,0,.4,1)}
+@keyframes tip{0%{transform:rotate(0)}45%{transform:rotate(9deg)}100%{transform:rotate(0)}}
+.domino.shake{animation:shake .6s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.domino .line-draw{stroke-dasharray:var(--len);stroke-dashoffset:0}
+.domino.tip .line-draw{animation:draw 1.1s ease-out}
+@keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+
+/* city */
+.dial{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 28px;align-items:center;padding:18px 20px;margin-bottom:16px}
+.dial .read{font-family:var(--display);font-weight:900;font-size:clamp(3.2rem,8vw,4.8rem);line-height:.85}
+.dial .wx{font-family:var(--mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.dial input[type=range]{width:100%;accent-color:var(--ink)}
+.zones{display:grid;grid-template-columns:20fr 20fr 20fr 40fr;font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin-top:2px}
+.zones span{border-top:5px solid;padding-top:4px}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.city-wrap{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}
+.stage{position:relative;border-radius:12px;overflow:hidden;background:linear-gradient(to bottom,var(--sky-top),var(--sky-bot));border:1px solid var(--rule)}
+.stage svg{display:block;width:100%;height:auto}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.district{cursor:pointer}
+.district:focus{outline:none}
+.district:focus-visible .hit{stroke:var(--signal);stroke-width:3}
+.side{padding:18px;display:grid;gap:14px;min-width:0}
+.side h3{font-size:1.9rem}
+.meter{display:flex;gap:4px}
+.meter i{width:18px;height:8px;border-radius:2px;background:var(--rule)}
+.meter i.on{background:var(--signal)}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:.9rem}
+.kv dt{color:var(--ink-2)}
+.kv dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.side p{font-size:.92rem;line-height:1.45}
+.majors{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;align-items:center}
+#forecast{margin-top:10px;font-size:1rem;min-height:1.5em}
+.legend-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:.8rem;color:var(--ink-2)}
+
+/* budget */
+.budget{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+#box{width:100%;height:auto;display:block}
+.persona-row{display:flex;flex-wrap:wrap;gap:8px}
+.ctrl{padding:18px;display:grid;gap:14px}
+.ctrl input[type=range]{width:100%;accent-color:var(--signal)}
+.readouts{display:grid;gap:10px}
+.readouts .r{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--rule);padding-bottom:6px;font-size:.95rem}
+.readouts .r b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.readouts .r.hot b{color:var(--signal)}
+.ticks{position:relative;height:18px;font-family:var(--mono);font-size:.66rem;color:var(--ink-2)}
+.ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+
+/* coda */
+.worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.world{padding:22px}
+.world.then{background:#eaf3ee;border-color:#b9d5c6}
+.world.now{background:#3d4957;color:#eef2f4;border-color:#3d4957}
+.world .y{font-family:var(--display);font-weight:900;font-size:3rem;line-height:1}
+.world dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;margin:16px 0 0}
+.world dt{font-size:.92rem;opacity:.85}
+.world dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.sources{font-size:.85rem;color:var(--ink-2);display:grid;gap:10px;margin-top:32px}
+.sources ul{margin:0;padding-left:1.1em;display:grid;gap:4px}
+
+@media (max-width:860px){
+  .hero-grid,.budget,.city-wrap,.worlds{grid-template-columns:minmax(0,1fr)}
+  .scrolly{grid-template-columns:minmax(0,1fr)}
+  .scrolly .fig{top:env(safe-area-inset-top,0px);z-index:3;background:var(--paper);padding:6px 0;border-bottom:1px solid var(--rule)}
+  .scrolly .steps{order:2;padding-block:4vh 20vh}
+  .step{min-height:60vh}
+  .step .card{opacity:.75}
+  .dominoes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .domino.you{grid-column:1/-1}
+  .dial{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .domino.tip,.domino.shake,.domino.tip .line-draw{animation:none}
+  .step .card{transition:none}
+}
+</style>
+
+<header class="hero wrap">
+  <div class="eyebrow">US 10-year Treasury yield · close of October 5, 2026</div>
+  <div class="hero-grid">
+    <div>
+      <div class="big num" aria-label="5.31 percent">5.31%</div>
+      <p class="lede">The interest rate the US government pays to borrow for ten years. It's the <strong>highest it has been since May 2002</strong>, before most U of T students were born. Wall Street is worried. Should you be?</p>
+    </div>
+    <div>
+      <svg id="heroSpark" viewBox="0 0 420 190" role="img" aria-label="Daily 10-year yield over the past year"></svg>
+      <div class="scrollcue"><span class="eyebrow">A forecast for the class of 2027 · scroll</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ACT 1 -->
+<section class="act" id="guess">
+  <div class="wrap">
+    <div class="act-head">
+      <div class="eyebrow"><b>Act 1</b> · Your guess</div>
+      <h2>Draw what happened next</h2>
+      <p>In 2020 the 10-year yield fell to 0.6%, the lowest ever recorded. Borrowing was almost free. Drag across the chart to draw where you think it went from there.</p>
+    </div>
+    <div class="panel draw-box">
+      <svg id="draw" viewBox="0 0 760 380" role="img" aria-label="Chart to draw your guess of the yield from 2021 to 2026"></svg>
+      <div class="draw-bar">
+        <button class="btn primary" id="reveal" disabled>Show me the real line</button>
+        <button class="btn" id="redraw">Clear</button>
+        <div id="drawResult">Draw all the way to 2026 to unlock the answer.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ACT 2 -->
+<section class="act" id="ride-act">
+  <div class="wrap">
+    <div class="act-head">
+      <div class="eyebrow"><b>Act 2</b> · 64 years on the track</div>
+      <h2>Ride the rollercoaster</h2>
+      <p>The track is the real 10-year yield, month by month since 1962. Grey bands are US recessions. The cart is you. Scroll to move it from station to station.</p>
+    </div>
+    <div class="scrolly">
+      <div class="steps" id="steps">
+        <div class="step" data-date="1962-01"><div class="card"><div class="yr">1962 <span>4.1%</span></div><p>The ride starts here. For two decades, rates climb along with inflation.</p></div></div>
+        <div class="step" data-date="1981-09"><div class="card"><div class="yr">1981 <span>15.3%</span></div><p>The all-time peak. The Fed pushed rates up to crush inflation, and US 30-year mortgages hit 18.6%. Two recessions arrived back to back.</p></div></div>
+        <div class="step" data-date="1994-11"><div class="card"><div class="yr">1994 <span>8.0%</span></div><p>Yields jumped from 5.8% to 8.0% in ten months. Traders called it the bond massacre. <b>But no recession followed.</b> A climb is a warning, not a verdict.</p></div></div>
+        <div class="step" data-date="2000-01"><div class="card"><div class="yr">2000 <span>6.7%</span></div><p>The top of the dot-com boom. A recession followed in 2001, and thousands of tech startups disappeared.</p></div></div>
+        <div class="step" data-date="2007-06"><div class="card"><div class="yr">2007 <span>5.1%</span></div><p>The last time the yield sat near 5%. Within months, the housing market cracked, and the 2008 financial crisis brought the worst job losses in decades.</p></div></div>
+        <div class="step" data-date="2020-07"><div class="card"><div class="yr">2020 <span>0.6%</span></div><p>Rock bottom. Money was nearly free, and Toronto home prices took off.</p></div></div>
+        <div class="step" data-date="2026-10"><div class="card"><div class="yr">2026 <span>5.3%</span></div><p>You are here. The steepest climb since the early 1980s has carried the yield to its highest level since 2002. What comes next isn't written yet.</p></div></div>
+      </div>
+      <div class="fig panel"><svg id="ride" viewBox="0 0 900 520" role="img" aria-label="10-year Treasury yield, 1962 to 2026, with recessions shaded"></svg></div>
+    </div>
+  </div>
+</section>
+
+<!-- ACT 3 -->
+<section class="act" id="domino-act">
+  <div class="wrap">
+    <div class="act-head">
+      <div class="eyebrow"><b>Act 3</b> · From Wall Street to Toronto</div>
+      <h2>The domino chain</h2>
+      <p>Each domino is a real dataset, 2019 to today. A higher safe rate on US bonds pushes up Canadian bond yields, which push up what banks charge for mortgages, which slows building, which reaches the job market you're about to enter.</p>
+    </div>
+    <div class="dominoes" id="dominoes"></div>
+    <div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn primary" id="push">Push the first domino</button>
+      <span class="note">Chains like this play out over months to years, and other forces push on every link.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ACT 4 -->
+<section class="act" id="city-act">
+  <div class="wrap">
+    <div class="act-head">
+      <div class="eyebrow"><b>Act 4</b> · The forecast</div>
+      <h2>Weather over the job market</h2>
+      <p>Each district is an Ontario industry, and the number of walkers is its real employment (one walker ≈ 20,000 jobs). Turn the dial to change the 10-year yield. Industries that run on borrowed money get the storm first. Click a district to compare its real job numbers with the forecast.</p>
+    </div>
+    <div class="panel dial">
+      <div>
+        <div class="read num" id="dialRead">5.31%</div>
+        <div class="wx" id="dialWx">Storm</div>
+      </div>
+      <div>
+        <label for="yield" class="eyebrow">US 10-year yield</label>
+        <input type="range" id="yield" min="0.5" max="8" step="0.01" value="5.31">
+        <div class="zones" aria-hidden="true">
+          <span style="border-color:#efb135">Sunny</span><span style="border-color:#9fb4c2">Cloudy</span><span style="border-color:#6c7c8b">Showers</span><span style="border-color:#3d4957">Storm</span>
+        </div>
+        <div class="presets">
+          <button class="chip" data-y="0.62">Jul 2020 · 0.62%</button>
+          <button class="chip" data-y="1.47">Dec 2021 · 1.47%</button>
+          <button class="chip" data-y="5.10">Jun 2007 · 5.10%</button>
+          <button class="chip" data-y="5.31">Today · 5.31%</button>
+          <button class="chip" data-y="7.96">1994 peak · 7.96%</button>
+        </div>
+      </div>
+    </div>
+    <div class="city-wrap">
+      <div>
+        <div class="stage" id="stage">
+          <svg id="city" viewBox="0 0 880 650" role="img" aria-label="Isometric city of nine Ontario industries under changing weather"></svg>
+          <canvas id="cityCanvas"></canvas>
+        </div>
+        <div class="majors" role="group" aria-label="Your program">
+          <span class="eyebrow">I'm studying</span>
+          <button class="chip" data-major="cs" aria-pressed="false">Computer Science</button>
+          <button class="chip" data-major="eng" aria-pressed="false">Engineering</button>
+          <button class="chip" data-major="com" aria-pressed="false">Commerce</button>
+          <button class="chip" data-major="arch" aria-pressed="false">Architecture</button>
+          <button class="chip" data-major="life" aria-pressed="false">Life Sci / Nursing</button>
+          <button class="chip" data-major="hum" aria-pressed="false">Humanities / Social Sci</button>
+        </div>
+        <div id="forecast">Pick your program to find where you'll be standing.</div>
+      </div>
+      <aside class="panel side" id="side" aria-live="polite"></aside>
+    </div>
+  </div>
+</section>
+
+<!-- ACT 5 -->
+<section class="act" id="budget-act">
+  <div class="wrap">
+    <div class="act-head">
+      <div class="eyebrow"><b>Act 5</b> · Your wallet</div>
+      <h2>The budget box</h2>
+      <p>The box is one month of take-home pay. Hatched blocks are fixed costs you can't skip. Dashed blocks are the things you'd like to keep. When the borrowing rate rises, the fixed costs grow and push the fun out of the box.</p>
+    </div>
+    <div class="budget">
+      <div class="panel" style="padding:10px"><svg id="box" viewBox="0 0 640 480" role="img" aria-label="Monthly budget box"></svg></div>
+      <div class="panel ctrl">
+        <div class="persona-row" role="group" aria-label="Persona">
+          <button class="chip" data-p="lydia" aria-pressed="true">Lydia, 27</button>
+          <button class="chip" data-p="jacob" aria-pressed="false">Jacob, 23</button>
+          <button class="chip" data-p="matthew" aria-pressed="false">Matthew, 41</button>
+        </div>
+        <p id="pBlurb" style="font-size:.95rem"></p>
+        <div>
+          <label for="rate" class="eyebrow">5-year fixed mortgage rate: <b id="rateRead" class="num" style="color:var(--signal)"></b></label>
+          <input type="range" id="rate" min="1.5" max="8" step="0.05">
+          <div class="ticks" id="rateTicks"></div>
+        </div>
+        <div class="readouts" id="readouts"></div>
+        <p class="note">Personas are illustrative. Mortgage rate ≈ Government of Canada 5-year yield + 1.5 points (our assumption); payments use Canadian semi-annual compounding.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CODA -->
+<section class="act" id="coda">
+  <div class="wrap">
+    <div class="act-head">
+      <div class="eyebrow">Coda · Same graduate, two worlds</div>
+      <h2>Four years apart</h2>
+      <p>Nothing about Lydia changed: same salary, same condo. The only difference is the weather.</p>
+    </div>
+    <div class="worlds" id="worlds"></div>
+    <div class="sources">
+      <strong class="eyebrow">Sources & methods</strong>
+      <ul>
+        <li>US 10-year Treasury yield (GS10 monthly, DGS10 daily), US recessions (USREC), 30-year mortgage rate (MORTGAGE30US): FRED, Federal Reserve Bank of St. Louis.</li>
+        <li>Government of Canada 5-year benchmark bond yield (BD.CDN.5YR.DQ.YLD): Bank of Canada Valet API.</li>
+        <li>Ontario employment by industry, seasonally adjusted: Statistics Canada, Labour Force Survey, Table 14-10-0355-01.</li>
+        <li>Rate exposure ratings (1–5) are our simplified classification of how much each industry depends on borrowing and big financed purchases. Weather intensity is illustrative, not a forecast.</li>
+        <li>Data current to October 8, 2026. October 2026 values are month-to-date averages.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const B = {"gs10":[["1962-01",4.08],["1962-02",4.04],["1962-03",3.93],["1962-04",3.84],["1962-05",3.87],["1962-06",3.91],["1962-07",4.01],["1962-08",3.98],["1962-09",3.98],["1962-10",3.93],["1962-11",3.92],["1962-12",3.86],["1963-01",3.83],["1963-02",3.92],["1963-03",3.93],["1963-04",3.97],["1963-05",3.93],["1963-06",3.99],["1963-07",4.02],["1963-08",4.0],["1963-09",4.08],["1963-10",4.11],["1963-11",4.12],["1963-12",4.13],["1964-01",4.17],["1964-02",4.15],["1964-03",4.22],["1964-04",4.23],["1964-05",4.2],["1964-06",4.17],["1964-07",4.19],["1964-08",4.19],["1964-09",4.2],["1964-10",4.19],["1964-11",4.15],["1964-12",4.18],["1965-01",4.19],["1965-02",4.21],["1965-03",4.21],["1965-04",4.2],["1965-05",4.21],["1965-06",4.21],["1965-07",4.2],["1965-08",4.25],["1965-09",4.29],["1965-10",4.35],["1965-11",4.45],["1965-12",4.62],["1966-01",4.61],["1966-02",4.83],["1966-03",4.87],["1966-04",4.75],["1966-05",4.78],["1966-06",4.81],["1966-07",5.02],["1966-08",5.22],["1966-09",5.18],["1966-10",5.01],["1966-11",5.16],["1966-12",4.84],["1967-01",4.58],["1967-02",4.63],["1967-03",4.54],["1967-04",4.59],["1967-05",4.85],["1967-06",5.02],["1967-07",5.16],["1967-08",5.28],["1967-09",5.3],["1967-10",5.48],["1967-11",5.75],["1967-12",5.7],["1968-01",5.53],["1968-02",5.56],["1968-03",5.74],["1968-04",5.64],["1968-05",5.87],["1968-06",5.72],["1968-07",5.5],["1968-08",5.42],["1968-09",5.46],["1968-10",5.58],["1968-11",5.7],["1968-12",6.03],["1969-01",6.04],["1969-02",6.19],["1969-03",6.3],["1969-04",6.17],["1969-05",6.32],["1969-06",6.57],["1969-07",6.72],["1969-08",6.69],["1969-09",7.16],["1969-10",7.1],["1969-11",7.14],["1969-12",7.65],["1970-01",7.79],["1970-02",7.24],["1970-03",7.07],["1970-04",7.39],["1970-05",7.91],["1970-06",7.84],["1970-07",7.46],["1970-08",7.53],["1970-09",7.39],["1970-10",7.33],["1970-11",6.84],["1970-12",6.39],["1971-01",6.24],["1971-02",6.11],["1971-03",5.7],["1971-04",5.83],["1971-05",6.39],["1971-06",6.52],["1971-07",6.73],["1971-08",6.58],["1971-09",6.14],["1971-10",5.93],["1971-11",5.81],["1971-12",5.93],["1972-01",5.95],["1972-02",6.08],["1972-03",6.07],["1972-04",6.19],["1972-05",6.13],["1972-06",6.11],["1972-07",6.11],["1972-08",6.21],["1972-09",6.55],["1972-10",6.48],["1972-11",6.28],["1972-12",6.36],["1973-01",6.46],["1973-02",6.64],["1973-03",6.71],["1973-04",6.67],["1973-05",6.85],["1973-06",6.9],["1973-07",7.13],["1973-08",7.4],["1973-09",7.09],["1973-10",6.79],["1973-11",6.73],["1973-12",6.74],["1974-01",6.99],["1974-02",6.96],["1974-03",7.21],["1974-04",7.51],["1974-05",7.58],["1974-06",7.54],["1974-07",7.81],["1974-08",8.04],["1974-09",8.04],["1974-10",7.9],["1974-11",7.68],["1974-12",7.43],["1975-01",7.5],["1975-02",7.39],["1975-03",7.73],["1975-04",8.23],["1975-05",8.06],["1975-06",7.86],["1975-07",8.06],["1975-08",8.4],["1975-09",8.43],["1975-10",8.14],["1975-11",8.05],["1975-12",8.0],["1976-01",7.74],["1976-02",7.79],["1976-03",7.73],["1976-04",7.56],["1976-05",7.9],["1976-06",7.86],["1976-07",7.83],["1976-08",7.77],["1976-09",7.59],["1976-10",7.41],["1976-11",7.29],["1976-12",6.87],["1977-01",7.21],["1977-02",7.39],["1977-03",7.46],["1977-04",7.37],["1977-05",7.46],["1977-06",7.28],["1977-07",7.33],["1977-08",7.4],["1977-09",7.34],["1977-10",7.52],["1977-11",7.58],["1977-12",7.69],["1978-01",7.96],["1978-02",8.03],["1978-03",8.04],["1978-04",8.15],["1978-05",8.35],["1978-06",8.46],["1978-07",8.64],["1978-08",8.41],["1978-09",8.42],["1978-10",8.64],["1978-11",8.81],["1978-12",9.01],["1979-01",9.1],["1979-02",9.1],["1979-03",9.12],["1979-04",9.18],["1979-05",9.25],["1979-06",8.91],["1979-07",8.95],["1979-08",9.03],["1979-09",9.33],["1979-10",10.3],["1979-11",10.65],["1979-12",10.39],["1980-01",10.8],["1980-02",12.41],["1980-03",12.75],["1980-04",11.47],["1980-05",10.18],["1980-06",9.78],["1980-07",10.25],["1980-08",11.1],["1980-09",11.51],["1980-10",11.75],["1980-11",12.68],["1980-12",12.84],["1981-01",12.57],["1981-02",13.19],["1981-03",13.12],["1981-04",13.68],["1981-05",14.1],["1981-06",13.47],["1981-07",14.28],["1981-08",14.94],["1981-09",15.32],["1981-10",15.15],["1981-11",13.39],["1981-12",13.72],["1982-01",14.59],["1982-02",14.43],["1982-03",13.86],["1982-04",13.87],["1982-05",13.62],["1982-06",14.3],["1982-07",13.95],["1982-08",13.06],["1982-09",12.34],["1982-10",10.91],["1982-11",10.55],["1982-12",10.54],["1983-01",10.46],["1983-02",10.72],["1983-03",10.51],["1983-04",10.4],["1983-05",10.38],["1983-06",10.85],["1983-07",11.38],["1983-08",11.85],["1983-09",11.65],["1983-10",11.54],["1983-11",11.69],["1983-12",11.83],["1984-01",11.67],["1984-02",11.84],["1984-03",12.32],["1984-04",12.63],["1984-05",13.41],["1984-06",13.56],["1984-07",13.36],["1984-08",12.72],["1984-09",12.52],["1984-10",12.16],["1984-11",11.57],["1984-12",11.5],["1985-01",11.38],["1985-02",11.51],["1985-03",11.86],["1985-04",11.43],["1985-05",10.85],["1985-06",10.16],["1985-07",10.31],["1985-08",10.33],["1985-09",10.37],["1985-10",10.24],["1985-11",9.78],["1985-12",9.26],["1986-01",9.19],["1986-02",8.7],["1986-03",7.78],["1986-04",7.3],["1986-05",7.71],["1986-06",7.8],["1986-07",7.3],["1986-08",7.17],["1986-09",7.45],["1986-10",7.43],["1986-11",7.25],["1986-12",7.11],["1987-01",7.08],["1987-02",7.25],["1987-03",7.25],["1987-04",8.02],["1987-05",8.61],["1987-06",8.4],["1987-07",8.45],["1987-08",8.76],["1987-09",9.42],["1987-10",9.52],["1987-11",8.86],["1987-12",8.99],["1988-01",8.67],["1988-02",8.21],["1988-03",8.37],["1988-04",8.72],["1988-05",9.09],["1988-06",8.92],["1988-07",9.06],["1988-08",9.26],["1988-09",8.98],["1988-10",8.8],["1988-11",8.96],["1988-12",9.11],["1989-01",9.09],["1989-02",9.17],["1989-03",9.36],["1989-04",9.18],["1989-05",8.86],["1989-06",8.28],["1989-07",8.02],["1989-08",8.11],["1989-09",8.19],["1989-10",8.01],["1989-11",7.87],["1989-12",7.84],["1990-01",8.21],["1990-02",8.47],["1990-03",8.59],["1990-04",8.79],["1990-05",8.76],["1990-06",8.48],["1990-07",8.47],["1990-08",8.75],["1990-09",8.89],["1990-10",8.72],["1990-11",8.39],["1990-12",8.08],["1991-01",8.09],["1991-02",7.85],["1991-03",8.11],["1991-04",8.04],["1991-05",8.07],["1991-06",8.28],["1991-07",8.27],["1991-08",7.9],["1991-09",7.65],["1991-10",7.53],["1991-11",7.42],["1991-12",7.09],["1992-01",7.03],["1992-02",7.34],["1992-03",7.54],["1992-04",7.48],["1992-05",7.39],["1992-06",7.26],["1992-07",6.84],["1992-08",6.59],["1992-09",6.42],["1992-10",6.59],["1992-11",6.87],["1992-12",6.77],["1993-01",6.6],["1993-02",6.26],["1993-03",5.98],["1993-04",5.97],["1993-05",6.04],["1993-06",5.96],["1993-07",5.81],["1993-08",5.68],["1993-09",5.36],["1993-10",5.33],["1993-11",5.72],["1993-12",5.77],["1994-01",5.75],["1994-02",5.97],["1994-03",6.48],["1994-04",6.97],["1994-05",7.18],["1994-06",7.1],["1994-07",7.3],["1994-08",7.24],["1994-09",7.46],["1994-10",7.74],["1994-11",7.96],["1994-12",7.81],["1995-01",7.78],["1995-02",7.47],["1995-03",7.2],["1995-04",7.06],["1995-05",6.63],["1995-06",6.17],["1995-07",6.28],["1995-08",6.49],["1995-09",6.2],["1995-10",6.04],["1995-11",5.93],["1995-12",5.71],["1996-01",5.65],["1996-02",5.81],["1996-03",6.27],["1996-04",6.51],["1996-05",6.74],["1996-06",6.91],["1996-07",6.87],["1996-08",6.64],["1996-09",6.83],["1996-10",6.53],["1996-11",6.2],["1996-12",6.3],["1997-01",6.58],["1997-02",6.42],["1997-03",6.69],["1997-04",6.89],["1997-05",6.71],["1997-06",6.49],["1997-07",6.22],["1997-08",6.3],["1997-09",6.21],["1997-10",6.03],["1997-11",5.88],["1997-12",5.81],["1998-01",5.54],["1998-02",5.57],["1998-03",5.65],["1998-04",5.64],["1998-05",5.65],["1998-06",5.5],["1998-07",5.46],["1998-08",5.34],["1998-09",4.81],["1998-10",4.53],["1998-11",4.83],["1998-12",4.65],["1999-01",4.72],["1999-02",5.0],["1999-03",5.23],["1999-04",5.18],["1999-05",5.54],["1999-06",5.9],["1999-07",5.79],["1999-08",5.94],["1999-09",5.92],["1999-10",6.11],["1999-11",6.03],["1999-12",6.28],["2000-01",6.66],["2000-02",6.52],["2000-03",6.26],["2000-04",5.99],["2000-05",6.44],["2000-06",6.1],["2000-07",6.05],["2000-08",5.83],["2000-09",5.8],["2000-10",5.74],["2000-11",5.72],["2000-12",5.24],["2001-01",5.16],["2001-02",5.1],["2001-03",4.89],["2001-04",5.14],["2001-05",5.39],["2001-06",5.28],["2001-07",5.24],["2001-08",4.97],["2001-09",4.73],["2001-10",4.57],["2001-11",4.65],["2001-12",5.09],["2002-01",5.04],["2002-02",4.91],["2002-03",5.28],["2002-04",5.21],["2002-05",5.16],["2002-06",4.93],["2002-07",4.65],["2002-08",4.26],["2002-09",3.87],["2002-10",3.94],["2002-11",4.05],["2002-12",4.03],["2003-01",4.05],["2003-02",3.9],["2003-03",3.81],["2003-04",3.96],["2003-05",3.57],["2003-06",3.33],["2003-07",3.98],["2003-08",4.45],["2003-09",4.27],["2003-10",4.29],["2003-11",4.3],["2003-12",4.27],["2004-01",4.15],["2004-02",4.08],["2004-03",3.83],["2004-04",4.35],["2004-05",4.72],["2004-06",4.73],["2004-07",4.5],["2004-08",4.28],["2004-09",4.13],["2004-10",4.1],["2004-11",4.19],["2004-12",4.23],["2005-01",4.22],["2005-02",4.17],["2005-03",4.5],["2005-04",4.34],["2005-05",4.14],["2005-06",4.0],["2005-07",4.18],["2005-08",4.26],["2005-09",4.2],["2005-10",4.46],["2005-11",4.54],["2005-12",4.47],["2006-01",4.42],["2006-02",4.57],["2006-03",4.72],["2006-04",4.99],["2006-05",5.11],["2006-06",5.11],["2006-07",5.09],["2006-08",4.88],["2006-09",4.72],["2006-10",4.73],["2006-11",4.6],["2006-12",4.56],["2007-01",4.76],["2007-02",4.72],["2007-03",4.56],["2007-04",4.69],["2007-05",4.75],["2007-06",5.1],["2007-07",5.0],["2007-08",4.67],["2007-09",4.52],["2007-10",4.53],["2007-11",4.15],["2007-12",4.1],["2008-01",3.74],["2008-02",3.74],["2008-03",3.51],["2008-04",3.68],["2008-05",3.88],["2008-06",4.1],["2008-07",4.01],["2008-08",3.89],["2008-09",3.69],["2008-10",3.81],["2008-11",3.53],["2008-12",2.42],["2009-01",2.52],["2009-02",2.87],["2009-03",2.82],["2009-04",2.93],["2009-05",3.29],["2009-06",3.72],["2009-07",3.56],["2009-08",3.59],["2009-09",3.4],["2009-10",3.39],["2009-11",3.4],["2009-12",3.59],["2010-01",3.73],["2010-02",3.69],["2010-03",3.73],["2010-04",3.85],["2010-05",3.42],["2010-06",3.2],["2010-07",3.01],["2010-08",2.7],["2010-09",2.65],["2010-10",2.54],["2010-11",2.76],["2010-12",3.29],["2011-01",3.39],["2011-02",3.58],["2011-03",3.41],["2011-04",3.46],["2011-05",3.17],["2011-06",3.0],["2011-07",3.0],["2011-08",2.3],["2011-09",1.98],["2011-10",2.15],["2011-11",2.01],["2011-12",1.98],["2012-01",1.97],["2012-02",1.97],["2012-03",2.17],["2012-04",2.05],["2012-05",1.8],["2012-06",1.62],["2012-07",1.53],["2012-08",1.68],["2012-09",1.72],["2012-10",1.75],["2012-11",1.65],["2012-12",1.72],["2013-01",1.91],["2013-02",1.98],["2013-03",1.96],["2013-04",1.76],["2013-05",1.93],["2013-06",2.3],["2013-07",2.58],["2013-08",2.74],["2013-09",2.81],["2013-10",2.62],["2013-11",2.72],["2013-12",2.9],["2014-01",2.86],["2014-02",2.71],["2014-03",2.72],["2014-04",2.71],["2014-05",2.56],["2014-06",2.6],["2014-07",2.54],["2014-08",2.42],["2014-09",2.53],["2014-10",2.3],["2014-11",2.33],["2014-12",2.21],["2015-01",1.88],["2015-02",1.98],["2015-03",2.04],["2015-04",1.94],["2015-05",2.2],["2015-06",2.36],["2015-07",2.32],["2015-08",2.17],["2015-09",2.17],["2015-10",2.07],["2015-11",2.26],["2015-12",2.24],["2016-01",2.09],["2016-02",1.78],["2016-03",1.89],["2016-04",1.81],["2016-05",1.81],["2016-06",1.64],["2016-07",1.5],["2016-08",1.56],["2016-09",1.63],["2016-10",1.76],["2016-11",2.14],["2016-12",2.49],["2017-01",2.43],["2017-02",2.42],["2017-03",2.48],["2017-04",2.3],["2017-05",2.3],["2017-06",2.19],["2017-07",2.32],["2017-08",2.21],["2017-09",2.2],["2017-10",2.36],["2017-11",2.35],["2017-12",2.4],["2018-01",2.58],["2018-02",2.86],["2018-03",2.84],["2018-04",2.87],["2018-05",2.98],["2018-06",2.91],["2018-07",2.89],["2018-08",2.89],["2018-09",3.0],["2018-10",3.15],["2018-11",3.12],["2018-12",2.83],["2019-01",2.71],["2019-02",2.68],["2019-03",2.57],["2019-04",2.53],["2019-05",2.4],["2019-06",2.07],["2019-07",2.06],["2019-08",1.63],["2019-09",1.7],["2019-10",1.71],["2019-11",1.81],["2019-12",1.86],["2020-01",1.76],["2020-02",1.5],["2020-03",0.87],["2020-04",0.66],["2020-05",0.67],["2020-06",0.73],["2020-07",0.62],["2020-08",0.65],["2020-09",0.68],["2020-10",0.79],["2020-11",0.87],["2020-12",0.93],["2021-01",1.08],["2021-02",1.26],["2021-03",1.61],["2021-04",1.64],["2021-05",1.62],["2021-06",1.52],["2021-07",1.32],["2021-08",1.28],["2021-09",1.37],["2021-10",1.58],["2021-11",1.56],["2021-12",1.47],["2022-01",1.76],["2022-02",1.93],["2022-03",2.13],["2022-04",2.75],["2022-05",2.9],["2022-06",3.14],["2022-07",2.9],["2022-08",2.9],["2022-09",3.52],["2022-10",3.98],["2022-11",3.89],["2022-12",3.62],["2023-01",3.53],["2023-02",3.75],["2023-03",3.66],["2023-04",3.46],["2023-05",3.57],["2023-06",3.75],["2023-07",3.9],["2023-08",4.17],["2023-09",4.38],["2023-10",4.8],["2023-11",4.5],["2023-12",4.02],["2024-01",4.06],["2024-02",4.21],["2024-03",4.21],["2024-04",4.54],["2024-05",4.48],["2024-06",4.31],["2024-07",4.25],["2024-08",3.87],["2024-09",3.72],["2024-10",4.1],["2024-11",4.36],["2024-12",4.39],["2025-01",4.63],["2025-02",4.45],["2025-03",4.28],["2025-04",4.28],["2025-05",4.42],["2025-06",4.38],["2025-07",4.39],["2025-08",4.26],["2025-09",4.12],["2025-10",4.06],["2025-11",4.09],["2025-12",4.14],["2026-01",4.21],["2026-02",4.13],["2026-03",4.25],["2026-04",4.32],["2026-05",4.48],["2026-06",4.47],["2026-07",4.6],["2026-08",4.68],["2026-09",4.99],["2026-10",5.27]],"rec":["1970-01","1970-02","1970-03","1970-04","1970-05","1970-06","1970-07","1970-08","1970-09","1970-10","1970-11","1973-12","1974-01","1974-02","1974-03","1974-04","1974-05","1974-06","1974-07","1974-08","1974-09","1974-10","1974-11","1974-12","1975-01","1975-02","1975-03","1980-02","1980-03","1980-04","1980-05","1980-06","1980-07","1981-08","1981-09","1981-10","1981-11","1981-12","1982-01","1982-02","1982-03","1982-04","1982-05","1982-06","1982-07","1982-08","1982-09","1982-10","1982-11","1990-08","1990-09","1990-10","1990-11","1990-12","1991-01","1991-02","1991-03","2001-04","2001-05","2001-06","2001-07","2001-08","2001-09","2001-10","2001-11","2008-01","2008-02","2008-03","2008-04","2008-05","2008-06","2008-07","2008-08","2008-09","2008-10","2008-11","2008-12","2009-01","2009-02","2009-03","2009-04","2009-05","2009-06","2020-03","2020-04"],"daily":[["2025-10-01",4.12],["2025-10-02",4.1],["2025-10-03",4.13],["2025-10-06",4.18],["2025-10-07",4.14],["2025-10-08",4.13],["2025-10-09",4.14],["2025-10-10",4.05],["2025-10-14",4.03],["2025-10-15",4.05],["2025-10-16",3.99],["2025-10-17",4.02],["2025-10-20",4.0],["2025-10-21",3.98],["2025-10-22",3.97],["2025-10-23",4.01],["2025-10-24",4.02],["2025-10-27",4.01],["2025-10-28",3.99],["2025-10-29",4.08],["2025-10-30",4.11],["2025-10-31",4.11],["2025-11-03",4.13],["2025-11-04",4.1],["2025-11-05",4.17],["2025-11-06",4.11],["2025-11-07",4.11],["2025-11-10",4.13],["2025-11-12",4.08],["2025-11-13",4.11],["2025-11-14",4.14],["2025-11-17",4.13],["2025-11-18",4.12],["2025-11-19",4.13],["2025-11-20",4.1],["2025-11-21",4.06],["2025-11-24",4.04],["2025-11-25",4.01],["2025-11-26",4.0],["2025-11-28",4.02],["2025-12-01",4.09],["2025-12-02",4.09],["2025-12-03",4.06],["2025-12-04",4.11],["2025-12-05",4.14],["2025-12-08",4.17],["2025-12-09",4.18],["2025-12-10",4.13],["2025-12-11",4.14],["2025-12-12",4.19],["2025-12-15",4.18],["2025-12-16",4.15],["2025-12-17",4.16],["2025-12-18",4.12],["2025-12-19",4.16],["2025-12-22",4.17],["2025-12-23",4.18],["2025-12-24",4.15],["2025-12-26",4.14],["2025-12-29",4.12],["2025-12-30",4.14],["2025-12-31",4.18],["2026-01-02",4.19],["2026-01-05",4.17],["2026-01-06",4.18],["2026-01-07",4.15],["2026-01-08",4.19],["2026-01-09",4.18],["2026-01-12",4.19],["2026-01-13",4.18],["2026-01-14",4.15],["2026-01-15",4.17],["2026-01-16",4.24],["2026-01-20",4.3],["2026-01-21",4.26],["2026-01-22",4.26],["2026-01-23",4.24],["2026-01-26",4.22],["2026-01-27",4.24],["2026-01-28",4.26],["2026-01-29",4.24],["2026-01-30",4.26],["2026-02-02",4.29],["2026-02-03",4.28],["2026-02-04",4.29],["2026-02-05",4.21],["2026-02-06",4.22],["2026-02-09",4.22],["2026-02-10",4.16],["2026-02-11",4.18],["2026-02-12",4.09],["2026-02-13",4.04],["2026-02-17",4.05],["2026-02-18",4.09],["2026-02-19",4.08],["2026-02-20",4.08],["2026-02-23",4.03],["2026-02-24",4.04],["2026-02-25",4.05],["2026-02-26",4.02],["2026-02-27",3.97],["2026-03-02",4.05],["2026-03-03",4.06],["2026-03-04",4.09],["2026-03-05",4.13],["2026-03-06",4.15],["2026-03-09",4.12],["2026-03-10",4.15],["2026-03-11",4.21],["2026-03-12",4.27],["2026-03-13",4.28],["2026-03-16",4.23],["2026-03-17",4.2],["2026-03-18",4.26],["2026-03-19",4.25],["2026-03-20",4.39],["2026-03-23",4.34],["2026-03-24",4.39],["2026-03-25",4.33],["2026-03-26",4.42],["2026-03-27",4.44],["2026-03-30",4.35],["2026-03-31",4.3],["2026-04-01",4.33],["2026-04-02",4.31],["2026-04-03",4.35],["2026-04-06",4.34],["2026-04-07",4.33],["2026-04-08",4.29],["2026-04-09",4.29],["2026-04-10",4.31],["2026-04-13",4.3],["2026-04-14",4.26],["2026-04-15",4.29],["2026-04-16",4.32],["2026-04-17",4.26],["2026-04-20",4.26],["2026-04-21",4.3],["2026-04-22",4.3],["2026-04-23",4.34],["2026-04-24",4.31],["2026-04-27",4.35],["2026-04-28",4.36],["2026-04-29",4.42],["2026-04-30",4.4],["2026-05-01",4.39],["2026-05-04",4.45],["2026-05-05",4.43],["2026-05-06",4.36],["2026-05-07",4.41],["2026-05-08",4.38],["2026-05-11",4.42],["2026-05-12",4.46],["2026-05-13",4.46],["2026-05-14",4.47],["2026-05-15",4.59],["2026-05-18",4.61],["2026-05-19",4.67],["2026-05-20",4.57],["2026-05-21",4.57],["2026-05-22",4.56],["2026-05-26",4.5],["2026-05-27",4.48],["2026-05-28",4.45],["2026-05-29",4.45],["2026-06-01",4.47],["2026-06-02",4.46],["2026-06-03",4.49],["2026-06-04",4.47],["2026-06-05",4.55],["2026-06-08",4.56],["2026-06-09",4.53],["2026-06-10",4.55],["2026-06-11",4.45],["2026-06-12",4.48],["2026-06-15",4.47],["2026-06-16",4.43],["2026-06-17",4.49],["2026-06-18",4.46],["2026-06-22",4.51],["2026-06-23",4.5],["2026-06-24",4.41],["2026-06-25",4.4],["2026-06-26",4.38],["2026-06-29",4.38],["2026-06-30",4.44],["2026-07-01",4.48],["2026-07-02",4.49],["2026-07-06",4.48],["2026-07-07",4.55],["2026-07-08",4.56],["2026-07-09",4.54],["2026-07-10",4.56],["2026-07-13",4.62],["2026-07-14",4.58],["2026-07-15",4.55],["2026-07-16",4.57],["2026-07-17",4.55],["2026-07-20",4.6],["2026-07-21",4.63],["2026-07-22",4.67],["2026-07-23",4.71],["2026-07-24",4.69],["2026-07-27",4.65],["2026-07-28",4.61],["2026-07-29",4.67],["2026-07-30",4.68],["2026-07-31",4.75],["2026-08-03",4.7],["2026-08-04",4.63],["2026-08-05",4.63],["2026-08-06",4.69],["2026-08-07",4.65],["2026-08-10",4.72],["2026-08-11",4.7],["2026-08-12",4.68],["2026-08-13",4.63],["2026-08-14",4.68],["2026-08-17",4.72],["2026-08-18",4.71],["2026-08-19",4.65],["2026-08-20",4.69],["2026-08-21",4.74],["2026-08-24",4.7],["2026-08-25",4.64],["2026-08-26",4.66],["2026-08-27",4.67],["2026-08-28",4.73],["2026-08-31",4.75],["2026-09-01",4.79],["2026-09-02",4.79],["2026-09-03",4.77],["2026-09-04",4.78],["2026-09-08",4.8],["2026-09-09",4.83],["2026-09-10",4.95],["2026-09-11",4.96],["2026-09-14",4.97],["2026-09-15",5.0],["2026-09-16",5.01],["2026-09-17",4.94],["2026-09-18",5.01],["2026-09-21",4.96],["2026-09-22",4.96],["2026-09-23",5.11],["2026-09-24",5.18],["2026-09-25",5.17],["2026-09-28",5.24],["2026-09-29",5.26],["2026-09-30",5.29],["2026-10-01",5.24],["2026-10-02",5.28],["2026-10-05",5.31],["2026-10-06",5.27],["2026-10-07",5.28],["2026-10-08",5.22]],"mort":[["2019-01",4.46],["2019-02",4.37],["2019-03",4.26],["2019-04",4.14],["2019-05",4.07],["2019-06",3.8],["2019-07",3.77],["2019-08",3.62],["2019-09",3.6],["2019-10",3.69],["2019-11",3.7],["2019-12",3.72],["2020-01",3.62],["2020-02",3.47],["2020-03",3.45],["2020-04",3.31],["2020-05",3.23],["2020-06",3.16],["2020-07",3.02],["2020-08",2.94],["2020-09",2.89],["2020-10",2.83],["2020-11",2.77],["2020-12",2.68],["2021-01",2.73],["2021-02",2.81],["2021-03",3.08],["2021-04",3.06],["2021-05",2.96],["2021-06",2.98],["2021-07",2.87],["2021-08",2.84],["2021-09",2.9],["2021-10",3.07],["2021-11",3.07],["2021-12",3.1],["2022-01",3.45],["2022-02",3.76],["2022-03",4.17],["2022-04",4.98],["2022-05",5.23],["2022-06",5.52],["2022-07",5.41],["2022-08",5.22],["2022-09",6.11],["2022-10",6.9],["2022-11",6.8],["2022-12",6.36],["2023-01",6.27],["2023-02",6.26],["2023-03",6.54],["2023-04",6.34],["2023-05",6.42],["2023-06",6.71],["2023-07",6.84],["2023-08",7.07],["2023-09",7.2],["2023-10",7.62],["2023-11",7.44],["2023-12",6.82],["2024-01",6.64],["2024-02",6.78],["2024-03",6.82],["2024-04",6.99],["2024-05",7.06],["2024-06",6.92],["2024-07",6.85],["2024-08",6.5],["2024-09",6.18],["2024-10",6.43],["2024-11",6.8],["2024-12",6.71],["2025-01",6.96],["2025-02",6.84],["2025-03",6.65],["2025-04",6.72],["2025-05",6.82],["2025-06",6.82],["2025-07",6.72],["2025-08",6.59],["2025-09",6.35],["2025-10",6.25],["2025-11",6.24],["2025-12",6.19],["2026-01",6.1],["2026-02",6.05],["2026-03",6.18],["2026-04",6.33],["2026-05",6.44],["2026-06",6.49],["2026-07",6.54],["2026-08",6.67],["2026-09",6.86],["2026-10",7.34]],"boc":[["2020-01",1.5],["2020-02",1.3],["2020-03",0.72],["2020-04",0.5],["2020-05",0.39],["2020-06",0.4],["2020-07",0.35],["2020-08",0.38],["2020-09",0.36],["2020-10",0.36],["2020-11",0.43],["2020-12",0.45],["2021-01",0.43],["2021-02",0.58],["2021-03",0.94],["2021-04",0.94],["2021-05",0.92],["2021-06",0.92],["2021-07",0.86],["2021-08",0.84],["2021-09",0.88],["2021-10",1.26],["2021-11",1.47],["2021-12",1.3],["2022-01",1.58],["2022-02",1.72],["2022-03",1.98],["2022-04",2.61],["2022-05",2.74],["2022-06",3.22],["2022-07",3.0],["2022-08",3.05],["2022-09",3.37],["2022-10",3.54],["2022-11",3.37],["2022-12",3.08],["2023-01",3.05],["2023-02",3.33],["2023-03",3.13],["2023-04",3.05],["2023-05",3.21],["2023-06",3.67],["2023-07",3.85],["2023-08",4.01],["2023-09",4.09],["2023-10",4.23],["2023-11",3.81],["2023-12",3.34],["2024-01",3.42],["2024-02",3.6],["2024-03",3.51],["2024-04",3.74],["2024-05",3.7],["2024-06",3.42],["2024-07",3.37],["2024-08",2.97],["2024-09",2.76],["2024-10",2.97],["2024-11",3.11],["2024-12",2.96],["2025-01",3.0],["2025-02",2.75],["2025-03",2.66],["2025-04",2.72],["2025-05",2.82],["2025-06",2.9],["2025-07",3.03],["2025-08",2.95],["2025-09",2.77],["2025-10",2.69],["2025-11",2.75],["2025-12",2.95],["2026-01",2.93],["2026-02",2.82],["2026-03",3.03],["2026-04",3.1],["2026-05",3.19],["2026-06",3.06],["2026-07",3.16],["2026-08",3.28],["2026-09",3.57],["2026-10",3.61]],"ind":{"all":{"now":8286.5,"feb22":7737.9,"yr":8200.2,"series":[["2019-01",7322.6],["2019-02",7358.8],["2019-03",7344.4],["2019-04",7381.4],["2019-05",7403.4],["2019-06",7403.6],["2019-07",7391.8],["2019-08",7446.6],["2019-09",7458.7],["2019-10",7444.6],["2019-11",7471.4],["2019-12",7506.1],["2020-01",7516.9],["2020-02",7501.2],["2020-03",7036.8],["2020-04",6346.9],["2020-05",6334.0],["2020-06",6751.4],["2020-07",6913.9],["2020-08",7047.5],["2020-09",7234.2],["2020-10",7278.1],["2020-11",7302.9],["2020-12",7288.2],["2021-01",7112.7],["2021-02",7227.6],["2021-03",7371.8],["2021-04",7228.9],["2021-05",7196.4],["2021-06",7324.7],["2021-07",7429.9],["2021-08",7463.1],["2021-09",7553.1],["2021-10",7596.9],["2021-11",7662.2],["2021-12",7716.4],["2022-01",7552.3],["2022-02",7737.9],["2022-03",7753.1],["2022-04",7784.2],["2022-05",7791.0],["2022-06",7773.1],["2022-07",7788.1],["2022-08",7772.8],["2022-09",7751.2],["2022-10",7804.3],["2022-11",7819.5],["2022-12",7864.0],["2023-01",7900.4],["2023-02",7932.1],["2023-03",7961.7],["2023-04",7992.2],["2023-05",7981.3],["2023-06",8029.9],["2023-07",8037.7],["2023-08",8052.4],["2023-09",8067.1],["2023-10",8055.4],["2023-11",8063.9],["2023-12",8038.2],["2024-01",8051.0],["2024-02",8054.6],["2024-03",8092.5],["2024-04",8114.1],["2024-05",8152.5],["2024-06",8155.4],["2024-07",8175.1],["2024-08",8170.3],["2024-09",8203.1],["2024-10",8180.2],["2024-11",8172.9],["2024-12",8210.0],["2025-01",8234.2],["2025-02",8245.7],["2025-03",8221.6],["2025-04",8193.6],["2025-05",8198.1],["2025-06",8208.3],["2025-07",8216.3],["2025-08",8190.3],["2025-09",8200.2],["2025-10",8252.5],["2025-11",8256.4],["2025-12",8274.5],["2026-01",8208.0],["2026-02",8211.3],["2026-03",8205.5],["2026-04",8247.9],["2026-05",8289.7],["2026-06",8273.0],["2026-07",8324.6],["2026-08",8306.5],["2026-09",8286.5]]},"con":{"now":583.5,"feb22":582.1,"yr":573.4,"series":[["2019-01",510.5],["2019-02",526.1],["2019-03",525.1],["2019-04",527.0],["2019-05",529.3],["2019-06",528.2],["2019-07",537.4],["2019-08",547.3],["2019-09",561.5],["2019-10",564.2],["2019-11",558.6],["2019-12",560.6],["2020-01",565.8],["2020-02",565.2],["2020-03",555.7],["2020-04",464.8],["2020-05",480.0],["2020-06",531.1],["2020-07",529.4],["2020-08",533.0],["2020-09",532.8],["2020-10",536.0],["2020-11",544.7],["2020-12",552.5],["2021-01",543.0],["2021-02",538.0],["2021-03",538.6],["2021-04",541.3],["2021-05",539.3],["2021-06",541.3],["2021-07",536.1],["2021-08",542.6],["2021-09",547.1],["2021-10",546.7],["2021-11",560.0],["2021-12",552.1],["2022-01",569.4],["2022-02",582.1],["2022-03",586.4],["2022-04",591.5],["2022-05",581.0],["2022-06",588.2],["2022-07",593.9],["2022-08",590.5],["2022-09",590.6],["2022-10",587.2],["2022-11",591.8],["2022-12",604.8],["2023-01",602.0],["2023-02",601.9],["2023-03",606.6],["2023-04",610.4],["2023-05",614.6],["2023-06",612.4],["2023-07",606.9],["2023-08",610.3],["2023-09",604.0],["2023-10",603.3],["2023-11",604.6],["2023-12",590.0],["2024-01",589.7],["2024-02",586.5],["2024-03",603.6],["2024-04",581.4],["2024-05",580.5],["2024-06",570.5],["2024-07",566.6],["2024-08",568.8],["2024-09",574.1],["2024-10",579.3],["2024-11",574.8],["2024-12",580.9],["2025-01",583.1],["2025-02",584.1],["2025-03",578.8],["2025-04",576.1],["2025-05",569.2],["2025-06",581.7],["2025-07",581.1],["2025-08",579.4],["2025-09",573.4],["2025-10",571.0],["2025-11",572.8],["2025-12",572.4],["2026-01",572.3],["2026-02",573.9],["2026-03",573.3],["2026-04",568.8],["2026-05",578.4],["2026-06",560.0],["2026-07",575.3],["2026-08",572.7],["2026-09",583.5]]},"man":{"now":821.8,"feb22":784.4,"yr":825.0},"ret":{"now":1125.1,"feb22":1167.3,"yr":1151.4},"fin":{"now":732.8,"feb22":656.3,"yr":722.8},"tech":{"now":914.7,"feb22":790.7,"yr":911.0},"edu":{"now":572.2,"feb22":564.6,"yr":591.2},"health":{"now":1067.4,"feb22":941.9,"yr":1021.2},"food":{"now":429.1,"feb22":395.9,"yr":440.6},"pub":{"now":462.9,"feb22":425.8,"yr":460.9}}};
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pm = m => new Date(+m.slice(0,4), +m.slice(5,7)-1, 1);
+const pd = s => new Date(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {ink:css('--ink'),ink2:css('--ink-2'),rule:css('--rule'),signal:css('--signal'),sun:css('--sun'),storm:css('--storm'),calm:css('--calm'),card:css('--card'),paper:css('--paper')};
+const fmt$ = v => '$' + Math.round(v).toLocaleString('en-CA');
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const GS = B.gs10.map(([m,v]) => ({t:pm(m), m, v}));
+
+/* ---------------- hero sparkline ---------------- */
+(function hero(){
+  const d = B.daily.map(([s,v]) => ({t:pd(s), v}));
+  const W=420,H=190,M={t:24,r:46,b:24,l:8};
+  const svg = d3.select('#heroSpark');
+  const x = d3.scaleTime().domain(d3.extent(d,e=>e.t)).range([M.l,W-M.r]);
+  const y = d3.scaleLinear().domain([3.8,5.5]).range([H-M.b,M.t]);
+  [4,4.5,5].forEach(v=>{
+    svg.append('line').attr('x1',M.l).attr('x2',W-M.r).attr('y1',y(v)).attr('y2',y(v)).attr('stroke',C.rule).attr('stroke-dasharray','2 4');
+    svg.append('text').attr('x',W-M.r+6).attr('y',y(v)+4).attr('font-size',11).attr('fill',C.ink2).text(v.toFixed(1)+'%');
+  });
+  svg.append('path').datum(d).attr('fill','none').attr('stroke',C.ink).attr('stroke-width',2)
+    .attr('d', d3.line().x(e=>x(e.t)).y(e=>y(e.v)));
+  const last = d.reduce((a,b)=> b.v>a.v?b:a);
+  svg.append('circle').attr('cx',x(last.t)).attr('cy',y(last.v)).attr('r',5).attr('fill',C.signal);
+  svg.append('text').attr('x',x(last.t)-8).attr('y',y(last.v)-10).attr('text-anchor','end').attr('font-size',11).attr('fill',C.signal).attr('font-weight',600).text('5.31% · Oct 5');
+  svg.append('text').attr('x',M.l).attr('y',H-6).attr('font-size',11).attr('fill',C.ink2).text('Oct 2025');
+  svg.append('text').attr('x',W-M.r).attr('y',H-6).attr('text-anchor','end').attr('font-size',11).attr('fill',C.ink2).text('Oct 2026');
+})();
+
+/* ---------------- Act 1: draw your guess ---------------- */
+(function drawIt(){
+  const data = GS.filter(d => d.m >= '2020-01');
+  const W=760,H=380,M={t:20,r:70,b:34,l:44};
+  const svg = d3.select('#draw');
+  const x = d3.scaleTime().domain(d3.extent(data,d=>d.t)).range([M.l,W-M.r]);
+  const y = d3.scaleLinear().domain([0,7]).range([H-M.b,M.t]);
+  for (let v=0; v<=7; v++){
+    svg.append('line').attr('x1',M.l).attr('x2',W-M.r).attr('y1',y(v)).attr('y2',y(v)).attr('stroke',C.rule).attr('stroke-width',v?1:1.5);
+    svg.append('text').attr('x',M.l-8).attr('y',y(v)+4).attr('text-anchor','end').attr('font-size',11).attr('fill',C.ink2).text(v+'%');
+  }
+  for (let yr=2020; yr<=2026; yr++){
+    svg.append('text').attr('x',x(new Date(yr,0,1))).attr('y',H-12).attr('text-anchor','middle').attr('font-size',11).attr('fill',C.ink2).text(yr);
+  }
+  const start = data.findIndex(d => d.m === '2020-12');
+  const zone = svg.append('rect').attr('x',x(data[start].t)).attr('y',M.t).attr('width',W-M.r-x(data[start].t)).attr('height',H-M.b-M.t).attr('fill',C.signal).attr('opacity',.05);
+  svg.append('text').attr('x',(x(data[start].t)+W-M.r)/2).attr('y',y(3.5)).attr('text-anchor','middle').attr('font-size',14).attr('fill',C.ink2).attr('class','hint').text('Draw your line here →');
+  const line = d3.line().defined(d=>d!=null).x((d,i)=>x(data[i].t)).y(d=>y(d)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(data.slice(0,start+1).map(d=>d.v)).attr('fill','none').attr('stroke',C.ink).attr('stroke-width',3).attr('d',line);
+  svg.append('circle').attr('cx',x(data[6].t)).attr('cy',y(data[6].v)).attr('r',5).attr('fill',C.ink);
+  svg.append('text').attr('x',x(data[6].t)).attr('y',y(data[6].v)-12).attr('text-anchor','middle').attr('font-size',11).attr('fill',C.ink).text('0.62% · Jul 2020');
+  const truth = svg.append('path').attr('fill','none').attr('stroke',C.signal).attr('stroke-width',3.5).attr('opacity',0);
+  const mine = svg.append('path').attr('fill','none').attr('stroke',C.ink).attr('stroke-width',2.5).attr('stroke-dasharray','6 5');
+  const endLbl = svg.append('g').attr('opacity',0);
+  let guess, last, down=false;
+  function reset(){
+    guess = data.map((d,i)=> i<start ? null : (i===start ? d.v : null));
+    last = start; mine.attr('d', line(guess)); truth.attr('opacity',0); endLbl.attr('opacity',0).selectAll('*').remove();
+    svg.select('.hint').attr('opacity',1);
+    d3.select('#reveal').attr('disabled', true);
+    d3.select('#drawResult').html('Draw all the way to 2026 to unlock the answer.');
+  }
+  function onMove(ev){
+    if (!down) return;
+    const [px,py] = d3.pointer(ev, svg.node());
+    const t = x.invert(px);
+    let i = d3.bisector(d=>d.t).center(data, t);
+    i = clamp(i, start+1, data.length-1);
+    const v = clamp(y.invert(py), 0, 7);
+    const from = Math.min(last, i);
+    if (i > last){
+      const v0 = guess[last];
+      for (let k=last+1; k<=i; k++) guess[k] = v0 + (v - v0)*(k-last)/(i-last);
+      last = i;
+    } else { guess[i] = v; }
+    mine.attr('d', line(guess));
+    svg.select('.hint').attr('opacity',0);
+    if (last === data.length-1){ d3.select('#reveal').attr('disabled', null); d3.select('#drawResult').text('Nice. Now check it.'); }
+  }
+  svg.on('pointerdown', ev => { down=true; svg.node().setPointerCapture(ev.pointerId); onMove(ev); })
+     .on('pointermove', onMove)
+     .on('pointerup pointercancel', () => down=false);
+  d3.select('#redraw').on('click', reset);
+  d3.select('#reveal').on('click', () => {
+    const real = data.map((d,i)=> i<start ? null : d.v);
+    truth.attr('d', line(real)).attr('opacity',1);
+    const L = truth.node().getTotalLength();
+    truth.attr('stroke-dasharray', L).attr('stroke-dashoffset', REDUCED?0:L).transition().duration(REDUCED?0:1600).ease(d3.easeCubicOut).attr('stroke-dashoffset',0);
+    const e = data[data.length-1];
+    endLbl.selectAll('*').remove();
+    endLbl.append('circle').attr('cx',x(e.t)).attr('cy',y(e.v)).attr('r',5).attr('fill',C.signal);
+    endLbl.append('text').attr('x',x(e.t)+8).attr('y',y(e.v)+4).attr('font-size',12).attr('font-weight',600).attr('fill',C.signal).text(e.v.toFixed(2)+'%');
+    endLbl.transition().delay(REDUCED?0:1400).attr('opacity',1);
+    const g = guess[data.length-1], diff = e.v - g;
+    const verdict = Math.abs(diff) < .5 ? 'You saw it coming.' : diff > 0 ? `You were <b>${diff.toFixed(1)} points too low</b>. Most people expect rates to stay where they were.` : `You guessed higher than reality, by ${(-diff).toFixed(1)} points.`;
+    d3.select('#drawResult').html(`You guessed ${g.toFixed(1)}% for October 2026. It was <b>${e.v.toFixed(2)}%</b>. ${verdict}`);
+  });
+  reset();
+})();
+
+/* ---------------- Act 2: rollercoaster ---------------- */
+(function ride(){
+  const W=900,H=520,M={t:26,r:24,b:40,l:46};
+  const svg = d3.select('#ride');
+  const x = d3.scaleTime().domain([GS[0].t, GS[GS.length-1].t]).range([M.l,W-M.r]);
+  const y = d3.scaleLinear().domain([0,16]).range([H-M.b,M.t]);
+  // recession bands
+  const recs=[]; let cur=null;
+  B.rec.forEach(m=>{ const t=pm(m); if(cur && (t - cur.e) < 40*864e5) cur.e=t; else { cur={s:t,e:t}; recs.push(cur);} });
+  svg.append('g').selectAll('rect').data(recs).join('rect')
+    .attr('x',d=>x(d.s)).attr('width',d=>Math.max(2,x(d3.timeMonth.offset(d.e,1))-x(d.s)))
+    .attr('y',M.t).attr('height',H-M.b-M.t).attr('fill',C.ink).attr('opacity',.09);
+  for (let v=0; v<=16; v+=4){
+    svg.append('line').attr('x1',M.l).attr('x2',W-M.r).attr('y1',y(v)).attr('y2',y(v)).attr('stroke',C.rule);
+    svg.append('text').attr('x',M.l-8).attr('y',y(v)+4).attr('text-anchor','end').attr('font-size',12).attr('fill',C.ink2).text(v+'%');
+  }
+  for (let yr=1970; yr<=2020; yr+=10)
+    svg.append('text').attr('x',x(new Date(yr,0,1))).attr('y',H-14).attr('text-anchor','middle').attr('font-size',12).attr('fill',C.ink2).text(yr);
+  svg.append('text').attr('x',x(new Date(1980,6,1))).attr('y',M.t+14).attr('font-size',11).attr('fill',C.ink2).attr('text-anchor','middle').text('recession');
+  // trestles
+  svg.append('g').selectAll('line').data(GS.filter((d,i)=>i%6===0)).join('line')
+    .attr('x1',d=>x(d.t)).attr('x2',d=>x(d.t)).attr('y1',d=>y(d.v)+3).attr('y2',H-M.b)
+    .attr('stroke',C.ink).attr('stroke-opacity',.18).attr('stroke-width',1);
+  const ln = d3.line().x(d=>x(d.t)).y(d=>y(d.v)).curve(d3.curveMonotoneX);
+  svg.append('path').datum(GS).attr('d',ln).attr('fill','none').attr('stroke',C.ink).attr('stroke-width',4.5).attr('stroke-linejoin','round');
+  svg.append('path').datum(GS).attr('d',ln).attr('fill','none').attr('stroke',C.card).attr('stroke-width',1.2).attr('stroke-dasharray','2 5');
+  // stations
+  const st = [...document.querySelectorAll('#steps .step')].map(s=>s.dataset.date);
+  const stD = st.map(m=>GS.find(d=>d.m===m));
+  svg.append('g').selectAll('circle').data(stD).join('circle').attr('cx',d=>x(d.t)).attr('cy',d=>y(d.v)).attr('r',5).attr('fill',C.card).attr('stroke',C.signal).attr('stroke-width',2.5);
+  // ride progress line
+  const done = svg.append('path').attr('fill','none').attr('stroke',C.signal).attr('stroke-width',4.5).attr('stroke-linejoin','round');
+  // cart
+  const cart = svg.append('g');
+  const body = cart.append('g').attr('transform','translate(0,-4)');
+  [-8,0,8].forEach((dx,i)=>{
+    body.append('circle').attr('cx',dx).attr('cy',-17).attr('r',3.6).attr('fill',['#e8b07a','#8a5a3c','#c98e62'][i]);
+    body.append('rect').attr('x',dx-5).attr('y',-23.5).attr('width',10).attr('height',2.5).attr('fill',C.ink);
+    body.append('rect').attr('x',dx-1).attr('y',-26).attr('width',2).attr('height',2.5).attr('fill',C.ink);
+  });
+  body.append('rect').attr('x',-15).attr('y',-14).attr('width',30).attr('height',12).attr('rx',3).attr('fill',C.signal).attr('stroke',C.ink).attr('stroke-width',1.5);
+  body.append('circle').attr('cx',-9).attr('cy',-1).attr('r',3).attr('fill',C.ink);
+  body.append('circle').attr('cx',9).attr('cy',-1).attr('r',3).attr('fill',C.ink);
+  const tag = svg.append('g');
+  const tagBg = tag.append('rect').attr('rx',4).attr('fill',C.ink);
+  const tagTx = tag.append('text').attr('fill',C.paper).attr('font-size',12).attr('font-weight',600);
+  const vAt = t => { const i = d3.bisector(d=>d.t).left(GS,t); if(i<=0) return GS[0].v; if(i>=GS.length) return GS[GS.length-1].v; const a=GS[i-1],b=GS[i]; return a.v+(b.v-a.v)*((t-a.t)/(b.t-a.t)); };
+  let curT = GS[0].t;
+  function place(t){
+    curT = t;
+    const px=x(t), py=y(vAt(t));
+    const t0=new Date(+t-120*864e5), t1=new Date(+t+120*864e5);
+    const ang = Math.atan2(y(vAt(t1))-y(vAt(t0)), x(t1)-x(t0))*180/Math.PI;
+    cart.attr('transform',`translate(${px},${py}) rotate(${ang})`);
+    done.attr('d', ln(GS.filter(d=>d.t<=t).concat([{t, v:vAt(t)}])));
+    const label = `${t.getFullYear()} · ${vAt(t).toFixed(1)}%`;
+    tagTx.text(label);
+    const w = label.length*7.4+14, tx = clamp(px-w/2, M.l, W-M.r-w), ty = py-58 < M.t ? py+18 : py-58;
+    tag.attr('transform',`translate(${tx},${ty})`); tagBg.attr('width',w).attr('height',20); tagTx.attr('x',7).attr('y',14);
+  }
+  function goTo(m){
+    const target = pm(m), from = curT;
+    const dur = REDUCED ? 0 : clamp(Math.abs(target-from)/(864e5*365)*90, 500, 2400);
+    svg.transition('ride').duration(dur).ease(d3.easeCubicInOut).tween('cart', () => { const i = d3.interpolateDate(from,target); return k => place(i(k)); });
+  }
+  place(GS[0].t);
+  const steps = document.querySelectorAll('#steps .step');
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting){ steps.forEach(s=>s.classList.remove('active')); e.target.classList.add('active'); goTo(e.target.dataset.date); }
+  }), {rootMargin:'-45% 0px -45% 0px'});
+  steps.forEach(s=>io.observe(s));
+  steps[0].classList.add('active');
+})();
+
+/* ---------------- Act 3: dominoes ---------------- */
+(function dominoes(){
+  const mon = arr => arr.map(([m,v])=>({t:pm(m),v}));
+  const con = B.ind.con.series.map(([m,v])=>({t:pm(m),v}));
+  const allS = B.ind.all.series.map(([m,v])=>({t:pm(m),v}));
+  const feb = (s)=> s.find(d=>d.t.getTime()===pm('2022-02').getTime()).v;
+  const idx = (s)=>{const b=feb(s); return s.map(d=>({t:d.t,v:100*d.v/b}));};
+  const tiles = [
+    {k:'US 10-year Treasury', v:GS[GS.length-1].v.toFixed(2)+'%', s:[GS.filter(d=>d.m>='2019-01')], p:'The world’s benchmark “safe” rate. When it rises, every other loan has to pay more to compete.'},
+    {k:'Canada 5-year bond', v:B.boc[B.boc.length-1][1].toFixed(2)+'%', s:[mon(B.boc.filter(d=>d[0]>='2019-01'))], p:'Canadian yields follow US yields. Canadian banks price 5-year fixed mortgages off this rate.'},
+    {k:'US 30-year mortgage', v:B.mort[B.mort.length-1][1].toFixed(2)+'%', s:[mon(B.mort)], p:'Mortgage rates rise with the bond market, so the same home costs more every month.'},
+    {k:'Ontario construction jobs', v:'+'+(100*(B.ind.con.now/B.ind.con.feb22-1)).toFixed(1)+'%', s:[idx(con), idx(allS)], p:'Since rates began rising in Feb 2022, construction jobs went nowhere. All Ontario jobs grew 7.1% (grey line).'},
+    {k:'You', v:'Class of 2027', s:null, p:'Fewer building projects, fewer startups funded, and fewer postings in the most exposed fields. Next: see which ones.'}
+  ];
+  const root = d3.select('#dominoes');
+  tiles.forEach((tl,i)=>{
+    const el = root.append('div').attr('class','domino'+(tl.s?'':' you'));
+    el.append('div').attr('class','k').text(`${i+1} · ${tl.k}`);
+    el.append('div').attr('class','v num').text(tl.v);
+    if (tl.s){
+      const W=200,H=78, svg = el.append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('aria-hidden','true');
+      const all = tl.s.flat();
+      const x = d3.scaleTime().domain(d3.extent(all,d=>d.t)).range([2,W-6]);
+      const y = d3.scaleLinear().domain(d3.extent(all,d=>d.v)).nice().range([H-14,6]);
+      svg.append('line').attr('x1',2).attr('x2',W-6).attr('y1',H-14).attr('y2',H-14).attr('stroke',C.rule);
+      svg.append('text').attr('x',2).attr('y',H-2).attr('font-size',10).attr('fill',C.ink2).text('2019');
+      svg.append('text').attr('x',W-6).attr('y',H-2).attr('text-anchor','end').attr('font-size',10).attr('fill',C.ink2).text('2026');
+      tl.s.slice().reverse().forEach((s,j)=>{
+        const main = j===tl.s.length-1;
+        const p = svg.append('path').datum(s).attr('fill','none').attr('stroke',main?C.signal:C.ink2).attr('stroke-width',main?2.2:1.4).attr('stroke-opacity',main?1:.6)
+          .attr('d',d3.line().x(d=>x(d.t)).y(d=>y(d.v))).attr('class','line-draw');
+        p.style('--len', Math.ceil(p.node().getTotalLength()));
+      });
+    }
+    el.append('p').text(tl.p);
+  });
+  d3.select('#push').on('click', () => {
+    const els = root.selectAll('.domino').nodes();
+    els.forEach(e=>e.classList.remove('tip','shake'));
+    void root.node().offsetWidth;
+    els.forEach((e,i)=> setTimeout(()=> e.classList.add(i===els.length-1?'shake':'tip'), REDUCED?0:i*380));
+  });
+})();
+
+/* ---------------- Act 4: the city ---------------- */
+const DIST = [
+  {id:'tech',  name:'Tech & Professional',  gx:0,gy:0,sens:3,color:'#5c93ad',kind:'glass',
+    why:'Startups and consulting run on investor money. When safe bonds pay 5%, investors fund fewer risky companies, and hiring slows.',
+    real:'Grew strongly since 2022 (+15.7%) but has flattened over the past year.'},
+  {id:'fin',   name:'Finance & Real Estate',gx:1,gy:0,sens:4,color:'#3f5f86',kind:'tower',
+    why:'Home sales, refinancing and dealmaking slow when borrowing gets expensive. Banks earn more on loans, so it is a mixed picture.',
+    real:'Kept growing (+11.7% since 2022). Higher rates also widen bank margins. The storm is uneven.'},
+  {id:'pub',   name:'Public Administration',gx:2,gy:0,sens:1,color:'#b59f78',kind:'civic',
+    why:'Government payrolls do not depend on borrowing costs in the short run.',
+    real:'Stable, roughly in line with the overall job market.'},
+  {id:'con',   name:'Construction',         gx:0,gy:1,sens:5,color:'#cf8a3a',kind:'site',
+    why:'Builders borrow to build, and buyers borrow to buy. Higher rates hit both ends, so projects get delayed or cancelled.',
+    real:'Flat since rates began rising: +0.2% while all Ontario jobs grew 7.1%.'},
+  {id:'ret',   name:'Retail & Wholesale',   gx:1,gy:1,sens:3,color:'#c4685a',kind:'shop',
+    why:'When mortgage and loan payments grow, households cut shopping first.',
+    real:'Shrank 3.6% since Feb 2022, one of the few industries to lose jobs.'},
+  {id:'edu',   name:'Education',            gx:2,gy:1,sens:1,color:'#8a7ab3',kind:'campus',
+    why:'Demand for teaching does not depend on loans.',
+    real:'Fell 3.2% this past year, mostly because of federal caps on international students since 2024. Not every storm is about rates.'},
+  {id:'man',   name:'Manufacturing',        gx:0,gy:2,sens:4,color:'#7e8b6a',kind:'factory',
+    why:'Factories make big-ticket goods (cars, machinery) that buyers usually finance.',
+    real:'Grew 4.8% since 2022, slower than the province, and slightly down this past year.'},
+  {id:'food',  name:'Food & Hospitality',   gx:1,gy:2,sens:3,color:'#d49a58',kind:'shop',
+    why:'Eating out and travel are among the first things a tight budget cuts.',
+    real:'Up since 2022 (+8.4%) but down 2.6% over the past year.'},
+  {id:'health',name:'Health Care',          gx:2,gy:2,sens:1,color:'#4ea486',kind:'hospital',
+    why:'People need care in any economy, so demand holds up when rates rise.',
+    real:'The steadiest grower: +13.3% since 2022 and +4.5% in the past year.'}
+];
+const MAJORS = {
+  cs:{label:'Computer Science', d:['tech','fin']},
+  eng:{label:'Engineering', d:['con','man','tech']},
+  com:{label:'Commerce', d:['fin','ret']},
+  arch:{label:'Architecture', d:['con','fin']},
+  life:{label:'Life Sci / Nursing', d:['health','edu']},
+  hum:{label:'Humanities / Social Sci', d:['edu','pub']}
+};
+const stormF = yv => clamp((yv-1.5)/4.5, 0, 1);
+const distStorm = (d, yv) => stormF(yv) * (0.25 + 0.75*d.sens/5);
+const wxWord = s => s < .2 ? 'Sunny' : s < .4 ? 'Cloudy' : s < .6 ? 'Showers' : 'Storm';
+
+(function city(){
+  const TW=46, TH=23, OX=440, OY=200, VBW=880, VBH=650;
+  const iso = (i,j) => [(i-j)*TW/2+OX, (i+j)*TH/2+OY];
+  const svg = d3.select('#city');
+  const defs = svg.append('defs');
+  let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  const poly = (g, pts, fill, extra={}) => { const p = g.append('polygon').attr('points', pts.map(q=>q.join(',')).join(' ')).attr('fill', fill); for (const k in extra) p.attr(k, extra[k]); return p; };
+  const up = (p,h) => [p[0], p[1]-h];
+
+  // sun
+  const sun = svg.append('g').attr('transform','translate(790,78)');
+  for (let k=0;k<12;k++) sun.append('line').attr('x1',0).attr('y1',-44).attr('x2',0).attr('y2',-58).attr('stroke',C.sun).attr('stroke-width',4).attr('stroke-linecap','round').attr('transform',`rotate(${k*30})`);
+  sun.append('circle').attr('r',34).attr('fill',C.sun);
+
+  // whole-map road
+  poly(svg, [iso(0,0),iso(19,0),iso(19,19),iso(0,19)], '#a6aeb3');
+  for (let k=0;k<4;k++){ const c=k*6+.5;
+    svg.append('line').attr('x1',iso(c,0)[0]).attr('y1',iso(c,0)[1]).attr('x2',iso(c,19)[0]).attr('y2',iso(c,19)[1]).attr('stroke','#e9ecec').attr('stroke-width',1).attr('stroke-dasharray','5 6');
+    svg.append('line').attr('x1',iso(0,c)[0]).attr('y1',iso(0,c)[1]).attr('x2',iso(19,c)[0]).attr('y2',iso(19,c)[1]).attr('stroke','#e9ecec').attr('stroke-width',1).attr('stroke-dasharray','5 6');
+  }
+  const BLK = [[0,0],[3,0],[0,3],[3,3]];
+  const layers = {dist: svg.append('g'), sign: null, cloud: null, label: null, pin: null};
+  const smoke = [], cranes = [], leases = [];
+
+  DIST.slice().sort((a,b)=>(a.gx+a.gy)-(b.gx+b.gy)).forEach(d => {
+    d.i0 = 1+d.gx*6; d.j0 = 1+d.gy*6;
+    const I=d.i0, J=d.j0, col=d3.color(d.color);
+    const f = defs.append('filter').attr('id','f-'+d.id).attr('x','-10%').attr('y','-10%').attr('width','120%').attr('height','120%');
+    d.fSat = f.append('feColorMatrix').attr('type','saturate').attr('values',1);
+    const ct = f.append('feComponentTransfer');
+    d.fR = ct.append('feFuncR').attr('type','linear').attr('slope',1);
+    d.fG = ct.append('feFuncG').attr('type','linear').attr('slope',1);
+    d.fB = ct.append('feFuncB').attr('type','linear').attr('slope',1);
+    const g = layers.dist.append('g').attr('class','district').attr('tabindex',0).attr('role','button').attr('aria-label',d.name).attr('filter',`url(#f-${d.id})`);
+    d.g = g;
+    const groundCol = d3.interpolateRgb('#eef0ea', d.color)(.18);
+    d.hit = poly(g, [iso(I,J),iso(I+5,J),iso(I+5,J+5),iso(I,J+5)], groundCol, {class:'hit', stroke:'#8d969c', 'stroke-width':1});
+    // inner lanes
+    const lane = d.kind==='campus' ? '#9cc58b' : '#c9ced0';
+    poly(g, [iso(I+2,J),iso(I+3,J),iso(I+3,J+5),iso(I+2,J+5)], lane);
+    poly(g, [iso(I,J+2),iso(I+5,J+2),iso(I+5,J+3),iso(I,J+3)], lane);
+    // build items
+    const items = [];
+    const small4 = (a,b,h0,h1,c,extra) => [[0,0],[1,0],[0,1],[1,1]].forEach(([u,v])=> items.push(Object.assign({t:'box',i:I+a+u+.12,j:J+b+v+.12,wi:.76,wj:.76,h:h0+rnd()*(h1-h0),c}, extra?extra():{})));
+    const big = (a,b,h,c,extra) => items.push(Object.assign({t:'box',i:I+a+.15,j:J+b+.15,wi:1.7,wj:1.7,h,c}, extra||{}));
+    if (d.kind==='tower') BLK.forEach(([a,b])=> big(a,b,100+rnd()*75,col,{stripes:true}));
+    if (d.kind==='glass') BLK.forEach(([a,b],k)=> k%3===0 ? big(a,b,60+rnd()*40,col,{stripes:true}) : small4(a,b,22,48,col,()=>({stripes:true})));
+    if (d.kind==='civic'){ big(0,0,34,col,{dome:true}); [[3,0],[0,3],[3,3]].forEach(([a,b])=>small4(a,b,16,30,col)); }
+    if (d.kind==='campus') BLK.forEach(([a,b])=>{ items.push({t:'box',i:I+a+.12,j:J+b+.15,wi:1.76,wj:.75,h:28+rnd()*14,c:col}); items.push({t:'box',i:I+a+.12,j:J+b+1.1,wi:.75,wj:.75,h:22+rnd()*10,c:col}); });
+    if (d.kind==='hospital'){ big(3,3,62,d3.color('#eef3f1'),{cross:true}); [[0,0],[3,0],[0,3]].forEach(([a,b])=>small4(a,b,16,30,col)); }
+    if (d.kind==='factory') BLK.forEach(([a,b])=>{ big(a,b,22+rnd()*8,col); items.push({t:'box',i:I+a+1.45,j:J+b+.25,wi:.28,wj:.28,h:70+rnd()*16,c:d3.color('#5b5f5c'),chimney:true}); });
+    if (d.kind==='shop') BLK.forEach(([a,b])=> small4(a,b,12,24,col,()=>({awning:d3.schemeSet2[Math.floor(rnd()*8)], lease: rnd()<.35})));
+    if (d.kind==='site'){
+      items.push({t:'crane',i:I+.9,j:J+.9});
+      items.push({t:'box',i:I+.15,j:J+.15,wi:1.7,wj:1.7,h:46,c:col,frame:true});
+      small4(3,0,10,18,d3.color('#c49a6c'));
+      items.push({t:'box',i:I+3.3,j:J+3.3,wi:1.4,wj:1.4,h:70,c:col,frame:true});
+      items.push({t:'box',i:I+.3,j:J+3.4,wi:.7,wj:.5,h:8,c:d3.color('#8d6b48')});
+      items.push({t:'box',i:I+1.2,j:J+3.3,wi:.5,wj:1.2,h:5,c:d3.color('#9a9a92')});
+    }
+    items.sort((a,b)=> (a.i+(a.wi||0)/2+a.j+(a.wj||0)/2) - (b.i+(b.wi||0)/2+b.j+(b.wj||0)/2));
+    d.maxH = 0;
+    items.forEach(o => {
+      if (o.t==='crane'){
+        const base = iso(o.i,o.j), top = up(base,150);
+        g.append('line').attr('x1',base[0]).attr('y1',base[1]).attr('x2',top[0]).attr('y2',top[1]).attr('stroke','#e0a020').attr('stroke-width',4);
+        g.append('line').attr('x1',base[0]).attr('y1',base[1]).attr('x2',top[0]).attr('y2',top[1]).attr('stroke','#7a5a10').attr('stroke-width',1).attr('stroke-dasharray','3 3');
+        const arm = g.append('g');
+        arm.append('line').attr('x1',-26).attr('y1',0).attr('x2',78).attr('y2',0).attr('stroke','#e0a020').attr('stroke-width',4);
+        arm.append('rect').attr('x',-34).attr('y',-5).attr('width',12).attr('height',10).attr('fill','#5b5f5c');
+        arm.append('line').attr('x1',62).attr('y1',0).attr('x2',62).attr('y2',30).attr('stroke','#5b5f5c').attr('stroke-width',1);
+        cranes.push({arm, top, ang: 30, d});
+        d.maxH = Math.max(d.maxH,150);
+        return;
+      }
+      const a=iso(o.i,o.j), b=iso(o.i+o.wi,o.j), c=iso(o.i+o.wi,o.j+o.wj), dd=iso(o.i,o.j+o.wj), h=o.h;
+      d.maxH = Math.max(d.maxH,h);
+      if (o.frame){
+        const s = '#7a5a2c';
+        [[dd,c],[c,b]].forEach(([p,q])=>{ for (let hh=0; hh<=h; hh+=h/3) g.append('line').attr('x1',p[0]).attr('y1',p[1]-hh).attr('x2',q[0]).attr('y2',q[1]-hh).attr('stroke',s).attr('stroke-width',1.4); });
+        [a,b,c,dd].forEach(p=> g.append('line').attr('x1',p[0]).attr('y1',p[1]).attr('x2',p[0]).attr('y2',p[1]-h).attr('stroke',s).attr('stroke-width',1.6));
+        poly(g,[up(a,h),up(b,h),up(c,h),up(dd,h)],'none',{stroke:s,'stroke-width':1.4});
+        return;
+      }
+      poly(g,[dd,c,up(c,h),up(dd,h)], o.c.darker(.15));
+      poly(g,[c,b,up(b,h),up(c,h)], o.c.darker(.65));
+      poly(g,[up(a,h),up(b,h),up(c,h),up(dd,h)], o.c.brighter(.55));
+      if (o.stripes) for (let yy=8; yy<h-5; yy+=8){
+        g.append('line').attr('x1',dd[0]+2).attr('y1',dd[1]-yy).attr('x2',c[0]-2).attr('y2',c[1]-yy).attr('stroke','#ffffff').attr('stroke-opacity',.28);
+        g.append('line').attr('x1',c[0]+2).attr('y1',c[1]-yy).attr('x2',b[0]-2).attr('y2',b[1]-yy).attr('stroke','#ffffff').attr('stroke-opacity',.16);
+      }
+      if (o.awning){
+        poly(g,[up(dd,h*.55),up(c,h*.55),[c[0]-1,c[1]-h*.55+5],[dd[0]-1,dd[1]-h*.55+5]], o.awning);
+      }
+      if (o.lease){
+        const m = [(dd[0]+c[0])/2, (dd[1]+c[1])/2 - 4];
+        const L = g.append('g').attr('opacity',0);
+        L.append('rect').attr('x',m[0]-9).attr('y',m[1]-6).attr('width',18).attr('height',7).attr('fill','#ffffff').attr('stroke',C.signal).attr('stroke-width',.8);
+        L.append('text').attr('x',m[0]).attr('y',m[1]-.8).attr('text-anchor','middle').attr('font-size',4.6).attr('font-weight',600).attr('fill',C.signal).text('FOR LEASE');
+        leases.push({el:L, d});
+      }
+      if (o.dome){ const ctr=[(a[0]+c[0])/2,(a[1]+c[1])/2-h]; g.append('path').attr('d',`M${ctr[0]-16},${ctr[1]} A16,16 0 0 1 ${ctr[0]+16},${ctr[1]} Z`).attr('fill','#c9b48a').attr('stroke','#8a7652'); g.append('line').attr('x1',ctr[0]).attr('x2',ctr[0]).attr('y1',ctr[1]-16).attr('y2',ctr[1]-26).attr('stroke','#8a7652').attr('stroke-width',1.5); }
+      if (o.cross){ const ctr=[(a[0]+c[0])/2,(a[1]+c[1])/2-h]; g.append('rect').attr('x',ctr[0]-3).attr('y',ctr[1]-9).attr('width',6).attr('height',18).attr('fill',C.signal); g.append('rect').attr('x',ctr[0]-9).attr('y',ctr[1]-3).attr('width',18).attr('height',6).attr('fill',C.signal); }
+      if (o.chimney) smoke.push({x:(a[0]+c[0])/2, y:(a[1]+c[1])/2-h, d});
+    });
+    d.ctr = iso(I+2.5, J+2.5);
+    g.on('click', () => select(d.id)).on('keydown', ev => { if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); select(d.id);} })
+     .on('mouseenter', () => hover(d.id)).on('mouseleave', () => hover(null));
+  });
+
+  // signs, clouds, labels, pins
+  layers.sign = svg.append('g'); layers.cloud = svg.append('g'); layers.label = svg.append('g'); layers.pin = svg.append('g');
+  DIST.forEach(d => {
+    const p = iso(d.i0+4.7, d.j0+4.7);
+    const s = layers.sign.append('g').attr('transform',`translate(${p[0]},${p[1]})`).attr('pointer-events','none');
+    s.append('line').attr('y1',0).attr('y2',-14).attr('stroke','#555').attr('stroke-width',1.5);
+    d.signBg = s.append('rect').attr('x',-25).attr('y',-25).attr('width',50).attr('height',12).attr('rx',2);
+    d.signTx = s.append('text').attr('y',-16.2).attr('text-anchor','middle').attr('font-size',7.5).attr('font-weight',600).attr('fill','#fff');
+    d.labelY = d.ctr[1] - d.maxH - 34;
+    const cl = layers.cloud.append('g').attr('pointer-events','none');
+    const cg = cl.append('g');
+    [[-40,6,22],[-14,-6,28],[16,-2,26],[40,8,20],[0,10,24]].forEach(([dx,dy,r])=> cg.append('circle').attr('cx',dx).attr('cy',dy).attr('r',r));
+    d.cloud = cl; d.cloudFill = cg; d.cloudY = d.labelY - 14; d.cloudPhase = rnd()*6;
+    const lab = layers.label.append('g').attr('transform',`translate(${d.ctr[0]},${d.labelY})`).attr('pointer-events','none');
+    d.labBg = lab.append('rect').attr('rx',3).attr('fill',C.ink);
+    d.labTx = lab.append('text').attr('text-anchor','middle').attr('y',4).attr('font-size',11).attr('font-weight',600).attr('fill','#fff').text(d.name.toUpperCase());
+    const w = d.name.length*6.9 + 14;
+    d.labBg.attr('x',-w/2).attr('y',-10).attr('width',w).attr('height',19);
+    const pin = layers.pin.append('g').attr('opacity',0).attr('pointer-events','none').attr('transform',`translate(${d.ctr[0]},${d.ctr[1]})`);
+    const pg = pin.append('g');
+    pg.append('path').attr('d','M0,0 C-10,-16 -16,-22 -16,-32 A16,16 0 1 1 16,-32 C16,-22 10,-16 0,0Z').attr('fill',C.signal).attr('stroke','#fff').attr('stroke-width',2);
+    pg.append('text').attr('y',-28).attr('text-anchor','middle').attr('font-size',10).attr('font-weight',600).attr('fill','#fff').text('YOU');
+    d.pin = pin; d.pinG = pg;
+  });
+
+  // walkers
+  const walkers = [];
+  DIST.forEach(d => {
+    const n = Math.round(B.ind[d.id].now / 20);
+    const I=d.i0, J=d.j0, c=2.5;
+    const ends = [[I+c,J+.3],[I+c,J+4.7],[I+.3,J+c],[I+4.7,J+c]];
+    for (let k=0;k<n;k++){
+      const e = ends[Math.floor(rnd()*4)], off = (rnd()-.5)*.7;
+      walkers.push({d, ends, I, J, c, off, pos:[I+c+(rnd()-.5)*4*(k%2), J+c+(rnd()-.5)*4*((k+1)%2)], tgt:null, sp:.5+rnd()*.5, hue:rnd()});
+    }
+  });
+  walkers.forEach(w => { w.pos[0]=clamp(w.pos[0],w.I+.3,w.I+4.7); w.pos[1]=clamp(w.pos[1],w.J+.3,w.J+4.7);
+    if (Math.abs(w.pos[0]-(w.I+w.c))<Math.abs(w.pos[1]-(w.J+w.c))) w.pos[0]=w.I+w.c; else w.pos[1]=w.J+w.c; });
+  function nextTarget(w){
+    const atCtr = Math.abs(w.pos[0]-(w.I+w.c))<.05 && Math.abs(w.pos[1]-(w.J+w.c))<.05;
+    w.tgt = atCtr ? w.ends[Math.floor(Math.random()*4)].slice() : [w.I+w.c, w.J+w.c];
+  }
+
+  // state
+  let Y = 5.31, sel = 'con', hov = null, major = null;
+  const stage = document.getElementById('stage');
+  const cv = document.getElementById('cityCanvas'), ctx = cv.getContext('2d');
+  let k = 1, dpr = 1;
+  function resize(){ dpr = window.devicePixelRatio||1; const w = cv.clientWidth, h = cv.clientHeight; cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); k = w / VBW; }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  const rain = DIST.map(d => Array.from({length:110}, () => ({x:(Math.random()-.5)*200, y:Math.random(), l:.6+Math.random()*.4})));
+  const puffs = [];
+
+  function apply(){
+    const F = stormF(Y);
+    stage.style.setProperty('--sky-top', d3.interpolateRgb('#bcdcec','#56636f')(F));
+    stage.style.setProperty('--sky-bot', d3.interpolateRgb('#eef4f3','#a3abb2')(F));
+    sun.attr('opacity', 1 - F*.75);
+    DIST.forEach(d => {
+      const s = distStorm(d, Y); d.s = s;
+      d.fSat.attr('values', 1 - .65*s);
+      [d.fR,d.fG,d.fB].forEach(fn=>fn.attr('slope', 1 - .32*s));
+      d.cloud.attr('opacity', clamp((s-.12)*1.6,0,1));
+      d.cloudFill.attr('fill', d3.interpolateRgb('#f4f6f7','#4a5562')(clamp(s*1.3,0,1)));
+      const freeze = s >= .5;
+      d.signBg.attr('fill', freeze ? C.signal : C.calm);
+      d.signTx.text(freeze ? 'HIRING FREEZE' : 'NOW HIRING').attr('font-size', freeze?5.6:7.5);
+    });
+    leases.forEach(L => L.el.attr('opacity', L.d.s > .45 ? 1 : 0));
+    d3.select('#dialRead').text(Y.toFixed(2)+'%');
+    d3.select('#dialWx').text(wxWord(F) + ' over the most exposed districts');
+    document.getElementById('yield').value = Y;
+    renderSide(); renderForecast(); emphasis();
+  }
+  function emphasis(){
+    const focus = hov || null;
+    DIST.forEach(d => {
+      const on = !focus || focus===d.id;
+      d.g.attr('opacity', on ? 1 : .45);
+      d.hit.attr('stroke', d.id===sel ? C.signal : '#8d969c').attr('stroke-width', d.id===sel ? 3 : 1);
+      d.pin.attr('opacity', major && MAJORS[major].d.includes(d.id) ? 1 : 0);
+    });
+  }
+  function select(id){ sel = id; renderSide(); emphasis(); }
+  function hover(id){ hov = id; emphasis(); }
+  function renderSide(){
+    const d = DIST.find(e=>e.id===sel), r = B.ind[d.id], all = B.ind.all;
+    const since = 100*(r.now/r.feb22-1), allSince = 100*(all.now/all.feb22-1), yr = 100*(r.now/r.yr-1);
+    const sg = v => (v>=0?'+':'') + v.toFixed(1) + '%';
+    const W=270, mx = 20, xs = d3.scaleLinear().domain([-mx,mx]).range([0,W]);
+    const bar = (v,c) => `<rect x="${Math.min(xs(0),xs(v))}" width="${Math.abs(xs(v)-xs(0))}" height="12" fill="${c}"/>`;
+    document.getElementById('side').innerHTML = `
+      <div class="eyebrow">District · ${wxWord(d.s)} at ${Y.toFixed(2)}%</div>
+      <h3>${d.name}</h3>
+      <div><div class="eyebrow" style="margin-bottom:6px">Rate exposure · ${d.sens} of 5</div>
+        <div class="meter">${[1,2,3,4,5].map(i=>`<i class="${i<=d.sens?'on':''}"></i>`).join('')}</div></div>
+      <p>${d.why}</p>
+      <dl class="kv">
+        <dt>Ontario jobs, Sep 2026</dt><dd>${Math.round(r.now*1000).toLocaleString('en-CA')}</dd>
+        <dt>Change since Feb 2022</dt><dd style="color:${since<allSince?C.signal:C.calm}">${sg(since)}</dd>
+        <dt>All Ontario jobs, same period</dt><dd>${sg(allSince)}</dd>
+        <dt>Past 12 months</dt><dd>${sg(yr)}</dd>
+      </dl>
+      <svg viewBox="0 0 ${W} 54" style="width:100%;height:auto" aria-hidden="true">
+        <g transform="translate(0,4)">${bar(since, since<allSince?C.signal:C.calm)}</g>
+        <g transform="translate(0,22)">${bar(allSince, C.ink2)}</g>
+        <line x1="${xs(0)}" x2="${xs(0)}" y1="0" y2="40" stroke="${C.ink}"/>
+        <text x="${W}" y="50" text-anchor="end" font-size="9" fill="${C.ink2}">top: this district · bottom: all jobs</text>
+      </svg>
+      <p><b>Reality check.</b> ${d.real}</p>
+      <div class="note">StatCan LFS, Ontario, seasonally adjusted. Exposure rating is our classification.</div>`;
+  }
+  function renderForecast(){
+    const el = document.getElementById('forecast');
+    if (!major){ el.textContent = 'Pick your program to find where you’ll be standing.'; return; }
+    const m = MAJORS[major];
+    el.innerHTML = `<b>${m.label}</b> graduates mostly land in ` + m.d.map(id => { const d=DIST.find(e=>e.id===id); return `${d.name} (<b style="color:${d.s>=.5?C.signal:d.s<.2?C.calm:C.ink}">${wxWord(d.s).toLowerCase()}</b>)`; }).join(', ') + ` at ${Y.toFixed(2)}%.`;
+  }
+
+  d3.select('#yield').on('input', ev => { Y = +ev.target.value; apply(); });
+  d3.selectAll('.presets .chip').on('click', ev => {
+    const target = +ev.currentTarget.dataset.y, from = Y;
+    d3.select('#city').transition('dial').duration(REDUCED?0:900).ease(d3.easeCubicInOut).tween('y', () => k2 => { Y = from + (target-from)*k2; apply(); });
+  });
+  d3.selectAll('.majors .chip').on('click', ev => {
+    const m = ev.currentTarget.dataset.major;
+    major = major === m ? null : m;
+    d3.selectAll('.majors .chip').attr('aria-pressed', function(){ return this.dataset.major === major ? 'true' : 'false'; });
+    if (major) select(MAJORS[major].d[0]);
+    renderForecast(); emphasis();
+  });
+
+  // animation loop
+  let lastT = performance.now();
+  function frame(now){
+    const dt = Math.min(.05, (now-lastT)/1000); lastT = now;
+    const mv = REDUCED ? 0 : 1;
+    ctx.setTransform(k*dpr,0,0,k*dpr,0,0);
+    ctx.clearRect(0,0,VBW,VBH);
+    // cranes
+    cranes.forEach(c => { const s = c.d.s; c.ang += mv*dt*28*clamp(1 - s*1.6, 0, 1); c.arm.attr('transform',`translate(${c.top[0]},${c.top[1]}) scale(1,.5) rotate(${c.ang})`); });
+    // clouds drift
+    DIST.forEach(d => { const dx = Math.sin(now/2600 + d.cloudPhase)*10*mv; d.cloud.attr('transform',`translate(${d.ctr[0]+dx},${d.cloudY})`); });
+    // smoke
+    smoke.forEach(sm => { const on = clamp(1 - sm.d.s*1.7, 0, 1); if (mv && Math.random() < on*dt*4) puffs.push({x:sm.x, y:sm.y, r:3, a:.55}); });
+    for (let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.y -= dt*14; p.x += dt*6; p.r += dt*4; p.a -= dt*.18; if (p.a<=0){ puffs.splice(i,1); continue; } ctx.fillStyle=`rgba(235,236,234,${p.a})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+    // walkers
+    walkers.forEach(w => {
+      const s = w.d.s;
+      if (mv){
+        if (!w.tgt) nextTarget(w);
+        const dx = w.tgt[0]-w.pos[0], dy = w.tgt[1]-w.pos[1], dist = Math.hypot(dx,dy), step = dt*w.sp*(1-.65*s);
+        if (dist <= step){ w.pos = w.tgt.slice(); nextTarget(w); } else { w.pos[0]+=dx/dist*step; w.pos[1]+=dy/dist*step; }
+      }
+      const onX = Math.abs(w.pos[0]-(w.I+w.c))<.02;
+      const [px,py] = iso(w.pos[0]+(onX?w.off*.5:0), w.pos[1]+(onX?0:w.off*.5));
+      const dim = (sel && hov && hov!==w.d.id) ? .35 : 1;
+      ctx.globalAlpha = dim;
+      ctx.strokeStyle = '#2a2f35'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px,py-6); ctx.stroke();
+      ctx.fillStyle = d3.color(w.d.color).darker(.4 + w.hue*.6).formatHex(); ctx.fillRect(px-1.8,py-6.5,3.6,4.5);
+      ctx.fillStyle = '#e2b48c'; ctx.beginPath(); ctx.arc(px,py-8.5,1.8,0,7); ctx.fill();
+      if (s > .42){ ctx.fillStyle = '#20262c'; ctx.beginPath(); ctx.arc(px,py-10.5,5,Math.PI,0); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    });
+    // rain
+    DIST.forEach((d,di) => {
+      const s = d.s, n = Math.round(clamp(s-.18,0,1)*140);
+      if (!n) return;
+      const top = d.cloudY + 14, bot = d.ctr[1] + 40;
+      ctx.strokeStyle = `rgba(70,95,125,${.35+.4*s})`; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i=0;i<n && i<rain[di].length;i++){
+        const r = rain[di][i];
+        r.y += mv*dt*(1.1+r.l*.5); if (r.y>1) r.y -= 1;
+        const yy = top + r.y*(bot-top), xx = d.ctr[0] + r.x - r.y*8;
+        ctx.moveTo(xx,yy); ctx.lineTo(xx-2.5,yy+9*r.l);
+      }
+      ctx.stroke();
+    });
+    requestAnimationFrame(frame);
+  }
+  apply();
+  requestAnimationFrame(frame);
+})();
+
+/* ---------------- Act 5: budget box ---------------- */
+const MORT = (L, rate, n) => { const r = Math.pow(1 + rate/200, 1/6) - 1; return L*r/(1-Math.pow(1+r,-n)); };
+const LOAN = (L, rate, n) => { const r = rate/1200; return L*r/(1-Math.pow(1+r,-n)); };
+const TODAY_RATE = +(B.boc[B.boc.length-1][1] + 1.5).toFixed(2);
+const RATE_2021 = +(B.boc.find(d=>d[0]==='2021-12')[1] + 1.5).toFixed(2);
+const PERSONAS = {
+  lydia:{blurb:'Lydia is buying her first condo in Toronto: $650,000 with 10% down, paid off over 25 years. She takes home $5,900 a month.',
+    cap:5900, loan:585000, n:300, kind:'mortgage', loanName:'Mortgage',
+    fixed:[['Condo fees & tax',750],['Groceries & bills',900],['Transit',160]],
+    disc:[['Savings',600],['Eating out',350],['Fun money',250],['Travel fund',300]]},
+  jacob:{blurb:'Jacob just graduated and rents a one-bedroom for $2,300. He is financing a $28,000 used car over 5 years at the mortgage rate + 2.5 points. He takes home $4,400 a month.',
+    cap:4400, loan:28000, n:60, kind:'car', spread:2.5, loanName:'Car loan',
+    fixed:[['Rent',2300],['Groceries & bills',650],['Phone & transit',200]],
+    disc:[['Savings',250],['Eating out',200],['Fun money',150],['Travel fund',100]]},
+  matthew:{blurb:'Matthew’s family is renewing their mortgage: $480,000 left over 20 years, two kids and a car payment. The household takes home $9,200 a month.',
+    cap:9200, loan:480000, n:240, kind:'mortgage', loanName:'Mortgage',
+    fixed:[['Tax & utilities',900],['Childcare',600],['Groceries',1400],['Car payment',650]],
+    disc:[['Retirement',700],['Kids’ RESP',400],['Eating out',400],['Kids’ sports',300],['Family trip',500]]}
+};
+(function budget(){
+  const svg = d3.select('#box');
+  const W=640,H=480, bx=60,bw=240,top=56,bot=446, pileX=380;
+  const defs = svg.append('defs');
+  const pat = defs.append('pattern').attr('id','hatch').attr('width',8).attr('height',8).attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
+  pat.append('rect').attr('width',3).attr('height',8).attr('fill','#ffffff').attr('opacity',.28);
+  svg.append('text').attr('x',bx).attr('y',top-28).attr('font-size',12).attr('fill',C.ink2).attr('class','capLbl');
+  svg.append('text').attr('x',pileX).attr('y',top-28).attr('font-size',12).attr('fill',C.ink2).text('PUSHED OUT OF THE BOX');
+  svg.append('line').attr('x1',pileX).attr('x2',W-20).attr('y1',bot).attr('y2',bot).attr('stroke',C.rule).attr('stroke-width',2);
+  const itemsG = svg.append('g');
+  svg.append('rect').attr('x',bx).attr('y',top).attr('width',bw).attr('height',bot-top).attr('fill','none').attr('stroke',C.ink).attr('stroke-width',2.5);
+  const over = svg.append('g');
+  const pal = {fixed:['#3d4957','#56677a','#6f8296','#8796a6','#9aa8b6'], disc:['#2e8466','#d49a58','#8a7ab3','#5c93ad','#c4685a']};
+  let P = 'lydia';
+  const rateEl = document.getElementById('rate');
+  rateEl.value = TODAY_RATE;
+  const ticks = document.getElementById('rateTicks');
+  const pct = v => (v-1.5)/(8-1.5)*100;
+  ticks.innerHTML = `<span style="left:${pct(RATE_2021)}%">▲ Dec 2021 ≈ ${RATE_2021}%</span><span style="left:${pct(TODAY_RATE)}%">▲ Today ≈ ${TODAY_RATE}%</span>`;
+  function render(){
+    const p = PERSONAS[P], rate = +rateEl.value;
+    const loanRate = p.kind==='car' ? rate + p.spread : rate;
+    const pay = p.kind==='car' ? LOAN(p.loan, loanRate, p.n) : MORT(p.loan, loanRate, p.n);
+    const k = (bot-top)/p.cap;
+    const fixed = [[p.loanName, pay]].concat(p.fixed);
+    let cum = 0; const out = []; let pileY = bot;
+    fixed.forEach(([n,a],i) => { out.push({n, a, fixed:true, c:pal.fixed[i%5], x:bx, y:bot-(cum+a)*k, w:bw, h:a*k, r:0, op:1}); cum += a; });
+    const fixedTotal = cum; const cut = [];
+    p.disc.forEach(([n,a],i) => {
+      const room = p.cap - cum;
+      if (room >= a){ out.push({n, a, c:pal.disc[i%5], x:bx, y:bot-(cum+a)*k, w:bw, h:a*k, r:0, op:1}); cum += a; }
+      else if (room > 40){ out.push({n, a:room, trimmed:true, c:pal.disc[i%5], x:bx, y:bot-(cum+room)*k, w:bw, h:room*k, r:0, op:1}); cum += room; cut.push(n+' (trimmed)'); }
+      else { const h=a*k; pileY -= h+4; out.push({n, a, c:pal.disc[i%5], x:pileX+18+(cut.length%2)*14, y:pileY, w:180, h, r:(cut.length%2?-3:3), op:.75, out:true}); cut.push(n); }
+    });
+    const tr = svg.transition().duration(REDUCED?0:700).ease(d3.easeCubicInOut);
+    const g = itemsG.selectAll('g.it').data(out, d=>d.n).join(en => {
+      const e = en.append('g').attr('class','it').attr('transform',d=>`translate(${d.x},${d.y})`);
+      e.append('rect').attr('class','base'); e.append('rect').attr('class','hat');
+      e.append('text').attr('class','nm').attr('x',10).attr('font-size',12).attr('fill','#fff').attr('font-weight',600);
+      e.append('text').attr('class','am').attr('font-size',12).attr('fill','#fff').attr('text-anchor','end');
+      return e;
+    });
+    g.transition(tr).attr('transform',d=>`translate(${d.x},${d.y}) rotate(${d.r})`).attr('opacity',d=>d.op);
+    g.select('.base').attr('fill',d=>d.c).attr('stroke',d=>d.fixed?'none':'#fff').attr('stroke-dasharray',d=>d.fixed?null:'5 4').attr('stroke-width',1.5)
+      .transition(tr).attr('width',d=>d.w).attr('height',d=>Math.max(1,d.h-1.5));
+    g.select('.hat').attr('fill','url(#hatch)').attr('opacity',d=>d.fixed?1:0).transition(tr).attr('width',d=>d.w).attr('height',d=>Math.max(1,d.h-1.5));
+    g.select('.nm').text(d=>d.n + (d.trimmed?' (trimmed)':'')).attr('opacity',d=>d.h>16?1:0).transition(tr).attr('y',d=>Math.min(d.h/2+4, 17));
+    g.select('.am').text(d=>fmt$(d.a)).attr('opacity',d=>d.h>16?1:0).transition(tr).attr('x',d=>d.w-10).attr('y',d=>Math.min(d.h/2+4, 17));
+    svg.select('.capLbl').text(`TAKE-HOME ${fmt$(p.cap)} / MONTH`);
+    over.selectAll('*').remove();
+    if (fixedTotal > p.cap){
+      over.append('rect').attr('x',bx-6).attr('y',top-6).attr('width',bw+12).attr('height',4).attr('fill',C.signal);
+      over.append('text').attr('x',bx+bw/2).attr('y',top-12).attr('text-anchor','middle').attr('font-size',12).attr('font-weight',600).attr('fill',C.signal).text(`OVER BUDGET BY ${fmt$(fixedTotal-p.cap)}`);
+    }
+    if (!cut.length) over.append('text').attr('x',pileX+18).attr('y',bot-12).attr('font-size',12).attr('fill',C.ink2).text('Nothing yet. Try a higher rate.');
+    document.getElementById('rateRead').textContent = rate.toFixed(2) + '%' + (p.kind==='car' ? ` (car loan ${loanRate.toFixed(2)}%)` : '');
+    const totInt = pay*p.n - p.loan;
+    const base = p.kind==='car' ? LOAN(p.loan, RATE_2021+p.spread, p.n) : MORT(p.loan, RATE_2021, p.n);
+    const left = p.cap - fixedTotal;
+    document.getElementById('readouts').innerHTML = `
+      <div class="r"><span>${p.loanName} payment</span><b>${fmt$(pay)}/mo</b></div>
+      <div class="r ${pay>base+1?'hot':''}"><span>vs. at the Dec 2021 rate</span><b>${pay>=base?'+':'−'}${fmt$(Math.abs(pay-base))}/mo</b></div>
+      <div class="r"><span>Left after fixed costs</span><b style="color:${left<0?C.signal:'inherit'}">${left<0?'−':''}${fmt$(Math.abs(left))}</b></div>
+      <div class="r"><span>Total interest over the loan</span><b>${fmt$(totInt)}</b></div>
+      <div class="r ${cut.length?'hot':''}"><span>Pushed out</span><b style="text-align:right">${cut.length?cut.join(', '):'nothing'}</b></div>`;
+    document.getElementById('pBlurb').textContent = p.blurb;
+  }
+  rateEl.addEventListener('input', render);
+  d3.selectAll('.persona-row .chip').on('click', ev => {
+    P = ev.currentTarget.dataset.p;
+    d3.selectAll('.persona-row .chip').attr('aria-pressed', function(){ return this.dataset.p===P?'true':'false'; });
+    itemsG.selectAll('*').remove();
+    render();
+  });
+  render();
+})();
+
+/* ---------------- coda ---------------- */
+(function coda(){
+  const get = (arr,m) => arr.find(d=>d[0]===m)[1];
+  const con = Object.fromEntries(B.ind.con.series);
+  const L = PERSONAS.lydia;
+  const W = [
+    {cls:'then', y:'Dec 2021', rows:[
+      ['US 10-year yield', get(B.gs10,'2021-12').toFixed(2)+'%'],
+      ['Canada 5-year bond', get(B.boc,'2021-12').toFixed(2)+'%'],
+      ['Typical 5-year fixed mortgage', RATE_2021.toFixed(2)+'%'],
+      ['Lydia’s monthly payment', fmt$(MORT(L.loan,RATE_2021,L.n))],
+      ['Interest over 25 years', fmt$(MORT(L.loan,RATE_2021,L.n)*L.n - L.loan)],
+      ['Ontario construction jobs', Math.round(con['2021-12']*1000).toLocaleString('en-CA')]]},
+    {cls:'now', y:'Oct 2026', rows:[
+      ['US 10-year yield', GS[GS.length-1].v.toFixed(2)+'%'],
+      ['Canada 5-year bond', B.boc[B.boc.length-1][1].toFixed(2)+'%'],
+      ['Typical 5-year fixed mortgage', TODAY_RATE.toFixed(2)+'%'],
+      ['Lydia’s monthly payment', fmt$(MORT(L.loan,TODAY_RATE,L.n))],
+      ['Interest over 25 years', fmt$(MORT(L.loan,TODAY_RATE,L.n)*L.n - L.loan)],
+      ['Ontario construction jobs (Sep)', Math.round(B.ind.con.now*1000).toLocaleString('en-CA')]]}
+  ];
+  d3.select('#worlds').selectAll('div').data(W).join('div').attr('class',d=>'panel world '+d.cls)
+    .html(d=>`<div class="eyebrow" style="color:inherit;opacity:.8">${d.cls==='then'?'Sunny':'Storm warning'}</div><div class="y">${d.y}</div><dl>${d.rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl>`);
+})();
+</script>
