@@ -1,7 +1,7 @@
 <title>Leo's Forecast</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Gochi+Hand&family=Nunito:wght@500;700;800&family=DM+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: a one-screen story game. The life-bar HUD sits on top; the illustrated stage fills the rest of the
    screen, and the dialogue box floats over the bottom of the stage like a visual novel. The scene's viewBox is
@@ -192,6 +192,9 @@ button{cursor:pointer}
 .name.pop{animation:namepop .35s cubic-bezier(.3,1.6,.5,1)}
 @keyframes namepop{from{transform:scale(.6) rotate(-6deg)}to{transform:none}}
 
+/* Leo's sketchbook: his hand is the pointer, and a touch drag draws instead of scrolling */
+.stage.drawing #scene{cursor:none;touch-action:none}
+
 /* overlays (title and end cards) cover the whole stage */
 .overlay{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:16px;overflow-y:auto;background:rgba(18,16,36,.62);backdrop-filter:blur(3px)}
 .overlay[hidden]{display:none!important}
@@ -322,7 +325,7 @@ a.btn{text-decoration:none;display:inline-block}
 <script>
 /* ================= DATA (real) ================= */
 // Generated from prototype/data/project.db by scripts/export_data.py. Don't edit by hand.
-/* @data:begin */ const DATA = {"asof":{"yield":"2026-11-06","jobs":"2026-10","built":"2026-11-08"},"us10":{"last":{"d":"2026-11-06","v":4.86},"peak":{"d":"2026-10-05","v":5.3},"prevAbovePeak":"2002-04-02","low":{"d":"2020-08-04","v":0.51}},"us10Annual":{"2007":4.62,"2008":3.64,"2009":3.24,"2010":3.2,"2011":2.77,"2012":1.78,"2013":2.33,"2014":2.53,"2015":2.13,"2016":1.84,"2017":2.33,"2018":2.91,"2019":2.14,"2020":0.89,"2021":1.43,"2022":2.94,"2023":3.95,"2024":4.2,"2025":4.29,"2026":4.55},"us10AnnualMin":["2012",1.78],"ca5Annual":{"2007":4.2,"2008":3.05,"2009":2.33,"2010":2.48,"2011":2.06,"2012":1.38,"2013":1.62,"2014":1.58,"2015":0.85,"2016":0.73,"2017":1.37,"2018":2.15,"2019":1.54,"2020":0.59,"2021":0.94,"2022":2.77,"2023":3.56,"2024":3.29,"2025":2.83,"2026":3.2},"canUnemp":{"d":"2026-09-30","v":6.43}}; /* @data:end */
+/* @data:begin */ const DATA = {"asof":{"yield":"2026-11-06","jobs":"2026-10","built":"2026-11-08"},"us10":{"last":{"d":"2026-11-06","v":4.86},"peak":{"d":"2026-10-05","v":5.3},"prevAbovePeak":"2002-04-02","low":{"d":"2020-08-04","v":0.51}},"us10Annual":{"2007":4.62,"2008":3.64,"2009":3.24,"2010":3.2,"2011":2.77,"2012":1.78,"2013":2.33,"2014":2.53,"2015":2.13,"2016":1.84,"2017":2.33,"2018":2.91,"2019":2.14,"2020":0.89,"2021":1.43,"2022":2.94,"2023":3.95,"2024":4.2,"2025":4.29,"2026":4.55},"us10AnnualMin":["2012",1.78],"ca5Annual":{"2007":4.2,"2008":3.05,"2009":2.33,"2010":2.48,"2011":2.06,"2012":1.38,"2013":1.62,"2014":1.58,"2015":0.85,"2016":0.73,"2017":1.37,"2018":2.15,"2019":1.54,"2020":0.59,"2021":0.94,"2022":2.77,"2023":3.56,"2024":3.29,"2025":2.83,"2026":3.2},"canUnemp":{"d":"2026-09-30","v":6.43},"us10Monthly":[["1962-01",4.08],["1962-02",4.04],["1962-03",3.93],["1962-04",3.84],["1962-05",3.87],["1962-06",3.91],["1962-07",4.01],["1962-08",3.98],["1962-09",3.98],["1962-10",3.93],["1962-11",3.92],["1962-12",3.86],["1963-01",3.83],["1963-02",3.92],["1963-03",3.93],["1963-04",3.97],["1963-05",3.93],["1963-06",3.99],["1963-07",4.02],["1963-08",4.0],["1963-09",4.08],["1963-10",4.11],["1963-11",4.12],["1963-12",4.13],["1964-01",4.17],["1964-02",4.15],["1964-03",4.22],["1964-04",4.23],["1964-05",4.2],["1964-06",4.17],["1964-07",4.19],["1964-08",4.19],["1964-09",4.2],["1964-10",4.19],["1964-11",4.15],["1964-12",4.18],["1965-01",4.19],["1965-02",4.21],["1965-03",4.21],["1965-04",4.2],["1965-05",4.21],["1965-06",4.21],["1965-07",4.2],["1965-08",4.25],["1965-09",4.29],["1965-10",4.35],["1965-11",4.45],["1965-12",4.62],["1966-01",4.61],["1966-02",4.83],["1966-03",4.87],["1966-04",4.75],["1966-05",4.78],["1966-06",4.81],["1966-07",5.02],["1966-08",5.22],["1966-09",5.18],["1966-10",5.01],["1966-11",5.16],["1966-12",4.84],["1967-01",4.58],["1967-02",4.63],["1967-03",4.54],["1967-04",4.59],["1967-05",4.85],["1967-06",5.02],["1967-07",5.16],["1967-08",5.28],["1967-09",5.3],["1967-10",5.48],["1967-11",5.75],["1967-12",5.7],["1968-01",5.53],["1968-02",5.56],["1968-03",5.74],["1968-04",5.64],["1968-05",5.87],["1968-06",5.72],["1968-07",5.5],["1968-08",5.42],["1968-09",5.46],["1968-10",5.58],["1968-11",5.7],["1968-12",6.03],["1969-01",6.04],["1969-02",6.19],["1969-03",6.3],["1969-04",6.17],["1969-05",6.32],["1969-06",6.57],["1969-07",6.72],["1969-08",6.69],["1969-09",7.16],["1969-10",7.1],["1969-11",7.14],["1969-12",7.65],["1970-01",7.79],["1970-02",7.24],["1970-03",7.07],["1970-04",7.39],["1970-05",7.91],["1970-06",7.84],["1970-07",7.46],["1970-08",7.53],["1970-09",7.39],["1970-10",7.33],["1970-11",6.84],["1970-12",6.39],["1971-01",6.24],["1971-02",6.11],["1971-03",5.7],["1971-04",5.83],["1971-05",6.39],["1971-06",6.52],["1971-07",6.73],["1971-08",6.58],["1971-09",6.14],["1971-10",5.93],["1971-11",5.81],["1971-12",5.93],["1972-01",5.95],["1972-02",6.08],["1972-03",6.07],["1972-04",6.19],["1972-05",6.13],["1972-06",6.11],["1972-07",6.11],["1972-08",6.21],["1972-09",6.55],["1972-10",6.48],["1972-11",6.28],["1972-12",6.36],["1973-01",6.46],["1973-02",6.64],["1973-03",6.71],["1973-04",6.67],["1973-05",6.85],["1973-06",6.9],["1973-07",7.13],["1973-08",7.4],["1973-09",7.09],["1973-10",6.79],["1973-11",6.73],["1973-12",6.74],["1974-01",6.99],["1974-02",6.96],["1974-03",7.21],["1974-04",7.51],["1974-05",7.58],["1974-06",7.54],["1974-07",7.81],["1974-08",8.04],["1974-09",8.04],["1974-10",7.9],["1974-11",7.68],["1974-12",7.43],["1975-01",7.5],["1975-02",7.39],["1975-03",7.73],["1975-04",8.23],["1975-05",8.06],["1975-06",7.86],["1975-07",8.06],["1975-08",8.4],["1975-09",8.43],["1975-10",8.14],["1975-11",8.05],["1975-12",8.0],["1976-01",7.74],["1976-02",7.79],["1976-03",7.73],["1976-04",7.56],["1976-05",7.9],["1976-06",7.86],["1976-07",7.83],["1976-08",7.77],["1976-09",7.59],["1976-10",7.41],["1976-11",7.29],["1976-12",6.87],["1977-01",7.21],["1977-02",7.39],["1977-03",7.46],["1977-04",7.37],["1977-05",7.46],["1977-06",7.28],["1977-07",7.33],["1977-08",7.4],["1977-09",7.34],["1977-10",7.52],["1977-11",7.58],["1977-12",7.69],["1978-01",7.96],["1978-02",8.03],["1978-03",8.04],["1978-04",8.15],["1978-05",8.35],["1978-06",8.46],["1978-07",8.64],["1978-08",8.41],["1978-09",8.42],["1978-10",8.64],["1978-11",8.81],["1978-12",9.01],["1979-01",9.1],["1979-02",9.1],["1979-03",9.12],["1979-04",9.18],["1979-05",9.25],["1979-06",8.91],["1979-07",8.95],["1979-08",9.03],["1979-09",9.33],["1979-10",10.3],["1979-11",10.65],["1979-12",10.39],["1980-01",10.8],["1980-02",12.41],["1980-03",12.75],["1980-04",11.47],["1980-05",10.18],["1980-06",9.78],["1980-07",10.25],["1980-08",11.1],["1980-09",11.51],["1980-10",11.75],["1980-11",12.68],["1980-12",12.84],["1981-01",12.57],["1981-02",13.19],["1981-03",13.12],["1981-04",13.68],["1981-05",14.1],["1981-06",13.47],["1981-07",14.28],["1981-08",14.94],["1981-09",15.32],["1981-10",15.15],["1981-11",13.39],["1981-12",13.72],["1982-01",14.59],["1982-02",14.43],["1982-03",13.86],["1982-04",13.87],["1982-05",13.62],["1982-06",14.3],["1982-07",13.95],["1982-08",13.06],["1982-09",12.34],["1982-10",10.91],["1982-11",10.55],["1982-12",10.54],["1983-01",10.46],["1983-02",10.72],["1983-03",10.51],["1983-04",10.4],["1983-05",10.38],["1983-06",10.85],["1983-07",11.38],["1983-08",11.85],["1983-09",11.65],["1983-10",11.54],["1983-11",11.69],["1983-12",11.83],["1984-01",11.67],["1984-02",11.84],["1984-03",12.32],["1984-04",12.63],["1984-05",13.41],["1984-06",13.56],["1984-07",13.36],["1984-08",12.72],["1984-09",12.52],["1984-10",12.16],["1984-11",11.57],["1984-12",11.5],["1985-01",11.38],["1985-02",11.51],["1985-03",11.86],["1985-04",11.43],["1985-05",10.85],["1985-06",10.16],["1985-07",10.31],["1985-08",10.33],["1985-09",10.37],["1985-10",10.24],["1985-11",9.78],["1985-12",9.26],["1986-01",9.19],["1986-02",8.7],["1986-03",7.78],["1986-04",7.3],["1986-05",7.71],["1986-06",7.8],["1986-07",7.3],["1986-08",7.17],["1986-09",7.45],["1986-10",7.43],["1986-11",7.25],["1986-12",7.11],["1987-01",7.08],["1987-02",7.25],["1987-03",7.25],["1987-04",8.02],["1987-05",8.61],["1987-06",8.4],["1987-07",8.45],["1987-08",8.76],["1987-09",9.42],["1987-10",9.52],["1987-11",8.86],["1987-12",8.99],["1988-01",8.67],["1988-02",8.21],["1988-03",8.37],["1988-04",8.72],["1988-05",9.09],["1988-06",8.92],["1988-07",9.06],["1988-08",9.26],["1988-09",8.98],["1988-10",8.8],["1988-11",8.96],["1988-12",9.11],["1989-01",9.09],["1989-02",9.17],["1989-03",9.36],["1989-04",9.18],["1989-05",8.86],["1989-06",8.28],["1989-07",8.02],["1989-08",8.11],["1989-09",8.19],["1989-10",8.01],["1989-11",7.87],["1989-12",7.84],["1990-01",8.2],["1990-02",8.47],["1990-03",8.58],["1990-04",8.77],["1990-05",8.75],["1990-06",8.47],["1990-07",8.46],["1990-08",8.74],["1990-09",8.88],["1990-10",8.71],["1990-11",8.38],["1990-12",8.06],["1991-01",8.08],["1991-02",7.85],["1991-03",8.1],["1991-04",8.03],["1991-05",8.06],["1991-06",8.28],["1991-07",8.26],["1991-08",7.9],["1991-09",7.65],["1991-10",7.52],["1991-11",7.41],["1991-12",7.07],["1992-01",7.03],["1992-02",7.33],["1992-03",7.53],["1992-04",7.46],["1992-05",7.38],["1992-06",7.25],["1992-07",6.84],["1992-08",6.58],["1992-09",6.41],["1992-10",6.57],["1992-11",6.86],["1992-12",6.75],["1993-01",6.58],["1993-02",6.25],["1993-03",5.97],["1993-04",5.96],["1993-05",6.02],["1993-06",5.94],["1993-07",5.78],["1993-08",5.67],["1993-09",5.35],["1993-10",5.32],["1993-11",5.71],["1993-12",5.74],["1994-01",5.71],["1994-02",5.97],["1994-03",6.48],["1994-04",6.95],["1994-05",7.17],["1994-06",7.09],["1994-07",7.29],["1994-08",7.23],["1994-09",7.43],["1994-10",7.73],["1994-11",7.94],["1994-12",7.81],["1995-01",7.77],["1995-02",7.46],["1995-03",7.2],["1995-04",7.05],["1995-05",6.61],["1995-06",6.16],["1995-07",6.27],["1995-08",6.48],["1995-09",6.2],["1995-10",6.04],["1995-11",5.92],["1995-12",5.71],["1996-01",5.65],["1996-02",5.8],["1996-03",6.26],["1996-04",6.5],["1996-05",6.73],["1996-06",6.9],["1996-07",6.86],["1996-08",6.63],["1996-09",6.83],["1996-10",6.53],["1996-11",6.19],["1996-12",6.29],["1997-01",6.56],["1997-02",6.4],["1997-03",6.7],["1997-04",6.87],["1997-05",6.71],["1997-06",6.49],["1997-07",6.22],["1997-08",6.29],["1997-09",6.21],["1997-10",6.02],["1997-11",5.87],["1997-12",5.8],["1998-01",5.54],["1998-02",5.57],["1998-03",5.64],["1998-04",5.63],["1998-05",5.65],["1998-06",5.49],["1998-07",5.46],["1998-08",5.33],["1998-09",4.8],["1998-10",4.52],["1998-11",4.83],["1998-12",4.64],["1999-01",4.71],["1999-02",5.0],["1999-03",5.22],["1999-04",5.18],["1999-05",5.54],["1999-06",5.89],["1999-07",5.78],["1999-08",5.94],["1999-09",5.9],["1999-10",6.1],["1999-11",6.03],["1999-12",6.27],["2000-01",6.65],["2000-02",6.52],["2000-03",6.25],["2000-04",5.98],["2000-05",6.43],["2000-06",6.09],["2000-07",6.04],["2000-08",5.83],["2000-09",5.79],["2000-10",5.74],["2000-11",5.7],["2000-12",5.22],["2001-01",5.15],["2001-02",5.1],["2001-03",4.88],["2001-04",5.14],["2001-05",5.37],["2001-06",5.26],["2001-07",5.21],["2001-08",4.96],["2001-09",4.73],["2001-10",4.55],["2001-11",4.62],["2001-12",5.05],["2002-01",4.99],["2002-02",4.9],["2002-03",5.28],["2002-04",5.2],["2002-05",5.14],["2002-06",4.89],["2002-07",4.61],["2002-08",4.24],["2002-09",3.87],["2002-10",3.91],["2002-11",4.04],["2002-12",4.02],["2003-01",4.01],["2003-02",3.89],["2003-03",3.79],["2003-04",3.93],["2003-05",3.54],["2003-06",3.32],["2003-07",3.94],["2003-08",4.42],["2003-09",4.26],["2003-10",4.26],["2003-11",4.29],["2003-12",4.25],["2004-01",4.13],["2004-02",4.06],["2004-03",3.81],["2004-04",4.32],["2004-05",4.7],["2004-06",4.72],["2004-07",4.47],["2004-08",4.27],["2004-09",4.12],["2004-10",4.08],["2004-11",4.18],["2004-12",4.22],["2005-01",4.2],["2005-02",4.16],["2005-03",4.49],["2005-04",4.32],["2005-05",4.13],["2005-06",3.99],["2005-07",4.16],["2005-08",4.25],["2005-09",4.18],["2005-10",4.45],["2005-11",4.53],["2005-12",4.46],["2006-01",4.4],["2006-02",4.56],["2006-03",4.72],["2006-04",4.99],["2006-05",5.1],["2006-06",5.1],["2006-07",5.08],["2006-08",4.87],["2006-09",4.71],["2006-10",4.72],["2006-11",4.59],["2006-12",4.56],["2007-01",4.75],["2007-02",4.72],["2007-03",4.56],["2007-04",4.69],["2007-05",4.74],["2007-06",5.1],["2007-07",4.99],["2007-08",4.68],["2007-09",4.51],["2007-10",4.52],["2007-11",4.14],["2007-12",4.09],["2008-01",3.72],["2008-02",3.73],["2008-03",3.48],["2008-04",3.65],["2008-05",3.87],["2008-06",4.08],["2008-07",3.97],["2008-08",3.88],["2008-09",3.68],["2008-10",3.78],["2008-11",3.48],["2008-12",2.39],["2009-01",2.46],["2009-02",2.85],["2009-03",2.8],["2009-04",2.9],["2009-05",3.3],["2009-06",3.7],["2009-07",3.53],["2009-08",3.57],["2009-09",3.39],["2009-10",3.36],["2009-11",3.38],["2009-12",3.59],["2010-01",3.71],["2010-02",3.68],["2010-03",3.72],["2010-04",3.82],["2010-05",3.4],["2010-06",3.19],["2010-07",2.98],["2010-08",2.68],["2010-09",2.64],["2010-10",2.51],["2010-11",2.74],["2010-12",3.28],["2011-01",3.36],["2011-02",3.56],["2011-03",3.4],["2011-04",3.43],["2011-05",3.15],["2011-06",2.99],["2011-07",2.98],["2011-08",2.29],["2011-09",1.96],["2011-10",2.13],["2011-11",2.0],["2011-12",1.97],["2012-01",1.93],["2012-02",1.96],["2012-03",2.16],["2012-04",2.03],["2012-05",1.78],["2012-06",1.61],["2012-07",1.5],["2012-08",1.67],["2012-09",1.7],["2012-10",1.72],["2012-11",1.65],["2012-12",1.71],["2013-01",1.88],["2013-02",1.97],["2013-03",1.94],["2013-04",1.73],["2013-05",1.92],["2013-06",2.29],["2013-07",2.56],["2013-08",2.73],["2013-09",2.8],["2013-10",2.6],["2013-11",2.71],["2013-12",2.89],["2014-01",2.85],["2014-02",2.7],["2014-03",2.72],["2014-04",2.69],["2014-05",2.55],["2014-06",2.59],["2014-07",2.53],["2014-08",2.41],["2014-09",2.52],["2014-10",2.29],["2014-11",2.32],["2014-12",2.2],["2015-01",1.88],["2015-02",1.98],["2015-03",2.04],["2015-04",1.92],["2015-05",2.2],["2015-06",2.36],["2015-07",2.32],["2015-08",2.16],["2015-09",2.16],["2015-10",2.06],["2015-11",2.26],["2015-12",2.23],["2016-01",2.08],["2016-02",1.77],["2016-03",1.88],["2016-04",1.8],["2016-05",1.8],["2016-06",1.64],["2016-07",1.49],["2016-08",1.56],["2016-09",1.62],["2016-10",1.75],["2016-11",2.15],["2016-12",2.49],["2017-01",2.43],["2017-02",2.42],["2017-03",2.48],["2017-04",2.29],["2017-05",2.3],["2017-06",2.18],["2017-07",2.31],["2017-08",2.2],["2017-09",2.2],["2017-10",2.36],["2017-11",2.35],["2017-12",2.41],["2018-01",2.57],["2018-02",2.86],["2018-03",2.84],["2018-04",2.87],["2018-05",2.98],["2018-06",2.91],["2018-07",2.88],["2018-08",2.89],["2018-09",2.99],["2018-10",3.16],["2018-11",3.11],["2018-12",2.83],["2019-01",2.71],["2019-02",2.67],["2019-03",2.57],["2019-04",2.53],["2019-05",2.39],["2019-06",2.07],["2019-07",2.05],["2019-08",1.62],["2019-09",1.69],["2019-10",1.7],["2019-11",1.82],["2019-12",1.86],["2020-01",1.76],["2020-02",1.51],["2020-03",0.88],["2020-04",0.65],["2020-05",0.67],["2020-06",0.72],["2020-07",0.62],["2020-08",0.65],["2020-09",0.68],["2020-10",0.78],["2020-11",0.87],["2020-12",0.92],["2021-01",1.06],["2021-02",1.24],["2021-03",1.6],["2021-04",1.62],["2021-05",1.61],["2021-06",1.51],["2021-07",1.31],["2021-08",1.28],["2021-09",1.36],["2021-10",1.58],["2021-11",1.56],["2021-12",1.46],["2022-01",1.76],["2022-02",1.93],["2022-03",2.12],["2022-04",2.75],["2022-05",2.89],["2022-06",3.13],["2022-07",2.89],["2022-08",2.89],["2022-09",3.51],["2022-10",3.97],["2022-11",3.87],["2022-12",3.62],["2023-01",3.54],["2023-02",3.75],["2023-03",3.66],["2023-04",3.45],["2023-05",3.58],["2023-06",3.74],["2023-07",3.89],["2023-08",4.16],["2023-09",4.36],["2023-10",4.8],["2023-11",4.49],["2023-12",4.01],["2024-01",4.03],["2024-02",4.21],["2024-03",4.2],["2024-04",4.54],["2024-05",4.48],["2024-06",4.3],["2024-07",4.25],["2024-08",3.87],["2024-09",3.73],["2024-10",4.09],["2024-11",4.35],["2024-12",4.4],["2025-01",4.62],["2025-02",4.45],["2025-03",4.27],["2025-04",4.27],["2025-05",4.42],["2025-06",4.38],["2025-07",4.38],["2025-08",4.26],["2025-09",4.12],["2025-10",4.05],["2025-11",4.08],["2025-12",4.14],["2026-01",4.2],["2026-02",4.11],["2026-03",4.24],["2026-04",4.31],["2026-05",4.48],["2026-06",4.47],["2026-07",4.59],["2026-08",4.68],["2026-09",4.98],["2026-10",5.13],["2026-11",4.89]],"mortPeak":{"d":"1981-10-09","v":18.63}}; /* @data:end */
 const DAY = s => new Date(s+'T12:00:00').toLocaleDateString('en-CA',{month:'long',day:'numeric',year:'numeric'});
 const MONTH = s => new Date(s.slice(0,7)+'-15T12:00:00').toLocaleDateString('en-CA',{month:'long',year:'numeric'});
 // US 10-year Treasury, annual averages (Bloomberg USGG10YR daily closes).
@@ -334,6 +337,12 @@ US10[2026] = PEAK.v;
 const CA5 = Object.fromEntries(Object.entries(DATA.ca5Annual).map(([y,v]) => [+y, v]));
 const SPREAD = 1.5;            // assumption: 5-yr fixed mortgage ≈ GoC 5-yr + 1.5 pts
 const TODAY = PEAK.v;
+// The monthly US 10-year yield since 1962 (FRED GS10 before 1990, Bloomberg after) for the Yield Coaster and Leo's sketchbook
+const parseM = d3.timeParse('%Y-%m');
+const M10 = new Map(DATA.us10Monthly);
+const pctM = m => M10.get(m).toFixed(1) + '%';
+const TOP = DATA.us10Monthly.reduce((a, b) => b[1] > a[1] ? b : a);                                        // the all-time high month
+const LOW16 = M10.get('2016-07') <= d3.min(DATA.us10Monthly.filter(d => d[0] < '2016-07'), d => d[1]);  // is summer 2016 a record low?
 document.getElementById('pickToday').textContent = `2026 peak ${TODAY.toFixed(2)}%`;
 document.getElementById('pick').value = TODAY.toFixed(1);
 
@@ -364,6 +373,32 @@ const HEIGHT = {0:0,1:76,5:110,9:133,10:138,13:157,15:170,17:177,19:180,20:181,2
 const SPK = {LEO:{c:'var(--leo)'}, MOM:{c:'var(--mom)'}, DAD:{c:'var(--dad)'}, FACT:{c:'#9ff0c8',label:'DATA',tag:'real'}, WHATIF:{c:'#d8c9ff',label:'WHAT IF',tag:'what'}};
 
 /* ================= story ================= */
+/* exported COASTER */
+// The Yield Coaster scene is switched off for now. To bring it back, add COASTER to PAST right after the 2016 street scene.
+// Summer 2016, the Yield Coaster: the track's height is the real 10-year yield since 1962.
+// The 4th item of each line is the station (year-month) the cart rolls to when that line shows; the camera follows the cart.
+const COASTER =
+  {year:2016, age:9, y:US10[2016], bg:'coaster', ride:true, cast:[], mood:'happy', lines:[
+  ['LEO','That summer, Mom and Dad take me to the amusement park. I am finally tall enough for the big coaster!','happy','1962-01'],
+  ['DAD','It is called the Yield Coaster. How high we ride follows the US 10-year yield since 1962: the higher the track, the higher interest rates were. Hold on!','happy','1962-01'],
+  ['FACT',`1962: the ride starts at ${pctM('1962-01')}.`,null,'1962-01'],
+  ['FACT',`1970: prices are rising fast, and the yield climbs to ${pctM('1970-05')}.`,null,'1970-05'],
+  ['FACT',`End of 1971: a short dip, down to ${pctM('1971-12')}.`,null,'1971-12'],
+  ['FACT',`1974: up again to ${pctM('1974-08')}, as an oil shock pushes prices even higher.`,null,'1974-08'],
+  ['FACT',`${TOP[0].slice(0,4)}: the highest point of the whole ride, ${TOP[1].toFixed(1)}%. To stop runaway inflation, rates soared and US mortgages reached ${DATA.mortPeak.v.toFixed(1)}%. Two recessions came back to back.`,null,TOP[0]],
+  ['LEO','We are SO high up! I can’t even see the ground!','shocked',TOP[0]],
+  ['FACT',`1986: with inflation under control, the yield slides all the way down to ${pctM('1986-08')}.`,null,'1986-08'],
+  ['FACT',`1994: a sudden climb from ${pctM('1994-01')} to ${pctM('1994-11')} in ten months. Traders call it the bond massacre, but no recession follows. A climb is a warning, not a verdict.`,null,'1994-11'],
+  ['FACT',`2000: the top of the dot-com boom, ${pctM('2000-01')}. A recession follows in 2001.`,null,'2000-01'],
+  ['FACT',`2003: after that recession, down to ${pctM('2003-06')}.`,null,'2003-06'],
+  ['FACT',`2007, the year Leo was born: back up to ${pctM('2007-06')}.`,null,'2007-06'],
+  ['FACT',`December 2008: the financial crisis drags it down to ${pctM('2008-12')}.`,null,'2008-12'],
+  ['MOM',`By 2012 we were down at ${pctM('2012-07')}. That is why our mortgage got cheaper when we renewed.`,'happy','2012-07'],
+  ['FACT',`2013: a jolt up to ${pctM('2013-12')} when the US central bank hints it will stop holding rates down.`,null,'2013-12'],
+  ['FACT',`Summer 2016, right now: ${pctM('2016-07')}, ${LOW16 ? 'the lowest the ride has ever been' : 'close to the lowest the ride has ever been'}. Money is cheap, so house prices climb.`,null,'2016-07'],
+  ['LEO','Wait, the track just ends!','shocked','2016-07'],
+  ['DAD','That part is not built yet. Nobody knows which way rates go next.','neutral','2016-07']]};
+
 const PAST = [
   {year:2007, age:0, y:US10[2007], bg:'nursery', outfit:'baby', cast:['mom','dad'], lines:[
     ['FACT','Toronto, 2007. Meet Leo. The bar at the top is his life: each step is one year, and the number is the US 10-year Treasury yield, averaged over that year.'],
@@ -393,6 +428,13 @@ const PAST = [
     ['LEO','School is a laptop on my desk now. Everyone is stuck at home.'],
     ['LEO','Money has never been cheaper. Mom says half her coworkers are refinancing or buying cottages.','happy'],
     ['FACT','Near-free borrowing helped push Toronto home prices to record highs by early 2022.']]},
+  // 2020 lockdown, Leo's sketchbook seen through his eyes: you draw where the yield goes next, then he draws the real line.
+  // drawAt is the line that waits for your drawing; the line after it gets the verdict once the real line is shown.
+  {year:2020, age:13, y:US10[2020], bg:'sketch', draw:true, drawAt:1, cast:[], mood:'neutral', lines:[
+    ['LEO','Mom says rates will stay this low forever. Dad says they can only go up. I grabbed my sketchbook to settle it.'],
+    ['LEO','Your turn. Drag across the yellow part of the page to draw where the 10-year yield goes next, all the way to 2026. Then press Next.'],
+    ['FACT','(filled in once the real line is drawn)'],
+    ['LEO','None of us knew it yet, but that red line was about to change my family’s life.','worried']]},
   {year:2022, age:15, y:US10[2022], bg:'kitchen', props:{tv:'INFLATION HITS 8.1%', bills:true}, cast:['mom','dad'], mood:'worried', lines:[
     ['FACT','2022. Prices rise fast everywhere. Canada’s inflation peaks at 8.1% in June, the highest in about 40 years.'],
     ['FACT','To cool prices, the Bank of Canada lifts its rate from 0.25% to 4.25% in under a year. Bond yields shoot up.'],
@@ -854,7 +896,297 @@ function motes(g, x0, x1, y0, y1, n, op, seed){
   for (let i=0;i<n;i++) Cc(g,x0+r()*(x1-x0),y0+r()*(y1-y0),1.4+r()*1.4,'#fffbe6',{class:'a-mote',opacity:op,style:`animation-delay:-${(r()*8).toFixed(1)}s;animation-duration:${(6+r()*5).toFixed(1)}s`});
 }
 
+/* ---- Leo's sketchbook and the Yield Coaster ---- */
+// handwriting on Leo's sketchbook
+const hw = (g,x,y,t,at={}) => A(g,'text',Object.assign({x,y,'font-family':'"Gochi Hand","Comic Sans MS",cursive','font-size':22,fill:'#3f4148'},at)).text(t);
+// a slightly shaky pencil line between two points (repeatable, so it looks the same every time)
+function wobble(x1,y1,x2,y2,seed){
+  const r = seeded(seed + 3), n = 8;
+  let d = `M${x1},${y1}`;
+  for (let k=1;k<=n;k++){ const t = k/n, j = k < n ? 2.4 : 0; d += ` L${(x1+(x2-x1)*t+(r()-.5)*j).toFixed(1)},${(y1+(y2-y1)*t+(r()-.5)*j).toFixed(1)}`; }
+  return d;
+}
+// value of a {t, v} series at any date, interpolated between months
+function trackVal(data, t){
+  const i = d3.bisector(d => d.t).left(data, t);
+  if (i <= 0) return data[0].v;
+  if (i >= data.length) return data[data.length-1].v;
+  const a = data[i-1], b = data[i];
+  return a.v + (b.v - a.v) * ((t - a.t) / (b.t - a.t));
+}
+// Leo's right hand holding a pencil, seen from his eyes; the pencil tip is at (0,0)
+function leoHand(g){
+  const h = A(g,'g',{'pointer-events':'none'});
+  P(h,'M46,22 C70,30 120,90 300,330 L900,1150 L1150,950 L420,250 C250,60 150,0 92,-18Z','#8b8fa0',{stroke:OUT,'stroke-width':3});      // hoodie sleeve: long enough to always reach off-screen
+  P(h,'M46,22 L92,-18 L104,-6 L60,34Z','#7b7f90',{stroke:OUT,'stroke-width':2.5});                                // cuff
+  P(h,'M14,-10 C20,-34 52,-40 80,-22 C98,-10 96,12 78,22 C60,32 30,30 18,14Z',LEO.skin,{stroke:OUT,'stroke-width':3});
+  const pen = A(h,'g');
+  const body = P(pen,'M2,-6 L58,-62 L70,-50 L14,6Z','#ffd166',{stroke:OUT,'stroke-width':2.5});
+  P(pen,'M0,0 L2,-6 L14,6Z','#e8c9a0',{stroke:OUT,'stroke-width':2}); P(pen,'M0,0 L1.2,-3 L4,1.2Z','#333');
+  P(pen,'M58,-62 L66,-70 L78,-58 L70,-50Z','#ff8fa3',{stroke:OUT,'stroke-width':2});
+  E(h,22,-12,12,8,LEO.skin,{stroke:OUT,'stroke-width':2.5,transform:'rotate(-40,22,-12)'});                        // fingers over the pencil
+  E(h,34,-2,13,8,LEO.skin,{stroke:OUT,'stroke-width':2.5,transform:'rotate(-20,34,-2)'});
+  return {g:h, pencil:body};
+}
+
+let SK = null;    // the sketchbook: what you drew and whether the real line is shown
+function nextLabel(){
+  const sc = story[si], waiting = sc && sc.draw && li === sc.drawAt && SK && !SK.revealed;
+  $('next').textContent = waiting && SK.done ? 'Show the real line ▸' : 'Next ▸';
+}
+function sketchDraw(px, py){
+  const S = SK;
+  if (!S || S.revealed) return;
+  const i = clamp(d3.bisectCenter(S.xs, px), 1, S.xs.length - 1), v = clamp(S.y.invert(py), 0, 7);
+  if (i > S.last){       // fill in every month between the last drawn point and the pointer
+    const v0 = S.guess[S.last];
+    for (let k=S.last+1;k<=i;k++) S.guess[k] = v0 + (v - v0) * (k - S.last) / (i - S.last);
+    S.last = i;
+  } else S.guess[i] = v;
+  S.guessPath.attr('d', S.line(S.guess));
+  if (!S.done && S.last === S.xs.length - 1){
+    S.done = true; nextLabel();
+    if (li === S.scene.drawAt){ stopTyping(); $('line').textContent = 'Nice drawing. Press Next to see what really happened.'; }
+  }
+}
+// Leo picks up a red crayon and draws the real line; the verdict goes into the next line of dialogue
+function revealSketch(instant){
+  const S = SK;
+  if (!S || S.revealed) return;
+  if (!S.done){ for (let k=S.last+1;k<S.guess.length;k++) S.guess[k] = S.guess[S.last]; S.guessPath.attr('d', S.line(S.guess)); }   // skipped: rates stay put
+  S.revealed = true; S.scene.drawnGuess = S.guess.slice(); S.scene.drawnDone = S.done;
+  const g = S.guess[S.guess.length-1], e = S.real[S.real.length-1], diff = e - g, when = MONTH(S.months[S.months.length-1].m);
+  S.scene.lines[S.scene.drawAt + 1][1] = S.done
+    ? `You guessed ${g.toFixed(1)}% for ${when}. It was ${e.toFixed(2)}%. ` + (Math.abs(diff) < .5 ? 'You saw it coming.' : diff > 0 ? `You were ${diff.toFixed(1)} points too low. Most people expect rates to stay where they are.` : `You guessed higher than what happened, by ${(-diff).toFixed(1)} points.`)
+    : `You skipped, so Leo drew rates staying low. In reality the yield climbed to ${e.toFixed(2)}% by ${when}.`;
+  nextLabel();
+  const path = S.realPath.attr('d', S.line(S.real)).attr('opacity', 1), node = path.node(), L = node.getTotalLength();
+  S.hand.pencil.attr('fill', '#d63b2a');
+  const finish = () => {
+    S.revealing = false;
+    const ex = S.xs[S.xs.length-1];
+    S.endLabel.style('opacity', 1);
+    Cc(S.endLabel, ex, S.y(e), 7, '#d63b2a'); hw(S.endLabel, ex - 12, S.y(e) - 16, `${e.toFixed(2)}%`, {'text-anchor':'end','font-size':28,fill:'#d63b2a'});
+    hw(S.endLabel, ex - 12, S.y(g) + (g < e ? 30 : -14), `your guess: ${g.toFixed(1)}%`, {'text-anchor':'end','font-size':20,fill:'#2b3a55'});
+  };
+  if (instant || REDUCED){ S.hand.g.attr('transform', `translate(${S.xs[S.xs.length-1]+30},${S.y(e)+90}) scale(1.25)`); finish(); return; }
+  S.revealing = true;
+  path.attr('stroke-dasharray', `${L} ${L}`).attr('stroke-dashoffset', L)
+    .transition().duration(2600).ease(d3.easeSinInOut).attr('stroke-dashoffset', 0)
+    .tween('hand', () => t => { const p = node.getPointAtLength(t * L); S.hand.g.attr('transform', `translate(${p.x},${p.y}) scale(1.25)`); })
+    .on('end', finish);
+}
+
+let RIDE = null;  // the Yield Coaster: the track, the camera layers, the gauge and where the cart is now
+// The cart with Mom, Leo and Dad, seen up close. It rolls to the station named in the current line (Back rolls it back).
+// The camera follows it, so the track scrolls past and the family climbs or drops with the rate; on the way down they
+// throw their arms up.
+function drawRide(sc, line){
+  if (!RIDE) return;
+  const target = line && line[3] ? parseM(line[3]) : RIDE.t;
+  const cart = A(gCast,'g'), body = A(cart,'g',{transform:'scale(2.5)'});
+  const riders = [[-22,MOM,9.5,'#2f9c95'],[0,LEO,8,'#e2483a'],[22,DAD,9.5,'#d9a43c']];
+  const arms = A(body,'g');
+  riders.forEach(([rx,p,r,shirt]) => { const hy = -38; [-1,1].forEach(sd => { limb(arms, `M${rx+sd*5},${hy+12} L${rx+sd*11},${hy-14}`, shirt, 3); Cc(arms, rx+sd*11, hy-16, 2.6, p.skin, {stroke:OUT,'stroke-width':1.2}); }); });
+  riders.forEach(([rx,p,r,shirt]) => {
+    const hy = -38;
+    R(body, rx-7, hy+8, 14, 12, shirt, {rx:4, stroke:OUT, 'stroke-width':1.5});
+    if (p.hair === 'long') E(body, rx, hy+3, r*1.15, r*1.35, p.hairColor, {stroke:OUT, 'stroke-width':1.2});
+    Cc(body, rx, hy, r, p.skin, {stroke:OUT, 'stroke-width':1.5});
+    P(body, `M${rx-r},${hy-1} Q${rx},${hy-r*1.9} ${rx+r},${hy-1} Q${rx},${hy-r*.9} ${rx-r},${hy-1}Z`, p.hairColor);
+    Cc(body, rx-r*.35, hy, 1.3, OUT); Cc(body, rx+r*.35, hy, 1.3, OUT);
+    if (p.glasses) [-.62,.12].forEach(o => R(body, rx+r*o, hy-2.4, r*.5, r*.42, 'none', {stroke:OUT, 'stroke-width':1}));
+  });
+  const leoWow = line && line[0] === 'LEO' && line[2] === 'shocked';
+  const smile = A(body,'g'), wow = A(body,'g');
+  riders.forEach(([rx,p]) => {
+    const hy = -38;
+    if (p === LEO && leoWow){ E(body, rx, hy+5, 2.2, 3, OUT); return; }
+    P(smile, `M${rx-3.5},${hy+4} Q${rx},${hy+7.5} ${rx+3.5},${hy+4}`, 'none', {stroke:OUT, 'stroke-width':1.4, 'stroke-linecap':'round'});
+    E(wow, rx, hy+5, 2.2, 3, OUT);
+  });
+  P(body,'M-42,-4 L-38,-28 L38,-28 L46,-4Z','#3d6fb6',{stroke:OUT,'stroke-width':2});
+  R(body,-36,-20,74,5,'#ffd166'); Tt(body,0,-8,'10-YR',{'text-anchor':'middle','font-size':7,fill:'#fff'});
+  [-26,26].forEach(wx => Cc(body, wx, -2, 5, '#2b2d31', {stroke:OUT, 'stroke-width':1.5}));
+  const tag = A(gCast,'g'), tagRect = R(tag,0,-16,10,32,'#1d1b33',{rx:7}), tagText = Tt(tag,0,7,'',{'text-anchor':'middle','font-size':17,fill:'#ffc23d'});
+  const place = t => {
+    RIDE.t = t;
+    const [wxp, wyp] = RIDE.pos(t), ang = RIDE.ang(t), dip = ang > 8;
+    const {ox, oy} = RIDE.camera(wxp, wyp);           // move the world so the cart stays in view
+    const sx = wxp + ox, sy = wyp + oy;
+    cart.attr('transform', `translate(${sx},${sy - 7}) rotate(${ang})`);
+    arms.style('display', dip ? null : 'none'); wow.style('display', dip ? null : 'none'); smile.style('display', dip ? 'none' : null);
+    RIDE.done.attr('d', RIDE.line(RIDE.data.filter(d => d.t <= t).concat([{t, v: RIDE.val(t)}])));
+    const label = `${t.getFullYear()} · ${RIDE.val(t).toFixed(1)}%`, w = label.length * 11.5 + 24;
+    tagRect.attr('x', -w/2).attr('width', w); tagText.text(label);
+    tag.attr('transform', `translate(${sx},${sy - 200})`);
+    RIDE.gauge(RIDE.val(t)); RIDE.timeline(t);
+  };
+  place(RIDE.t);
+  if (+target === +RIDE.t) return;
+  if (REDUCED){ place(target); return; }
+  const from = RIDE.t, years = Math.abs(target - from) / 3.156e10;
+  gCast.transition('ride').duration(clamp(years * 260, 1000, 4200)).ease(d3.easeCubicInOut)
+    .tween('ride', () => { const i = d3.interpolateDate(from, target); return k => place(i(k)); });
+}
+
 const BG = {
+  coaster(g,sc){
+    // The Yield Coaster, up close: the camera rides with the family, so only about five years of track fit on screen.
+    // The track's height is the monthly US 10-year yield (1962 to summer 2016). Three layers move at different speeds
+    // (far city and Ferris wheel slowest, clouds in between, the track and ground with the camera) to give depth.
+    // A gauge on the left reads the cart's height as a rate; a timeline at the top shows where in the ride we are.
+    R(g,-1400,-800,W+2800,H+1600,'url(#sky)'); weather(g,sc.y);
+    const end = '2016-07', K = 200, V = 45, H0 = 60;          // world units per year and per percentage point; track height at 0%
+    const t0 = parseM('1962-01');
+    const data = DATA.us10Monthly.filter(d => d[0] <= end).map(([m,v]) => ({t: parseM(m), v}));
+    const wx = t => (t - t0) / 31557600000 * K, wy = v => -(H0 + v * V);
+    const lastX = wx(parseM(end)), val = t => trackVal(data, t);
+    const far = A(g,'g'), mid = A(g,'g'), world = A(g,'g');
+    // far: distant hills, the city with the CN Tower, a turning Ferris wheel
+    E(far,500,60,1500,150,'#a8cf8a'); E(far,2300,70,1400,160,'#9cc77e');
+    skyline(far,200,20,1.1,'#a9bdd6'); skyline(far,1500,20,1.0,'#b4c6dc'); skyline(far,2500,20,1.15,'#a9bdd6');
+    const fw = A(far,'g',{transform:'translate(1650,-170) scale(.7)',opacity:.85});   // smaller and further back, so it doesn't compete with the track
+    L(fw,-90,260,0,0,'#c9ced3',9); L(fw,90,260,0,0,'#c9ced3',9);
+    const wheel = A(fw,'g',{class:'a-spin',style:'animation-duration:70s'});
+    Cc(wheel,0,0,200,'none',{stroke:'#e0a83a','stroke-width':7}); Cc(wheel,0,0,178,'none',{stroke:'#f0c96a','stroke-width':2});
+    for (let k=0;k<12;k++){ const a = k*Math.PI/6; L(wheel,0,0,200*Math.cos(a),200*Math.sin(a),'#e0a83a',3); Cc(wheel,200*Math.cos(a),200*Math.sin(a),17,['#d63b2a','#3d6fb6','#3fbf8f','#ffc23d'][k%4],{stroke:OUT,'stroke-width':2}); }
+    Cc(fw,0,0,18,'#7a5236');
+    // mid: clouds the family passes on the way up
+    const cr = seeded(17);
+    for (let i=0;i<18;i++) cloud(mid, i*360 + cr()*200, -240 - cr()*820, .8 + cr()*.6, '#ffffff', .92, i);
+    // world: ground, fence, trees and a tent, then supports, the track, year plaques, the station and the unfinished end
+    R(world,-1800,0,lastX+4200,1200,'#93c96f'); R(world,-1800,0,lastX+4200,9,'#82b960');
+    for (let fx=-1800; fx<lastX+2400; fx+=60) R(world,fx,-34,6,34,'#c9a273');
+    R(world,-1800,-27,lastX+4200,6,'#d8b384');
+    for (let i=0, tx=-1500; tx<lastX+2200; tx+=520, i++) tree(world, tx + (i%2)*90, 0, .95 + (i%3)*.12, i);
+    P(world,'M-1120,0 L-1120,-150 L-980,-240 L-840,-150 L-840,0Z','#ffffff',{stroke:OUT,'stroke-width':2.5});
+    for (let k=0;k<4;k++) P(world,`M${-1120+k*70},-150 L-980,-240 L${-1085+k*70},-150Z`,'#d63b2a');
+    const posts = d3.timeMonth.every(6).range(t0, parseM(end));
+    posts.forEach((t,i) => {                                  // white supports with cross-bracing in tiers
+      const px = wx(t), top = wy(val(t)) + 12, n = posts[i+1];
+      if (n){ const nx = wx(n), ntop = wy(val(n)) + 12, roof = Math.max(top, ntop) + 26;
+        for (let yb = 0; yb - 110 > roof; yb -= 110){ L(world,px,yb,nx,yb-110,'#e3e3e3',2.5); L(world,nx,yb,px,yb-110,'#e3e3e3',2.5); } }
+      L(world,px,top,px,0,'#f4f4f4',7); L(world,px+2.5,top,px+2.5,0,'#c9ced3',2);
+    });
+    const line = d3.line().x(d => wx(d.t)).y(d => wy(d.v)).curve(d3.curveMonotoneX);
+    P(world,line(data),'none',{stroke:'#5a1f17','stroke-width':26,'stroke-linejoin':'round','stroke-linecap':'round'});
+    P(world,line(data),'none',{stroke:'#d63b2a','stroke-width':17,'stroke-linejoin':'round','stroke-linecap':'round'});
+    P(world,line(data),'none',{stroke:'#ff8f7f','stroke-width':3,'stroke-linejoin':'round',transform:'translate(0,-5)',opacity:.8});
+    data.forEach((d,i) => {                                   // one tie per month, across the rails
+      if (i === 0 || i === data.length - 1) return;
+      const a = data[i-1], b = data[i+1], dx = wx(b.t) - wx(a.t), dy = wy(b.v) - wy(a.v), len = Math.hypot(dx, dy), nx = -dy/len*15, ny = dx/len*15;
+      L(world, wx(d.t) - nx, wy(d.v) - ny, wx(d.t) + nx, wy(d.v) + ny, '#5a1f17', 4);
+    });
+    const done = P(world,'','none',{stroke:'#ffd166','stroke-width':6,'stroke-linecap':'round','stroke-linejoin':'round'});
+    d3.timeYear.range(t0, parseM(end)).forEach(t => {         // a year plaque under the track every January
+      const px = wx(t), py = wy(val(t));
+      R(world,px-30,py+26,60,24,'#1d1b33',{rx:5}); Tt(world,px,py+44,String(t.getFullYear()),{'text-anchor':'middle','font-size':14,fill:'#ffc23d'});
+    });
+    // the loading station at the start of the ride
+    const sy0 = wy(val(t0));
+    R(world,-480,sy0+14,500,18,'#8a6b52'); [-460,-260,-60].forEach(px => L(world,px,sy0+32,px,0,'#6b4f3a',8));
+    R(world,-500,sy0-170,540,22,'#3d6fb6',{stroke:OUT,'stroke-width':2.5}); [-480,0].forEach(px => L(world,px,sy0-148,px,sy0+14,'#3d6fb6',8));
+    R(world,-420,sy0-250,380,64,'#1d1b33',{rx:10,stroke:'#ffc23d','stroke-width':4});
+    Tt(world,-230,sy0-212,'YIELD COASTER',{'text-anchor':'middle','font-size':26,fill:'#ffc23d'}); Tt(world,-230,sy0-194,'1962 → TODAY',{'text-anchor':'middle','font-size':13,fill:'#ffffff'});
+    // the end of the built track: a barrier, a sign, and dashed scaffolding where the future would go
+    const ey = wy(data[data.length-1].v);
+    L(world,lastX+44,ey,lastX+900,ey-40,'#9aa3aa',4,{'stroke-dasharray':'6 12'});
+    R(world,lastX+24,ey-48,26,64,'#ffd166',{stroke:OUT,'stroke-width':2.5}); L(world,lastX+24,ey-28,lastX+50,ey-48,OUT,4); L(world,lastX+24,ey-2,lastX+50,ey-22,OUT,4);
+    L(world,lastX+170,ey-120,lastX+170,0,'#6b4f3a',6);
+    R(world,lastX+80,ey-200,180,62,'#ffffff',{stroke:'#d63b2a','stroke-width':4,rx:6});
+    Tt(world,lastX+170,ey-174,'TRACK NOT',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'}); Tt(world,lastX+170,ey-150,'BUILT YET',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'});
+    // fixed on screen: the rate gauge on the left and the ride's timeline at the top
+    const gx = SAFE.x + 56, gTop = SAFE.y + 92, gBot = SAFE.y + SAFE.h - 56;
+    const gy = d3.scaleLinear().domain([0, 16]).range([gBot, gTop]);
+    const gauge = A(g,'g');
+    R(gauge,SAFE.x+6,gTop-44,84,gBot-gTop+64,'#fdfbf4',{rx:10,opacity:.94,stroke:OUT,'stroke-width':2});
+    Tt(gauge,SAFE.x+48,gTop-20,'RATE',{'text-anchor':'middle','font-size':13,fill:OUT});
+    const gFill = R(gauge,gx-4,gBot,8,0,'#d63b2a',{rx:3});
+    L(gauge,gx,gTop,gx,gBot,OUT,2.5);
+    for (let v=0; v<=16; v+=2){ L(gauge,gx-6,gy(v),gx,gy(v),OUT,2); Tt(gauge,gx-10,gy(v)+4,v+'%',{'text-anchor':'end','font-size':10,fill:'#3a3f4a'}); }
+    const gm = A(gauge,'g'); P(gm,`M${gx+5},0 l16,-10 l0,20Z`,'#d63b2a',{stroke:OUT,'stroke-width':1.5});
+    const tx0 = SAFE.x + 170, tx1 = SAFE.x + SAFE.w - 40, ty = SAFE.y + 22;
+    const tsc = d3.scaleTime().domain([t0, parseM(end)]).range([tx0, tx1]);
+    R(g,tx0-60,ty-16,tx1-tx0+120,34,'#fdfbf4',{rx:10,opacity:.94,stroke:OUT,'stroke-width':2});
+    Tt(g,tx0-12,ty+5,'1962',{'text-anchor':'end','font-size':12,fill:OUT}); Tt(g,tx1+12,ty+5,'2016',{'font-size':12,fill:OUT});
+    L(g,tx0,ty,tx1,ty,'#c9c2b0',4);
+    const tDone = L(g,tx0,ty,tx0,ty,'#ffd166',4);
+    [1970,1980,1990,2000,2010].forEach(yr => { const px = tsc(new Date(yr,0,1)); L(g,px,ty-5,px,ty+5,OUT,1.5); });
+    const tm = Cc(g,tx0,ty,7,'#d63b2a',{stroke:OUT,'stroke-width':2});
+    // the camera: keep the cart near the middle of the screen, never lifting the ground above the bottom of the stage
+    const S = {x: SAFE.x + SAFE.w*.47, y: SAFE.y + SAFE.h*.64};
+    RIDE = {data, line, done, val, t: parseM((sc.lines[li] || sc.lines[0])[3] || '1962-01'),
+      pos: t => [wx(t), wy(val(t))],
+      camera: (px, py) => {
+        const ox = S.x - px, oy = Math.max(S.y - py, G);
+        world.attr('transform', `translate(${ox},${oy})`);
+        mid.attr('transform', `translate(${ox*.5},${G + (oy - G)*.55})`);
+        far.attr('transform', `translate(${ox*.12},${G + (oy - G)*.18})`);
+        return {ox, oy};
+      },
+      gauge: v => { gm.attr('transform', `translate(0,${gy(v)})`); gFill.attr('y', gy(v)).attr('height', gBot - gy(v)); },
+      timeline: t => { tm.attr('cx', tsc(t)); tDone.attr('x2', tsc(t)); }};
+    RIDE.ang = t => { const a = RIDE.pos(d3.timeMonth.offset(t, -2)), b = RIDE.pos(d3.timeMonth.offset(t, 2)); return Math.atan2(b[1]-a[1], b[0]-a[0]) * 180 / Math.PI; };
+    const [px0, py0] = RIDE.pos(RIDE.t); RIDE.camera(px0, py0); RIDE.gauge(val(RIDE.t)); RIDE.timeline(RIDE.t);
+  },
+  sketch(g,sc,fg){
+    // Leo's desk in 2020, seen through his eyes: a graph-paper sketchbook with the real yield drawn in pencil
+    // from 2007 up to the record low. You draw the rest; then Leo draws the real line in red crayon.
+    fg = fg || g;
+    R(g,-1400,-800,W+2800,H+1600,'#b98a5a');
+    for (let i=-40;i<80;i++) P(g,`M${i*34},-800 C${i*34+18},0 ${i*34-14},500 ${i*34+6},1500`,'none',{stroke:'#a87a4c','stroke-width':2,opacity:.45});
+    // on the desk: the laptop with his online class, his phone, tea, an eraser and coloured pencils
+    R(g,-340,-40,420,250,'#3a3d42',{rx:12}); R(g,-322,-22,384,214,'#5b6c88',{rx:6});
+    for (let i=0;i<3;i++) for (let j=0;j<2;j++){ R(g,-312+i*124,-12+j*100,116,92,'#7487a6',{rx:4}); Cc(g,-254+i*124,22+j*100,16,['#f1c8a0','#d39b74','#e3b08a'][(i+j)%3]); }
+    R(g,-150,430,110,190,'#1d1b33',{rx:14,transform:'rotate(-12,-95,525)'});
+    Cc(g,1240,140,46,'#f4efe6',{stroke:'#cfc8b8','stroke-width':4}); Cc(g,1240,140,35,'#a0703f'); [0,1.2].forEach(d => Cc(g,1240,110,9,'#ffffff',{class:'a-steam',style:`animation-delay:${d}s`}));
+    R(g,1180,480,62,26,'#ff8fa3',{rx:6,transform:'rotate(18,1211,493)'});
+    [[1168,290,'#d63b2a'],[1176,330,'#3d6fb6'],[1162,370,'#3fbf8f']].forEach(([px,py,c]) => { L(g,px,py,px+110,py+40,c,9); L(g,px+110,py+40,px+126,py+46,'#e8c9a0',8); });
+    // the sketchbook: shadow, page, blue grid, spiral binding, title
+    R(g,160,62,980,560,'#000',{opacity:.16,rx:8}); R(g,150,48,980,560,'#fdfbf4',{rx:6});
+    for (let gx=170; gx<1130; gx+=20) L(g,gx,62,gx,600,'#d6e6f3',1);
+    for (let gy=68; gy<606; gy+=20) L(g,154,gy,1126,gy,'#d6e6f3',1);
+    for (let sx=190; sx<1110; sx+=36){ Cc(g,sx,50,6,'#b98a5a'); P(g,`M${sx-7},50 A8,10 0 0 1 ${sx+7},40`,'none',{stroke:'#8a8f96','stroke-width':4}); }
+    hw(g,250,108,'Where will rates go?',{'font-size':36,fill:'#2b3a55'}); hw(g,1080,104,'Leo, 13 · lockdown 2020',{'font-size':20,'text-anchor':'end',fill:'#5a6b88'});
+    // the chart, drawn by hand: axes, ticks, and the real yield in pencil up to the record low
+    const X0 = 250, X1 = 1060, Y0 = 520, Y1 = 160, pencil = '#3f4148';
+    const x = d3.scaleTime().domain([parseM('2007-01'), parseM('2027-01')]).range([X0, X1]);
+    const y = d3.scaleLinear().domain([0, 7]).range([Y0, Y1]);
+    P(g,wobble(X0,Y1-8,X0,Y0,1),'none',{stroke:pencil,'stroke-width':2.5,'stroke-linecap':'round'});
+    P(g,wobble(X0,Y0,X1+14,Y0,2),'none',{stroke:pencil,'stroke-width':2.5,'stroke-linecap':'round'});
+    for (let v=1; v<=7; v++){ L(g,X0-6,y(v),X0+6,y(v),pencil,2); hw(g,X0-12,y(v)+7,v+'%',{'text-anchor':'end','font-size':20}); }
+    for (let yr=2008; yr<=2026; yr+=2){ const tx = x(new Date(yr,0,1)); L(g,tx,Y0-5,tx,Y0+5,pencil,2); hw(g,tx,Y0+30,String(yr),{'text-anchor':'middle','font-size':19}); }
+    const months = DATA.us10Monthly.map(([m,v]) => ({m, t: parseM(m), v}));
+    const low = months.filter(d => d.m >= '2020-01' && d.m <= '2020-12').reduce((a,b) => b.v < a.v ? b : a);
+    const cur = DATA.asof.yield.slice(0,7);       // the newest month isn't finished yet, so the real line stops before it
+    const past = months.filter(d => d.m >= '2007-01' && d.m <= low.m), future = months.filter(d => d.m >= low.m && d.m < cur);
+    R(g,x(low.t),Y1-14,X1-x(low.t)+16,Y0-Y1+14,'#fff07a',{opacity:.38});
+    hw(g,(x(low.t)+X1)/2,Y1+12,'draw your guess here →',{'text-anchor':'middle','font-size':22,fill:'#a07a10'});
+    const pl = d3.line().x(d => x(d.t)).y(d => y(d.v)).curve(d3.curveMonotoneX);
+    P(g,pl(past),'none',{stroke:pencil,'stroke-width':3.4,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.9});
+    Cc(g,x(low.t),y(low.v),7,'#2b3a55');
+    hw(g,x(low.t)-10,y(low.v)+36,`record low ${low.v.toFixed(2)}%`,{'text-anchor':'middle','font-size':20,fill:'#2b3a55'});
+    const guessPath = P(g,'','none',{stroke:'#2b3a55','stroke-width':4,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.85});
+    const realPath = P(g,'','none',{stroke:'#d63b2a','stroke-width':6,'stroke-linecap':'round','stroke-linejoin':'round',opacity:0});
+    const endLabel = A(g,'g').style('opacity',0);
+    const hand = leoHand(fg);
+    hand.g.attr('transform', `translate(${x(low.t)+50},${y(low.v)+70}) scale(1.25)`);
+    SK = {x, y, months: future, xs: future.map(d => x(d.t)), guess: future.map((d,i) => i ? null : d.v), real: future.map(d => d.v),
+          last: 0, done: false, revealed: false, nudged: false, down: false, scene: sc, guessPath, realPath, endLabel, hand,
+          line: d3.line().defined(v => v != null).x((v,i) => SK.xs[i]).y(v => y(v)).curve(d3.curveMonotoneX)};
+    // the page listens to the pointer: Leo's hand follows it, and dragging draws
+    const hit = R(g,150,48,980,560,'transparent',{'pointer-events':'all'});
+    const at = ev => d3.pointer(ev, g.node());
+    hit.on('pointerdown', ev => { if (SK.revealed) return; SK.down = true; try { hit.node().setPointerCapture(ev.pointerId); } catch { /* keep drawing without capture */ } const [px,py] = at(ev); sketchDraw(px, py); })
+       .on('pointermove', ev => { const [px,py] = at(ev); if (!SK.revealing) hand.g.attr('transform', `translate(${px},${py}) scale(1.25)`); if (SK.down) sketchDraw(px, py); })
+       .on('pointerup pointercancel', () => { SK.down = false; });
+    // coming back to a page you already finished: show your drawing and the real line again
+    if (sc.drawnGuess && li > sc.drawAt){
+      SK.guess = sc.drawnGuess.slice(); SK.last = SK.guess.length - 1; SK.done = !!sc.drawnDone; SK.guessPath.attr('d', SK.line(SK.guess));
+      revealSketch(true);
+    }
+  },
   nursery(g,sc){
     // wallpaper stripes with stars and dots, panelled wainscot
     R(g,-1400,-800,W+2800,G+800,'#f3dbe2');
@@ -1604,10 +1936,13 @@ const SPOTS = {
 };
 const CAST_SCALE = {robarts:.78};    // scenes where the cast is drawn smaller to match the people around them
 function drawCast(sc, line){
+  gCast.interrupt('ride');
   gCast.selectAll('*').remove();
   const ck = CAST_SCALE[sc.bg] || 1;
   gCast.attr('transform', ck === 1 ? null : `translate(640,${G}) scale(${ck}) translate(-640,${-G})`);
   const intro = castIntro; castIntro = null;
+  if (sc.draw) return;                               // the sketchbook is seen through Leo's eyes: nobody on stage
+  if (sc.ride){ drawRide(sc, line); return; }        // on the coaster the family sits in the cart
   const who = line ? line[0] : null, mood = (line && line[0]==='LEO' && line[2]) || sc.mood || 'neutral';
   const pmood = (line && (line[0]==='MOM'||line[0]==='DAD') && line[2]) || (sc.mood==='happy'?'happy':sc.mood==='worried'||sc.mood==='sad'?'worried':'neutral');
   const many = sc.cast.length;
@@ -1668,7 +2003,7 @@ function loop(now){
 requestAnimationFrame(loop);
 
 /* ================= playback ================= */
-const OUTDOOR = new Set(['playground','street','campus','robarts','convocation','office']);
+const OUTDOOR = new Set(['playground','street','campus','robarts','convocation','office','coaster']);
 const WALK_IN = new Set(['campus','fair','office']);     // scenes where Leo walks into frame
 let typing = null, castIntro = null, swapTimer = null, lastSpeaker = null, hud = {year:null, y:null};
 // count a HUD number from its old value to the new one
@@ -1690,6 +2025,7 @@ function renderScene(sc, anim=false){
   WIND = OUTDOOR.has(sc.bg) ? storm(sc.y) : 0;
   gBg.selectAll('*').remove(); gFg.selectAll('*').remove();
   BG[sc.bg](gBg, sc, gFg);
+  $('stage').classList.toggle('drawing', !!sc.draw);
   const t = storm(sc.y);
   rainAmt = OUTDOOR.has(sc.bg) ? clamp((sc.y-4.6)/2.6, 0, 1) : 0;
   lightning = OUTDOOR.has(sc.bg) && sc.y >= 6.8;
@@ -1723,6 +2059,7 @@ function showLine(){
   const done = story.slice(0,si).filter(s=>!s.choice).reduce((a,s)=>a+s.lines.length,0) + li + 1;
   $('progress').textContent = `${done} / ${total}`;
   $('back').disabled = si === 0 && li === 0;
+  nextLabel();
 }
 // Scene change: slide the old scene out, build the new one, slide it in; dir -1 slides the other way (Back)
 function goScene(i, lineIdx=0, dir=1){
@@ -1750,6 +2087,11 @@ function next(){
   if (!$('titleCard').hidden){ startStory(); next(); return; }
   if (!$('endCard').hidden || story[si].choice) return;
   if (typing){ stopTyping(); $('line').textContent = story[si].lines[li][1]; return; }
+  const scn = story[si];
+  if (scn.draw && li === scn.drawAt && SK && !SK.revealed){     // the sketchbook waits for your drawing
+    if (!SK.done && !SK.nudged){ SK.nudged = true; $('line').textContent = 'Draw first: drag from the dot to the right edge of the page. Or press Next again to skip.'; return; }
+    revealSketch(); li++; showLine(); return;
+  }
   if (li < story[si].lines.length-1){ li++; showLine(); return; }
   if (si < story.length-1){ goScene(si+1); return; }
   finish();
@@ -1821,7 +2163,7 @@ function restartMain(){
 /* ================= wiring ================= */
 $('next').addEventListener('click', next);
 $('back').addEventListener('click', back);
-$('stage').addEventListener('click', e => { if (e.target.closest('.overlay, .box')) return; next(); });
+$('stage').addEventListener('click', e => { if (e.target.closest('.overlay, .box') || story[si].draw) return; next(); });   // on the sketchbook, clicks draw
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,a')) return;
   if (e.target.matches('button') && (e.key==='Enter' || e.key===' ')) return;
