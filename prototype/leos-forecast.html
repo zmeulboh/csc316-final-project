@@ -3,10 +3,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&family=DM+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a one-screen story game. Three rows: life-bar HUD on top, the illustrated stage in the middle,
-   the dialogue box at the bottom. Deliberately single-theme: an indigo game frame around a painted stage. */
+/* Layout: a one-screen story game. The life-bar HUD sits on top; the illustrated stage fills the rest of the
+   screen, and the dialogue box floats over the bottom of the stage like a visual novel. The scene's viewBox is
+   computed from the stage size so the important part of every scene stays visible above the dialogue.
+   Deliberately single-theme: an indigo game frame around a painted stage. */
 :root{
-  --frame:#1d1b33; --frame-2:#2a2747; --frame-3:#3a3660; --text:#f4f2ff; --text-2:#b9b4dc;
+  --frame:#1d1b33; --frame-2:#2a2747; --frame-3:#3a3660; --ink:#120f24; --text:#f4f2ff; --text-2:#b9b4dc;
   --hot:#ff5a3c; --sun:#ffc23d; --calm:#3fbf8f; --what:#a98bff;
   --leo:#ff8a3d; --mom:#33b3a6; --dad:#e0a83a;
   --display:"Bungee","Arial Black",Impact,sans-serif;
@@ -15,87 +17,94 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;margin:0;overflow:hidden}
 body{background:var(--frame);color:var(--text);font-family:var(--body);font-size:17px}
 button,input{font:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--sun);outline-offset:2px}
-.app{height:100%;min-height:460px;display:grid;grid-template-rows:auto minmax(200px,1fr) auto;grid-template-columns:minmax(0,1fr)}
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
 
 /* HUD */
-.hud{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:clamp(10px,2vw,24px);align-items:center;padding:6px max(16px,2vw);background:var(--frame);border-bottom:3px solid #000}
-.hud .when{font-family:var(--display);font-size:clamp(1.4rem,3.4vw,2.2rem);line-height:1}
+.hud{display:grid;grid-template-columns:minmax(120px,auto) minmax(0,1fr) minmax(120px,auto);gap:clamp(12px,2.4vw,32px);align-items:center;
+  padding-block:8px 6px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--frame);border-bottom:3px solid var(--ink);position:relative;z-index:3}
+.hud .when{font-family:var(--display);font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1}
 .hud .who{font-size:.8rem;color:var(--text-2);font-weight:700;margin-top:4px;white-space:nowrap}
 .hud .yld{text-align:right}
-.hud .yld .v{font-family:var(--display);font-size:clamp(1.4rem,3.4vw,2.2rem);line-height:1;font-variant-numeric:tabular-nums}
-.hud .yld .l{font-family:var(--mono);font-size:.68rem;color:var(--text-2);letter-spacing:.06em;text-transform:uppercase;margin-top:4px;white-space:nowrap}
+.hud .yld .v{font-family:var(--display);font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1;font-variant-numeric:tabular-nums;transition:color .3s}
+.hud .yld .l{font-family:var(--mono);font-size:.66rem;color:var(--text-2);letter-spacing:.06em;text-transform:uppercase;margin-top:5px;white-space:nowrap}
+.trackwrap{min-width:0}
+#track{width:100%;height:46px;display:block;overflow:visible}
+#track text{font-family:var(--mono);letter-spacing:.04em}
 .tag{display:inline-block;font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;padding:2px 6px;border-radius:4px;vertical-align:middle}
 .tag[hidden]{display:none}
 .tag.real{background:#2e4d40;color:#9ff0c8}
 .tag.what{background:#4a3a86;color:#e2d8ff}
-#track{width:100%;height:auto;display:block;max-height:60px}
-#track text{font-family:var(--mono)}
 
 /* stage */
-.stage{position:relative;overflow:hidden;background:#000;min-height:200px}
-#scene{width:100%;height:100%;display:block}
+.stage{position:relative;overflow:hidden;background:#000}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 #rain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 .stage .fadeable{transition:opacity .35s ease}
 .stage.fading .fadeable{opacity:0}
 .drift{animation:drift linear infinite alternate}
 @keyframes drift{from{transform:translateX(-30px)}to{transform:translateX(30px)}}
-.talk{animation:bob .5s ease-in-out infinite alternate}
-@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+.talk{animation:bob .45s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-3px)}}
 
-/* overlays */
-.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:16px;overflow-y:auto;background:rgba(18,16,36,.72);backdrop-filter:blur(2px)}
+/* overlays (title and end cards) cover the whole stage */
+.overlay{position:absolute;inset:0;z-index:4;display:grid;place-items:center;padding:16px;overflow-y:auto;background:rgba(18,16,36,.62);backdrop-filter:blur(3px)}
 .overlay[hidden]{display:none!important}
-.card{background:var(--frame-2);border:3px solid #000;box-shadow:6px 6px 0 #000;border-radius:14px;padding:clamp(18px,3vw,32px);max-width:640px;width:100%;display:grid;gap:14px}
-.card h1{font-family:var(--display);font-weight:400;font-size:clamp(2rem,6vw,3.4rem);line-height:.95;margin:0;color:var(--sun);text-wrap:balance}
-.card h2{font-family:var(--display);font-weight:400;font-size:clamp(1.4rem,4vw,2rem);line-height:1;margin:0;text-wrap:balance}
-.card p{margin:0;line-height:1.5;color:var(--text)}
+.card{background:var(--frame-2);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);border-radius:16px;padding:clamp(18px,3vw,30px);max-width:620px;width:100%;display:grid;gap:clamp(10px,1.8vh,16px)}
+.card h1{font-family:var(--display);font-weight:400;font-size:clamp(1.9rem,5.2vw,3.1rem);line-height:.95;margin:0;color:var(--sun);text-wrap:balance}
+.card h2{font-family:var(--display);font-weight:400;font-size:clamp(1.3rem,3.6vw,1.9rem);line-height:1.05;margin:0;text-wrap:balance}
+.card p{margin:0;line-height:1.5;color:var(--text);max-width:60ch}
 .card .small{font-size:.85rem;color:var(--text-2)}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.btn{font-family:var(--display);font-size:.95rem;letter-spacing:.02em;background:var(--sun);color:#1d1b33;border:3px solid #000;border-radius:10px;padding:.55em 1.1em;box-shadow:3px 3px 0 #000}
-.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000}
-.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.btn{font-family:var(--display);font-size:.95rem;letter-spacing:.02em;background:var(--sun);color:var(--frame);border:3px solid var(--ink);border-radius:10px;padding:.55em 1.1em;box-shadow:3px 3px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .btn.ghost{background:var(--frame-3);color:var(--text)}
 a.btn{text-decoration:none;display:inline-block}
-.stats{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:.92rem}
+.stats{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:.92rem;margin:0}
 .stats dd{margin:0;font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
 
-/* dialogue */
-.dlg{background:var(--frame);border-top:3px solid #000;padding:8px max(16px,2vw) calc(8px + env(safe-area-inset-bottom,0px))}
-.box{max-width:960px;margin-inline:auto;background:var(--frame-2);border:3px solid #000;border-radius:14px;box-shadow:5px 5px 0 #000;padding:10px 16px 8px;display:grid;gap:6px;min-height:118px}
-.speaker{display:flex;gap:10px;align-items:center}
-.name{font-family:var(--display);font-size:.95rem;padding:3px 10px;border-radius:6px;border:2px solid #000;color:#1d1b33}
-#line{font-size:clamp(1rem,2.2vw,1.2rem);line-height:1.5;min-height:3em;font-weight:500}
+/* dialogue: floats over the bottom of the stage */
+.dlg{position:absolute;left:0;right:0;bottom:0;z-index:2;pointer-events:none;
+  padding-block:0 calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stage.carded .dlg{visibility:hidden}
+.box{pointer-events:auto;position:relative;max-width:900px;margin-inline:auto;background:var(--frame-2);border:3px solid var(--ink);border-radius:16px;box-shadow:5px 5px 0 var(--ink);
+  padding:22px 20px 12px;display:grid;gap:8px}
+.speaker{position:absolute;top:-15px;left:16px;display:flex;gap:8px;align-items:center}
+.name{font-family:var(--display);font-size:.9rem;line-height:1;padding:6px 12px 5px;border-radius:8px;border:3px solid var(--ink);color:var(--frame);box-shadow:2px 2px 0 var(--ink)}
+.speaker .tag{border:2px solid var(--ink)}
+#line{font-size:clamp(1rem,1.9vw,1.18rem);line-height:1.5;min-height:3em;font-weight:600;margin:0;max-width:72ch}
 #line b{color:var(--sun)}
 .controls{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.controls .hint{font-family:var(--mono);font-size:.7rem;color:var(--text-2)}
-.navbtn{font-family:var(--display);background:var(--frame-3);color:var(--text);border:2px solid #000;border-radius:8px;padding:.35em .8em}
-.navbtn.next{background:var(--sun);color:#1d1b33}
+.controls .hint{font-family:var(--mono);font-size:.7rem;color:var(--text-2);font-variant-numeric:tabular-nums}
+.navbtn{font-family:var(--display);font-size:.9rem;background:var(--frame-3);color:var(--text);border:2px solid var(--ink);border-radius:8px;padding:.4em .9em;box-shadow:2px 2px 0 var(--ink)}
+.navbtn.next{background:var(--sun);color:var(--frame)}
+.navbtn:not([disabled]):active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink)}
 .navbtn[disabled]{opacity:.35;cursor:default}
-.chooser{display:grid;gap:10px}
-.chooser input[type=range]{width:100%;accent-color:var(--hot)}
-.chooser .big{font-family:var(--display);font-size:2rem;line-height:1}
+.chooser{display:grid;gap:8px}
+.chooser label{font-weight:700;line-height:1.35}
+.chooser input[type=range]{width:100%;accent-color:var(--hot);margin:0}
+.chooser .big{font-family:var(--display);font-size:1.8rem;line-height:1}
 .chooser .bandline{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
-.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.66rem;color:var(--text-2)}
+.scale{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:.66rem;color:var(--text-2)}
 .chooser[hidden],.talkbox[hidden]{display:none!important}
-.talkbox{display:grid;gap:8px}
+.talkbox{display:grid;gap:6px}
 
-@media (max-height:640px){
+@media (max-height:600px){
   #line{min-height:2.6em;font-size:1rem}
-  .hud .when,.hud .yld .v{font-size:1.4rem}
-  .box{min-height:104px}
+  .box{padding:20px 16px 10px}
+  .card h1{font-size:1.9rem}
 }
-@media (max-width:640px){
-  .hud{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}
-  .hud .yld .l{white-space:normal;max-width:160px;margin-left:auto}
-  .controls .hint{display:none}
+@media (max-width:720px){
+  .hud{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}
   .hud .trackwrap{grid-column:1/-1;order:3}
-  .box{min-height:150px}
+  .controls .hint{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   .drift,.talk{animation:none}
@@ -109,15 +118,15 @@ a.btn{text-decoration:none;display:inline-block}
       <div class="when" id="hudYear">2007</div>
       <div class="who" id="hudWho">Leo, newborn</div>
     </div>
-    <div class="trackwrap"><svg id="track" viewBox="0 0 1000 74" role="img" aria-label="Leo's life bar: 10-year Treasury yield by year, 2007 to 2030"></svg></div>
+    <div class="trackwrap"><svg id="track" role="img" aria-label="Leo's life bar: 10-year Treasury yield by year, 2007 to 2030"></svg></div>
     <div class="yld">
       <div class="v" id="hudYield"></div>
       <div class="l" id="hudYieldLbl">US 10-yr yield · avg</div>
     </div>
   </header>
 
-  <main class="stage" id="stage">
-    <svg id="scene" viewBox="110 140 1060 530" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+  <main class="stage carded" id="stage">
+    <svg id="scene" viewBox="100 40 1080 580" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
     <canvas id="rain"></canvas>
     <div id="flash"></div>
 
@@ -137,9 +146,8 @@ a.btn{text-decoration:none;display:inline-block}
     <div class="overlay" id="endCard" hidden>
       <div class="card" id="endInner"></div>
     </div>
-  </main>
 
-  <footer class="dlg">
+  <div class="dlg" id="dlg">
     <div class="box">
       <div class="talkbox" id="talkbox">
         <div class="speaker"><span class="name" id="who">LEO</span><span class="tag" id="whoTag" hidden></span></div>
@@ -162,7 +170,8 @@ a.btn{text-decoration:none;display:inline-block}
         </div>
       </div>
     </div>
-  </footer>
+  </div>
+  </main>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
@@ -206,7 +215,7 @@ const B27 = BAL(B22, m22, 240, 60);
 /* ================= cast ================= */
 const LEO = {skin:'#f1c8a0', hair:'short', hairColor:'#3b2a20'};
 const MOM = {skin:'#e3b08a', hair:'long', hairColor:'#5a3a28', top:'#2f9c95', bottom:'#34405e', cm:166, age:40};
-const DAD = {skin:'#d39b74', hair:'short', hairColor:'#262626', top:'#d9a43c', bottom:'#474c57', cm:181, age:42, beard:true};
+const DAD = {skin:'#d39b74', hair:'side', glasses:true, brows:true, hairColor:'#262626', top:'#d9a43c', bottom:'#474c57', cm:181, age:42};
 const HEIGHT = {0:0,1:76,5:110,9:133,10:138,13:157,15:170,17:177,19:180,20:181,21:181,22:181,23:181};
 const SPK = {LEO:{c:'var(--leo)'}, MOM:{c:'var(--mom)'}, DAD:{c:'var(--dad)'}, FACT:{c:'#9ff0c8',label:'DATA',tag:'real'}, WHATIF:{c:'#d8c9ff',label:'WHAT IF',tag:'what'}};
 
@@ -319,47 +328,69 @@ let pathYs = MAIN.ys;        // future values shown on the life bar
 let si = 0, li = 0, mode = 'main', chosen = null;
 
 /* ================= life bar ================= */
+// Drawn in real pixels (the viewBox matches the element's size), so labels never stretch or spill past the bar.
 const track = d3.select('#track');
-const TX = d3.scaleLinear().domain([2006.6, 2030.4]).range([10, 990]);
-const TY = d3.scaleLinear().domain([0, 9]).range([56, 6]);
-const trackDefs = track.append('defs');
-const hatch = trackDefs.append('pattern').attr('id','thatch').attr('width',6).attr('height',6).attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
-hatch.append('rect').attr('width',2).attr('height',6).attr('fill','#a98bff').attr('opacity',.5);
-const tg = {
-  base: track.append('rect').attr('x',10).attr('y',6).attr('width',980).attr('height',50).attr('rx',6).attr('fill','#2a2747').attr('stroke','#000').attr('stroke-width',2),
-  ghost: track.append('path').attr('fill','#3a3660'),
-  futGhost: track.append('path').attr('fill','url(#thatch)'),
-  fill: track.append('path'),
-  line: track.append('path').attr('fill','none').attr('stroke','#fff').attr('stroke-width',2),
-  futLine: track.append('path').attr('fill','none').attr('stroke','#d8c9ff').attr('stroke-width',2).attr('stroke-dasharray','4 4'),
-  divider: track.append('line').attr('x1',TX(2026.5)).attr('x2',TX(2026.5)).attr('y1',4).attr('y2',58).attr('stroke','#d8c9ff').attr('stroke-dasharray','2 3'),
-  cursor: track.append('g')
-};
-tg.cursor.append('line').attr('y1',2).attr('y2',60).attr('stroke','#ffc23d').attr('stroke-width',3);
-tg.cursorDot = tg.cursor.append('circle').attr('r',6).attr('fill','#ffc23d').attr('stroke','#000').attr('stroke-width',2);
-[[2007,'BORN'],[2012,'5'],[2017,'10'],[2022,'15'],[2026,'UNI'],[2030,'GRAD']].forEach(([yr,t]) => {
-  track.append('text').attr('x',TX(yr)).attr('y',70).attr('text-anchor','middle').attr('font-size',10).attr('fill', yr===2026?'#ffc23d':'#b9b4dc').text(yr===2026||yr===2007||yr===2030 ? `${t} ${yr}` : `AGE ${t}`);
-});
-track.append('text').attr('x',TX(2028.5)).attr('y',20).attr('text-anchor','middle').attr('font-size',9).attr('fill','#d8c9ff').text('WHAT IF');
-const fillGrad = trackDefs.append('linearGradient').attr('id','tfill').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
-fillGrad.append('stop').attr('offset',0).attr('stop-color','#ff5a3c');
-fillGrad.append('stop').attr('offset',1).attr('stop-color','#ffc23d');
+const TRACK_H = 46, BAR_T = 2, BAR_B = 30;
+const TX = d3.scaleLinear().domain([2007, 2030]);
+const TY = d3.scaleLinear().domain([0, 9]).range([BAR_B - 1, BAR_T + 3]);
+let tg = null, trackState = [2007, 0];
+function buildTrack(){
+  const w = Math.max(240, Math.round(track.node().getBoundingClientRect().width));
+  track.attr('viewBox', `0 0 ${w} ${TRACK_H}`);
+  track.selectAll('*').remove();
+  TX.range([7, w - 7]);
+  const defs = track.append('defs');
+  const hatch = defs.append('pattern').attr('id','thatch').attr('width',6).attr('height',6).attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
+  hatch.append('rect').attr('width',2).attr('height',6).attr('fill','#a98bff').attr('opacity',.45);
+  const grad = defs.append('linearGradient').attr('id','tfill').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+  grad.append('stop').attr('offset',0).attr('stop-color','#ff5a3c');
+  grad.append('stop').attr('offset',1).attr('stop-color','#ffc23d');
+  const clip = defs.append('clipPath').attr('id','tclip');
+  clip.append('rect').attr('x',1).attr('y',BAR_T).attr('width',w-2).attr('height',BAR_B-BAR_T).attr('rx',7);
+  track.append('rect').attr('x',1).attr('y',BAR_T).attr('width',w-2).attr('height',BAR_B-BAR_T).attr('rx',7).attr('fill','#2a2747');
+  const inner = track.append('g').attr('clip-path','url(#tclip)');
+  const xU = TX(2026.5);
+  tg = {
+    future: inner.append('rect').attr('x',xU).attr('y',BAR_T).attr('width',w-xU).attr('height',BAR_B-BAR_T).attr('fill','#2f2856'),
+    ghost: inner.append('path').attr('fill','#3a3660'),
+    futGhost: inner.append('path').attr('fill','url(#thatch)'),
+    fill: inner.append('path').attr('fill','url(#tfill)').attr('opacity',.92),
+    line: inner.append('path').attr('fill','none').attr('stroke','#fff').attr('stroke-width',1.6),
+    futLine: inner.append('path').attr('fill','none').attr('stroke','#d8c9ff').attr('stroke-width',1.6).attr('stroke-dasharray','4 3'),
+  };
+  inner.append('line').attr('x1',xU).attr('x2',xU).attr('y1',BAR_T).attr('y2',BAR_B).attr('stroke','#d8c9ff').attr('stroke-dasharray','2 3');
+  track.append('rect').attr('x',1).attr('y',BAR_T).attr('width',w-2).attr('height',BAR_B-BAR_T).attr('rx',7).attr('fill','none').attr('stroke','#120f24').attr('stroke-width',2);
+  // labels: ends anchor inward, so nothing hangs past the bar
+  const narrow = w < 460;
+  const labels = [[2007,'BORN 2007','start'],[2012,'AGE 5'],[2017,'AGE 10'],[2022,'AGE 15'],[2026,'UNI 2026'],[2027.7,'WHAT IF'],[2030,'GRAD 2030','end']]
+    .filter(d => (!narrow || /BORN|UNI|GRAD/.test(d[1])) && (d[1] !== 'WHAT IF' || w >= 900));
+  if (narrow) labels.forEach(d => { d[1] = d[1].replace(' 2026','').replace('GRAD 2030','GRAD'); });
+  labels.forEach(([yr,t,anchor]) => track.append('text').attr('x',TX(yr)).attr('y',BAR_B+13).attr('text-anchor',anchor||'middle').attr('font-size',10)
+    .attr('fill', yr===2026 ? '#ffc23d' : t==='WHAT IF' ? '#c9b6ff' : '#b9b4dc').text(t));
+  tg.cursor = track.append('g');
+  tg.cursor.append('line').attr('y1',0).attr('y2',BAR_B+2).attr('stroke','#ffc23d').attr('stroke-width',3).attr('stroke-linecap','round');
+  tg.cursorDot = tg.cursor.append('circle').attr('r',5.5).attr('fill','#ffc23d').attr('stroke','#120f24').attr('stroke-width',2);
+  drawTrack(...trackState);
+}
 
 function pastPts(){ return Object.entries(US10).map(([k,v]) => [+k, v]); }
 function drawTrack(curYear, curY){
+  trackState = [curYear, curY];
+  if (!tg) return;
   const past = pastPts();
   const fut = [[2026, TODAY]].concat(pathYs.map((v,i)=>[2027+i, v]));
-  const area = d3.area().x(d=>TX(d[0])).y0(56).y1(d=>TY(d[1])).curve(d3.curveMonotoneX);
+  const area = d3.area().x(d=>TX(d[0])).y0(BAR_B).y1(d=>TY(d[1])).curve(d3.curveMonotoneX);
   const line = d3.line().x(d=>TX(d[0])).y(d=>TY(d[1])).curve(d3.curveMonotoneX);
   tg.ghost.attr('d', area(past));
   tg.futGhost.attr('d', area(fut));
   const seen = past.filter(d=>d[0] <= curYear).concat(curYear > 2026 ? fut.filter(d=>d[0] > 2026 && d[0] <= curYear) : []);
-  tg.fill.attr('d', seen.length>1 ? area(seen) : null).attr('fill','url(#tfill)').attr('opacity',.9);
+  tg.fill.attr('d', seen.length>1 ? area(seen) : null);
   tg.line.attr('d', line(past.filter(d=>d[0] <= Math.min(curYear,2026))));
   tg.futLine.attr('d', curYear > 2026 || mode==='choice' ? line(fut.filter(d=> mode==='choice' || d[0] <= curYear)) : null);
   tg.cursor.attr('transform', `translate(${TX(curYear)},0)`);
   tg.cursorDot.attr('cy', TY(curY));
 }
+new ResizeObserver(buildTrack).observe(track.node());
 
 /* ================= stage drawing ================= */
 const W=1280, H=720, G=600;
@@ -373,7 +404,7 @@ const grain = defs.append('filter').attr('id','grain');
 grain.append('feTurbulence').attr('type','fractalNoise').attr('baseFrequency',.9).attr('numOctaves',2).attr('stitchTiles','stitch');
 grain.append('feColorMatrix').attr('values','0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0');
 const world = svg.append('g').attr('class','fadeable');
-const gBg = world.append('g'), gCast = world.append('g'), gFx = world.append('g');
+const gBg = world.append('g'), gCast = world.append('g'), gFg = world.append('g');
 const shade = svg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('fill','#1a2030').attr('opacity',0).attr('pointer-events','none');
 svg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('filter','url(#grain)').attr('pointer-events','none');
 
@@ -419,11 +450,11 @@ function skyline(g, x0, base, scale=1, col='#4a5a78'){
 const BG = {
   nursery(g,sc){
     R(g,-1400,-800,W+2800,G+800,'#efd3dc');
-    for (let i=0;i<14;i++) for (let j=0;j<6;j++) Cc(g,40+i*92+(j%2)*46,40+j*95,5,'#e4b9c7');
+    for (let i=-12;i<26;i++) for (let j=0;j<6;j++) Cc(g,40+i*92+(j%2)*46,40+j*95,5,'#e4b9c7');
     win(g,420,110,440,330); skyline(g,470,440,1.05);
     R(g,380,96,46,380,'#e98aa6',{rx:6}); R(g,854,96,46,380,'#e98aa6',{rx:6});
     ground(g,'#c9946a','#b07f57');
-    for (let i=0;i<9;i++) A(g,'line',{x1:i*150,x2:i*150+60,y1:G+20,y2:H,stroke:'#b07f57','stroke-width':3});
+    for (let i=-8;i<17;i++) A(g,'line',{x1:i*150,x2:i*150+60,y1:G+20,y2:H+200,stroke:'#b07f57','stroke-width':3});
     const cx=1000; R(g,cx,430,220,14,'#ffffff'); R(g,cx,520,220,16,'#ffffff'); for (let i=0;i<=10;i++) R(g,cx+i*21,430,6,G-430,'#ffffff');
     R(g,cx-4,420,8,G-420,'#f2e6da'); R(g,cx+216,420,8,G-420,'#f2e6da');
     A(g,'line',{x1:cx+110,x2:cx+110,y1:0,y2:250,stroke:'#999','stroke-width':2});
@@ -432,16 +463,16 @@ const BG = {
   kitchen(g,sc){
     R(g,-1400,-800,W+2800,G+800,'#cfe3d4');
     win(g,70,120,300,240);
-    R(g,0,G-170,W,6,'#b8d1bf');
+    R(g,-1400,G-170,W+2800,6,'#b8d1bf');
     const tv = (sc.props||{}).tv;
     R(g,450,90,380,230,'#1c1c1c',{rx:10}); R(g,466,106,348,198, tv && /FALL|CRASH|INFLATION|CLIMB/.test(tv) ? '#2b3a55' : '#2e6b55');
     if (tv){ R(g,466,250,348,44,'#d63b2a'); Tt(g,640,280,tv,{'text-anchor':'middle','font-size':22,fill:'#fff'});
       A(g,'polyline',{points: /FALL|CLIMB|INFLATION/.test(tv) && !/RATES FALL/.test(tv) ? '486,140 560,170 620,150 690,210 790,236' : '486,236 560,200 620,214 690,160 790,130', fill:'none', stroke:'#ffc23d','stroke-width':5}); }
     R(g,900,100,340,130,'#f7f4ec',{stroke:'#c9c2b0','stroke-width':3}); [980,1070,1160].forEach(x=>R(g,x,150,24,6,'#9b8f78',{rx:3}));
     R(g,900,430,340,G-430,'#f7f4ec',{stroke:'#c9c2b0','stroke-width':3}); R(g,890,420,360,16,'#8a6b52');
-    ground(g,'#b7c4c9'); for (let i=0;i<16;i++) for (let j=0;j<2;j++) if ((i+j)%2) R(g,i*80,G+j*60,80,60,'#a8b6bc');
-    R(g,380,500,520,18,'#8a6b52',{rx:4}); R(g,400,518,14,G-518,'#6f5541'); R(g,866,518,14,G-518,'#6f5541');
-    if ((sc.props||{}).bills){ [[450,486,-8],[520,490,6],[700,484,-3],[780,492,10]].forEach(([x,y,r]) => { const b=A(g,'g',{transform:`rotate(${r},${x},${y})`}); R(b,x,y,60,14,'#ffffff',{stroke:'#ccc'}); Tt(b,x+30,y+12,'$',{'text-anchor':'middle','font-size':12,fill:'#d63b2a'}); }); }
+    ground(g,'#b7c4c9'); for (let i=-14;i<31;i++) for (let j=0;j<6;j++) if ((i+j)%2) R(g,i*80,G+j*60,80,60,'#a8b6bc');
+    R(g,50,500,300,18,'#8a6b52',{rx:4}); R(g,68,518,14,G-518,'#6f5541'); R(g,318,518,14,G-518,'#6f5541');
+    if ((sc.props||{}).bills){ [[70,486,-8],[140,490,6],[205,484,-3],[270,492,10]].forEach(([x,y,r]) => { const b=A(g,'g',{transform:`rotate(${r},${x},${y})`}); R(b,x,y,60,14,'#ffffff',{stroke:'#ccc'}); Tt(b,x+30,y+12,'$',{'text-anchor':'middle','font-size':12,fill:'#d63b2a'}); }); }
   },
   playground(g,sc){
     sky(g); weather(g,sc.y);
@@ -449,9 +480,9 @@ const BG = {
     [[90,460],[200,440],[1160,450],[1240,470]].forEach(([x,y]) => { R(g,x-6,y,12,G-y,'#7a5236'); Cc(g,x,y-30,52,'#4f9a52'); Cc(g,x-30,y,36,'#5aa65a'); Cc(g,x+30,y-5,40,'#468f4a'); });
     ground(g,'#93c96f','#82b960');
     A(g,'ellipse',{cx:640,cy:G+60,rx:420,ry:40,fill:'#e2cf9a'});
-    R(g,230,370,10,G-370,'#3d6fb6'); R(g,300,370,10,G-370,'#3d6fb6'); for (let k=0;k<6;k++) R(g,230,390+k*35,80,6,'#3d6fb6');
-    R(g,222,362,96,12,'#ff6b4a'); P(g,`M318,362 C420,380 460,560 560,${G-6} L560,${G} L540,${G} C450,570 410,400 318,378Z`,'#ff6b4a');
-    const sx=880; A(g,'line',{x1:sx,y1:G,x2:sx+40,y2:350,stroke:'#e0a020','stroke-width':10}); A(g,'line',{x1:sx+80,y1:G,x2:sx+40,y2:350,stroke:'#e0a020','stroke-width':10});
+    R(g,160,370,10,G-370,'#3d6fb6'); R(g,230,370,10,G-370,'#3d6fb6'); for (let k=0;k<6;k++) R(g,160,390+k*35,80,6,'#3d6fb6');
+    R(g,152,362,96,12,'#ff6b4a'); P(g,`M248,362 C350,380 390,560 490,${G-6} L490,${G} L470,${G} C380,570 340,400 248,378Z`,'#ff6b4a');
+    const sx=950; A(g,'line',{x1:sx,y1:G,x2:sx+40,y2:350,stroke:'#e0a020','stroke-width':10}); A(g,'line',{x1:sx+80,y1:G,x2:sx+40,y2:350,stroke:'#e0a020','stroke-width':10});
     A(g,'line',{x1:sx+300,y1:G,x2:sx+340,y2:350,stroke:'#e0a020','stroke-width':10}); A(g,'line',{x1:sx+380,y1:G,x2:sx+340,y2:350,stroke:'#e0a020','stroke-width':10});
     R(g,sx+30,342,320,12,'#e0a020',{rx:6});
     [[sx+120],[sx+250]].forEach(([x]) => { A(g,'line',{x1:x,x2:x,y1:354,y2:500,stroke:'#555','stroke-width':3}); A(g,'line',{x1:x+50,x2:x+50,y1:354,y2:500,stroke:'#555','stroke-width':3}); R(g,x-6,498,62,10,'#3d6fb6',{rx:4}); });
@@ -460,19 +491,19 @@ const BG = {
     sky(g); weather(g,sc.y);
     skyline(g,880,G-120,.7,'#8fa0b8');
     const move = (sc.props||{}).mode === 'move';
-    const houses = move ? [[60,'#d98c6a',220,170],[340,'#7fa7c9',260,260],[960,'#c4b07a',240,180]] : [[30,'#d98c6a',230,170],[300,'#7fa7c9',230,190],[570,'#c4b07a',230,175],[840,'#a98bc9',230,185],[1100,'#8fbf8a',200,170]];
+    const houses = move ? [[40,'#d98c6a',220,170],[-280,'#a98bc9',230,185],[1190,'#c4b07a',240,180],[1460,'#8fbf8a',220,170]] : [[30,'#d98c6a',230,170],[300,'#7fa7c9',230,190],[570,'#c4b07a',230,175],[840,'#a98bc9',230,185],[1100,'#8fbf8a',200,170],[-240,'#c4b07a',230,180],[1330,'#7fa7c9',230,175]];
     houses.forEach(([x,c,w,h],k) => {
       const top = G-40-h;
       R(g,x,top,w,h,c); P(g,`M${x-16},${top} L${x+w/2},${top-90} L${x+w+16},${top}Z`, d3.color(c).darker(1).formatHex());
       R(g,x+w/2-24,G-40-78,48,78,'#5a3d2b'); R(g,x+24,top+30,50,44,'#fdf3d0'); R(g,x+w-74,top+30,50,44,'#fdf3d0');
       if (h > 200){ R(g,x+24,top+110,50,44,'#fdf3d0'); R(g,x+w-74,top+110,50,44,'#fdf3d0'); }
-      if (!move || k===1){ const sx=x+w-10; R(g,sx,G-110,6,80,'#6b4f3a'); R(g,sx-40,G-120,86,42,'#ffffff',{stroke:'#d63b2a','stroke-width':3}); Tt(g,sx+3,G-92,'SOLD',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'}); }
+      if ((!move && k<5) || (move && k===0)){ const sx=x+w-10; R(g,sx,G-110,6,80,'#6b4f3a'); R(g,sx-40,G-120,86,42,'#ffffff',{stroke:'#d63b2a','stroke-width':3}); Tt(g,sx+3,G-92,'SOLD',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'}); }
     });
-    R(g,-1400,G-40,W+2800,40,'#cfcfcf'); ground(g,'#5d6670'); for (let i=0;i<10;i++) R(g,i*140+20,G+56,70,8,'#e8e8e8');
+    R(g,-1400,G-40,W+2800,40,'#cfcfcf'); ground(g,'#5d6670'); for (let i=-10;i<20;i++) R(g,i*140+20,G+56,70,8,'#e8e8e8');
     if (move){
-      R(g,700,G-210,250,170,'#f2f2f2',{stroke:'#999','stroke-width':3,rx:6}); Tt(g,825,G-118,'MOVING',{'text-anchor':'middle','font-size':26,fill:'#3d6fb6'});
-      R(g,950,G-150,110,110,'#3d6fb6',{rx:8}); R(g,980,G-140,60,40,'#bfe0f6'); Cc(g,760,G-30,26,'#222'); Cc(g,1000,G-30,26,'#222');
-      [[620,G-80,60],[640,G-130,50],[1080,G-70,50]].forEach(([x,y,s]) => { R(g,x,y,s,s,'#c99a62',{stroke:'#8a6b42','stroke-width':2}); R(g,x,y+s/2-3,s,6,'#e6cfa0'); });
+      R(g,780,G-210,250,170,'#f2f2f2',{stroke:'#999','stroke-width':3,rx:6}); Tt(g,905,G-118,'MOVING',{'text-anchor':'middle','font-size':26,fill:'#3d6fb6'});
+      R(g,1030,G-150,110,110,'#3d6fb6',{rx:8}); R(g,1060,G-140,60,40,'#bfe0f6'); Cc(g,840,G-30,26,'#222'); Cc(g,1080,G-30,26,'#222');
+      [[715,G-60,55],[722,G-108,48],[1150,G-70,50]].forEach(([x,y,s]) => { R(g,x,y,s,s,'#c99a62',{stroke:'#8a6b42','stroke-width':2}); R(g,x,y+s/2-3,s,6,'#e6cfa0'); });
     }
   },
   bedroom(g,sc){
@@ -486,35 +517,60 @@ const BG = {
     const lx=820; P(g,`M${lx},466 L${lx+20},400 L${lx+200},400 L${lx+220},466Z`,'#333'); R(g,lx+26,406,168,56,'#bfe0f6');
     for (let i=0;i<3;i++) for (let j=0;j<2;j++){ R(g,lx+30+i*55,410+j*27,52,24,'#5b6c88'); Cc(g,lx+56+i*55,420+j*27,6,['#f1c8a0','#d39b74','#e3b08a'][(i+j)%3]); }
   },
-  cafe(g,sc){
-    R(g,-1400,-800,W+2800,G+800,'#b9603f'); for (let i=0;i<30;i++) for (let j=0;j<12;j++) R(g,i*44+(j%2)*22,j*44,40,40,'#c06a49',{opacity:.6});
+  cafe(g,sc,fg){
+    R(g,-1400,-800,W+2800,G+800,'#b9603f'); for (let i=-30;i<60;i++) for (let j=0;j<14;j++) R(g,i*44+(j%2)*22,j*44,40,40,'#c06a49',{opacity:.6});
     R(g,90,80,420,260,'#20211f',{stroke:'#7a5236','stroke-width':12});
     Tt(g,300,130,'MENU',{'text-anchor':'middle','font-size':30,fill:'#f4f2ff'});
     [['LATTE','$5.75'],['MUFFIN','$4.25'],['SANDWICH','$12.50']].forEach(([a,b],i) => { Tt(g,130,190+i*50,a,{'font-size':22,fill:'#e8e6dc'}); Tt(g,470,190+i*50,b,{'text-anchor':'end','font-size':22,fill:'#ffc23d'}); });
     win(g,780,90,400,250); Tt(g,980,320,'OPEN',{'text-anchor':'middle','font-size':26,fill:'#3fbf8f'});
     ground(g,'#7a5236');
-    R(g,560,420,700,G-420,'#5a3d2b'); R(g,550,410,720,18,'#3a2a1f');
-    R(g,940,330,150,82,'#c9ced3',{rx:6}); R(g,960,350,110,30,'#20211f'); Cc(g,985,395,6,'#555'); Cc(g,1045,395,6,'#555');
+    fg = fg || g;
+    R(fg,560,478,760,G-478,'#5a3d2b'); R(fg,550,468,780,18,'#3a2a1f'); R(fg,560,508,760,6,'#4a3123');
+    R(fg,960,388,150,82,'#c9ced3',{rx:6}); R(fg,980,408,110,30,'#20211f'); Cc(fg,1005,453,6,'#555'); Cc(fg,1065,453,6,'#555');
     [[200,'#e6ded0'],[360,'#e6ded0']].forEach(([x,c]) => { A(g,'ellipse',{cx:x,cy:500,rx:70,ry:14,fill:c}); R(g,x-5,500,10,G-500,'#3a2a1f'); });
   },
   campus(g,sc){
+    // University College on front campus: dark Romanesque stone, a central tower with a round-arched entrance,
+    // long wings of arched windows under steep slate roofs, spired end pavilions, ivy on the west wing.
     sky(g); weather(g,sc.y);
-    [[60,380],[160,360],[1140,370],[1240,390]].forEach(([x,y]) => { R(g,x-8,y,16,G-y,'#6b4a33'); Cc(g,x,y-30,70,'#4f8f4f'); Cc(g,x-40,y+10,50,'#5a9a56'); Cc(g,x+40,y,54,'#447f45'); });
-    const stone='#cdab7c', dark='#a8855a', roof='#5c4d45', y0=270, base=G-60;
-    P(g,`M180,${y0} L230,${y0-46} L1050,${y0-46} L1100,${y0}Z`, roof);
-    R(g,180,y0,920,base-y0,stone); R(g,180,y0+70,920,8,dark); R(g,180,base-20,920,20,dark);
-    [[150,250],[1030,250]].forEach(([x,w]) => { R(g,x,y0-30,100,base-y0+30,stone); P(g,`M${x-10},${y0-30} L${x+50},${y0-90} L${x+110},${y0-30}Z`,roof); });
-    for (let i=0;i<12;i++){ if (i===5||i===6) continue; const x=230+i*70; [y0+16,y0+96].forEach(yy => P(g,`M${x},${yy+46} V${yy+14} A17,17 0 0 1 ${x+34},${yy+14} V${yy+46}Z`,'#3e3a4a')); }
-    R(g,560,110,160,base-110,stone); R(g,560,170,160,8,dark); P(g,`M548,110 L640,30 L732,110Z`,roof);
-    P(g,`M604,140 V128 A10,10 0 0 1 624,128 V140Z`,'#3e3a4a'); P(g,`M656,140 V128 A10,10 0 0 1 676,128 V140Z`,'#3e3a4a');
-    P(g,`M590,${base} V${base-110} A50,50 0 0 1 690,${base-110} V${base}Z`,'#4a3326'); P(g,`M600,${base} V${base-106} A40,40 0 0 1 680,${base-106} V${base}Z`,'#6b4a33');
+    const stone='#6e6861', stoneL='#817a71', stoneD='#55504a', trim='#9d9588', slate='#58616b', slateL='#6f7984', win='#2a2d33', base=G-60;
+    const arch = (x,y,w,h,fill) => P(g,`M${x},${y+h} V${y+w/2} A${w/2},${w/2} 0 0 1 ${x+w},${y+w/2} V${y+h}Z`,fill);
+    const winRow = (x0,x1,y,h,step=40) => { for (let x=x0; x+24<=x1; x+=step){ arch(x-3,y-3,30,h+3,trim); arch(x,y,24,h,win); } };
+    [[0,390],[1290,380]].forEach(([x,y]) => { R(g,x-8,y,16,base-y,'#6b4a33'); Cc(g,x,y-30,70,'#4f8f4f'); Cc(g,x-40,y+10,50,'#5a9a56'); Cc(g,x+40,y,54,'#447f45'); });
+    // spired end pavilions
+    R(g,136,250,100,base-250,stone); P(g,`M128,250 L186,118 L244,250Z`,slate); A(g,'line',{x1:186,x2:186,y1:118,y2:96,stroke:slate,'stroke-width':3});
+    winRow(152,232,286,40); winRow(152,232,404,50);
+    R(g,1046,240,110,base-240,stone); P(g,`M1038,240 L1101,126 L1164,240Z`,slate); A(g,'line',{x1:1101,x2:1101,y1:126,y2:102,stroke:slate,'stroke-width':3});
+    winRow(1062,1150,280,42); winRow(1062,1150,404,50);
+    // wings with slate roofs and gabled dormers
+    R(g,236,300,334,base-300,stone); R(g,710,300,336,base-300,stone);
+    P(g,`M226,302 L262,244 L570,244 L570,302Z`,slate); P(g,`M710,302 L710,244 L1012,244 L1054,302Z`,slate);
+    A(g,'line',{x1:262,x2:570,y1:246,y2:246,stroke:slateL,'stroke-width':3}); A(g,'line',{x1:710,x2:1012,y1:246,y2:246,stroke:slateL,'stroke-width':3});
+    [292,392,492,770,962].forEach(x => { R(g,x,226,30,28,stoneL); P(g,`M${x-5},228 L${x+15},206 L${x+35},228Z`,slate); arch(x+9,234,12,16,win); });
+    [[236,334],[710,336]].forEach(([x,w]) => { R(g,x,394,w,6,trim); R(g,x,base-14,w,14,stoneD); });
+    winRow(252,560,322,46); winRow(252,560,420,58); winRow(726,1036,322,46); winRow(726,1036,420,58);
+    // gabled pavilion on the east wing with a steep roof and small lantern
+    R(g,858,262,96,base-262,stoneL); P(g,`M850,262 L906,168 L962,262Z`,slate); R(g,898,150,16,22,stoneL); P(g,`M894,150 L906,136 L918,150Z`,slate);
+    winRow(872,946,292,44,36); winRow(872,946,410,56,36);
+    // ivy on the west wing
+    [[260,470,46],[300,500,40],[350,486,44],[400,505,36],[160,480,40],[214,440,34],[452,500,30]].forEach(([x,y,r]) => Cc(g,x,y,r,'#4c7a3c',{opacity:.92}));
+    // central tower: corner buttresses, corbelled parapet, corner turrets, arched belfry, round-arched entrance
+    R(g,566,96,148,base-96,stone);
+    R(g,566,96,16,base-96,stoneD); R(g,698,96,16,base-96,stoneD);
+    R(g,558,84,164,14,trim); for (let x=566; x<712; x+=14) R(g,x,98,8,8,trim);
+    R(g,700,70,30,32,stone); R(g,698,68,34,6,trim); P(g,`M698,70 L715,38 L732,70Z`,slate);   // single pointed turret on the right corner
+    R(g,566,200,148,6,trim); R(g,566,316,148,6,trim);
+    arch(590,118,40,76,trim); arch(594,122,32,72,win); arch(650,118,40,76,trim); arch(654,122,32,72,win);
+    arch(598,226,30,80,trim); arch(601,229,24,77,win); arch(652,226,30,80,trim); arch(655,229,24,77,win);
+    arch(592,410,96,base-410,trim); arch(602,422,76,base-422,stoneD); arch(612,434,56,base-434,'#3b2f28');
+    // front lawn and path
     R(g,-1400,base,W+2800,G-base,'#79b45e');
     ground(g,'#86c06a'); A(g,'ellipse',{cx:640,cy:G+70,rx:560,ry:58,fill:'#9bd07a'});
-    P(g,`M560,${G} L720,${G} L860,${H} L420,${H}Z`,'#d7c9a7',{opacity:.9});
+    P(g,`M590,${base} L690,${base} L860,${H} L420,${H}Z`,'#d7c9a7',{opacity:.9});
   },
   basement(g,sc){
-    R(g,-1400,-800,W+2800,G+800,'#77705f'); for (let i=0;i<20;i++) for (let j=0;j<10;j++) R(g,i*68+(j%2)*34,j*40+60,64,36,'#7f7766',{opacity:.7});
-    R(g,0,0,W,50,'#4b463c'); A(g,'line',{x1:0,x2:W,y1:66,y2:66,stroke:'#9a9a92','stroke-width':12});
+    R(g,-1400,-800,W+2800,G+800,'#77705f'); for (let i=-18;i<38;i++) for (let j=0;j<14;j++) R(g,i*68+(j%2)*34,j*40+60,64,36,'#7f7766',{opacity:.7});
+    R(g,-1400,-800,W+2800,850,'#4b463c'); A(g,'line',{x1:-1400,x2:W+1400,y1:66,y2:66,stroke:'#9a9a92','stroke-width':12});
     win(g,880,80,300,100); R(g,880,160,300,20,'#5a8a4f');
     A(g,'line',{x1:640,x2:640,y1:50,y2:140,stroke:'#333','stroke-width':2}); Cc(g,640,150,14,'#ffe9a8'); Cc(g,640,150,60,'#ffe9a8',{opacity:.12});
     R(g,250,250,170,120,'#ffe36e',{transform:'rotate(-4,335,310)'}); Tt(g,335,300,'RENT',{'text-anchor':'middle','font-size':26,fill:'#d63b2a',transform:'rotate(-4,335,310)'}); Tt(g,335,340,'+$150',{'text-anchor':'middle','font-size':26,fill:'#d63b2a',transform:'rotate(-4,335,310)'});
@@ -523,47 +579,129 @@ const BG = {
     R(g,980,470,200,G-470,'#c99a62',{stroke:'#8a6b42','stroke-width':3}); R(g,1010,420,140,50,'#c99a62',{stroke:'#8a6b42','stroke-width':3});
   },
   fair(g,sc){
-    R(g,-1400,-800,W+2800,G+800,'#e4def0'); for (let i=0;i<9;i++) R(g,i*160,0,6,G,'#d6cfe6');
+    R(g,-1400,-800,W+2800,G+800,'#e4def0'); for (let i=-9;i<18;i++) R(g,i*160,-800,6,G+800,'#d6cfe6');
     R(g,340,40,600,70,'#2a2747',{rx:8}); Tt(g,640,88,'CAREER FAIR 2028',{'text-anchor':'middle','font-size':32,fill:'#ffc23d'});
     ground(g,'#b9b3a8');
     const n = (sc.props||{}).booths ?? 2;
     const cols = ['#3d6fb6','#d9a43c','#3fbf8f','#d63b2a','#8a7ab3'];
-    [80,320,560,800,1040].forEach((x,k) => {
+    [-10,175,360,770,955].forEach((x,k) => {
       const on = k < n;
-      R(g,x,200,180,220,on?cols[k]:'#a9a4b8',{rx:6}); Cc(g,x+90,270,34,'#ffffff',{opacity:on?.9:.4});
-      R(g,x-10,440,200,90,on?'#ffffff':'#d6d2cc',{rx:4}); R(g,x-10,440,200,14,on?cols[k]:'#bdb8b0');
-      if (on){ Cc(g,x+60,404,16,'#e3b08a'); R(g,x+44,420,32,30,cols[(k+2)%5],{rx:8}); }
-      R(g,x+20,470,140,36,on?'#3fbf8f':'#d63b2a',{rx:4}); Tt(g,x+90,495,on?'NOW HIRING':'HIRING FREEZE',{'text-anchor':'middle','font-size':on?17:14,fill:'#fff'});
+      R(g,x,200,165,220,on?cols[k]:'#a9a4b8',{rx:6}); Cc(g,x+82,270,32,'#ffffff',{opacity:on?.9:.4});
+      R(g,x-8,440,181,90,on?'#ffffff':'#d6d2cc',{rx:4}); R(g,x-8,440,181,14,on?cols[k]:'#bdb8b0');
+      if (on){ Cc(g,x+56,404,16,'#e3b08a',{stroke:OUT,'stroke-width':2}); R(g,x+40,420,32,30,cols[(k+2)%5],{rx:8}); }
+      R(g,x+12,470,141,36,on?'#3fbf8f':'#d63b2a',{rx:4}); Tt(g,x+82,495,on?'NOW HIRING':'HIRING FREEZE',{'text-anchor':'middle','font-size':on?16:13,fill:'#fff'});
     });
   },
   robarts(g,sc){
+    // Robarts Library at night, after the real building: a stair tower with an angled "beak" head on the left,
+    // concrete blocks cantilevered over plain bases, and a tall main block of recessed vertical bays.
     sky(g,true); weather(g,sc.y,true);
-    const c1='#8e8f8a', c2='#74756f', c3='#a3a49e';
-    P(g,`M300,${G-40} L420,250 L540,${G-40}Z`,c2); P(g,`M740,${G-40} L860,250 L980,${G-40}Z`,c2);
-    P(g,`M460,${G-40} L520,170 L640,90 L760,170 L820,${G-40}Z`,c1);
-    P(g,`M520,170 L640,90 L760,170 L700,190 L580,190Z`,c3);
-    for (let i=0;i<9;i++) for (let j=0;j<7;j++){ const x=520+i*28, y=220+j*44; if (x>500 && x<770) R(g,x,y,16,22,((i*7+j*3)%5<2)?'#ffd86b':'#3a3b38'); }
-    for (let j=0;j<5;j++){ R(g,400,320+j*44,14,20,'#ffd86b',{opacity:j%2?1:.3}); R(g,860,320+j*44,14,20,'#ffd86b',{opacity:j%2?.3:1}); }
+    const base = G-34, con='#b9b3a8', conL='#c8c2b7', conD='#958f85', bay='#77746d', edge='#5b5852', win='#2f3238', glow='#ffd86b';
+    const lit = (i,j) => (i*7 + j*3) % 5 < 2 ? glow : win;
+    const box = (x,y,w,h,fill) => R(g,x,y,w,h,fill,{stroke:edge,'stroke-width':2});
+    const bands = (x,y,w,h,step=15) => { for (let yy=y+step; yy<y+h-4; yy+=step) A(g,'line',{x1:x+2,x2:x+w-2,y1:yy,y2:yy,stroke:conD,'stroke-width':1.2}); };
+    // low wing on the right
+    box(1090,410,150,base-410,con); bands(1090,410,150,base-410);
+    for (let i=0;i<4;i++) R(g,1104+i*34,430,20,26,lit(i,7));
+    // main block: banded concrete piers between recessed bays of slit windows; each bay ends in an angled bottom
+    box(640,176,470,base-176,con); bands(640,176,470,base-176);
+    for (let k=0;k<7;k++){
+      const bx = 656 + k*64;
+      R(g,bx,196,40,248,bay);
+      for (let j=0;j<6;j++){ R(g,bx+8,204+j*40,6,30,lit(k,j)); R(g,bx+26,204+j*40,6,30,lit(k+3,j)); }
+      P(g,`M${bx-4},444 L${bx+44},444 L${bx+34},472 L${bx+6},472Z`,conD,{stroke:edge,'stroke-width':1.5});
+      R(g,bx+9,486,22,58,lit(k,9));
+    }
+    [[712,146,30,32],[880,154,26,24],[1048,160,40,18]].forEach(([x,y,w,h]) => box(x,y,w,h,con));   // rooftop piers
+    box(600,122,50,base-122,conL); bands(600,122,50,base-122);                                    // tall column
+    // lower section joining the stair tower to the main block
+    box(400,248,210,base-248,con); bands(400,248,210,base-248);
+    box(456,222,36,30,con);
+    for (let i=0;i<5;i++) R(g,420+i*38,262,8,24,lit(i,6));
+    // smaller cantilever on the left, over its plain base
+    box(262,420,92,base-420,conL);
+    box(244,336,122,52,bay); R(g,244,330,122,8,con,{stroke:edge,'stroke-width':1.5});
+    for (let i=0;i<6;i++) R(g,254+i*19,344,6,36,lit(i,4));
+    P(g,`M244,388 L366,388 L354,420 L256,420Z`,conD,{stroke:edge,'stroke-width':2});
+    // the big cantilevered block in front of the main block
+    // the big cantilevered block, built against the stair tower
+    box(408,424,318,base-424,conL);
+    for (let i=1;i<5;i++) A(g,'line',{x1:408+i*64,x2:408+i*64,y1:424,y2:base,stroke:conD,'stroke-width':1.2});
+    A(g,'line',{x1:408,x2:726,y1:495,y2:495,stroke:conD,'stroke-width':1.2});
+    box(408,302,358,70,bay); R(g,408,294,358,10,con,{stroke:edge,'stroke-width':1.5});
+    for (let i=0;i<15;i++) R(g,420+i*23,310,7,54,lit(i,2));
+    P(g,`M408,372 L766,372 L740,424 L408,424Z`,conD,{stroke:edge,'stroke-width':2});
+    // stair tower with the angled head, in front on the left
+    P(g,`M316,92 L412,92 L412,${base} L354,${base} L354,286 L316,198Z`,conL,{stroke:edge,'stroke-width':2});
+    bands(354,290,58,base-290,16);
+    P(g,`M328,104 L346,104 L346,186 L384,272 L368,272 L328,190Z`,'#56534d');
+    // plaza, ground, sign, Toronto-style street lamp, bench
+    R(g,-1400,base,W+2800,G-base,'#666962'); R(g,180,base,1060,6,'#7b7e77');
     ground(g,'#4f5652','#5d6560');
-    R(g,1000,G-200,10,200,'#2a2a2a'); Cc(g,1005,G-206,16,'#ffe9a8'); Cc(g,1005,G-206,80,'#ffe9a8',{opacity:.12});
-    R(g,180,G-60,240,14,'#6b4a33'); R(g,190,G-46,10,46,'#3a2a1f'); R(g,400,G-46,10,46,'#3a2a1f');
+    R(g,860,base-50,200,44,'#55574f',{rx:4,stroke:'#3f413b','stroke-width':2}); R(g,876,base-6,12,6,'#3f413b'); R(g,1032,base-6,12,6,'#3f413b');
+    Tt(g,960,base-21,'ROBARTS LIBRARY',{'text-anchor':'middle','font-size':15,fill:'#ecebe4'});
+    R(g,1150,G-230,8,230,'#2a2a2a'); P(g,`M1154,${G-226} Q1154,${G-250} 1120,${G-252}`,'none',{stroke:'#2a2a2a','stroke-width':6});
+    A(g,'ellipse',{cx:1116,cy:G-248,rx:14,ry:7,fill:'#ffe9a8'}); Cc(g,1116,G-240,70,'#ffe9a8',{opacity:.12});
+    R(g,170,G-60,220,14,'#6b4a33'); R(g,180,G-46,10,46,'#3a2a1f'); R(g,370,G-46,10,46,'#3a2a1f');
   },
   convocation(g,sc){
+    // Convocation Hall, front view: buff brick and cream stone. A wide round centre bay with two stacked windows,
+    // brick piers with stone quoins, curved cornices sweeping down over tall Ionic colonnades, an upper ring with
+    // round ornaments, the green copper dome and the attic block with shields. The plaza is King's College Circle.
     sky(g); weather(g,sc.y);
-    const stone='#e2d4b4', patina='#7fa596', base=G-50;
-    R(g,300,250,680,base-250,stone); R(g,300,250,680,14,'#c8b892');
-    P(g,`M330,250 A310,150 0 0 1 950,250Z`,patina); R(g,620,80,40,30,patina); P(g,`M612,82 L640,50 L668,82Z`,patina);
-    P(g,`M430,330 L640,262 L850,330Z`,'#d4c4a0');
-    for (let i=0;i<8;i++) R(g,450+i*55,330,22,base-330,'#f4ecda');
-    R(g,430,330,420,12,'#c8b892');
-    for (let k=0;k<3;k++) R(g,400-k*30,base+k*16,480+k*60,16,'#d4c4a0');
-    ground(g,'#86c06a');
+    const brick='#c7a560', brickD='#94793f', brickL='#d8b874', cream='#efe7d4', creamD='#cdc2aa', colC='#dbb97e', colS='#b8955c',
+          rustic='#ccae74', door='#9a3b28', base=G-40, M = x => 1343 - x;      // M mirrors the left half onto the right
+    // dome and upper ring
+    P(g,`M380,210 Q644,40 908,210Z`,'#3f8c84',{stroke:'#2f6c66','stroke-width':2});
+    for (let k=1;k<6;k++) A(g,'line',{x1:644+(k-3)*80,x2:644+(k-3)*64,y1:206,y2:150+Math.abs(k-3)*14,stroke:'#357a73','stroke-width':2});
+    P(g,`M300,262 Q644,176 988,262 L988,300 Q644,214 300,300Z`,brick);
+    P(g,`M292,262 Q644,172 996,262 L996,250 Q644,160 292,250Z`,cream,{stroke:creamD,'stroke-width':1.5});
+    [[350,262],[424,242],[M(424),242],[M(350),262]].forEach(([x,y]) => { Cc(g,x,y+10,11,cream); Cc(g,x,y+10,6,brickD); });
+    // attic block with shields
+    R(g,512,128,326,82,brick); R(g,502,116,346,14,cream,{stroke:creamD,'stroke-width':1.5}); R(g,508,130,334,5,creamD);
+    [540,M(540)-28].forEach(x => { R(g,x,140,30,44,cream,{rx:5}); R(g,x+6,147,18,30,creamD,{rx:4}); });
+    // porch back walls (in shadow) with small windows and red arched doors
+    [[200,525],[M(525),M(200)]].forEach(([x0,x1]) => R(g,x0,280,x1-x0,base-280,brickD));
+    for (let y=292; y<base; y+=12) { A(g,'line',{x1:200,x2:525,y1:y,y2:y,stroke:'#000',opacity:.08}); A(g,'line',{x1:M(525),x2:M(200),y1:y,y2:y,stroke:'#000',opacity:.08}); }
+    [362,409,M(409)-20,M(362)-20].forEach(x => { R(g,x,384,20,40,cream); R(g,x+3,387,14,34,'#2c3640'); });
+    [[338,32],[402,34],[M(402)-34,34],[M(338)-32,32]].forEach(([x,w]) => { P(g,`M${x-6},466 Q${x+w/2},438 ${x+w+6},466Z`,cream); R(g,x-3,466,w+6,6,creamD); R(g,x,472,w,base-472,door); A(g,'line',{x1:x+w/2,x2:x+w/2,y1:474,y2:base,stroke:'#6e2a1c','stroke-width':2}); });
+    // curved cornices over the colonnades, sweeping down at the ends
+    [false,true].forEach(mir => { const X = mir ? M : (x => x);
+      P(g,`M${X(196)},292 Q${X(236)},238 ${X(527)},234 L${X(527)},262 Q${X(250)},268 ${X(196)},318Z`,cream,{stroke:creamD,'stroke-width':1.5});
+      P(g,`M${X(196)},318 Q${X(250)},268 ${X(527)},262 L${X(527)},300 Q${X(262)},304 ${X(200)},356Z`,rustic,{stroke:creamD,'stroke-width':1.5});
+    });
+    // Ionic columns: shorter and closer together towards the ends, where the ring curves away
+    [[241,26,352],[267,26,344],[318,34,326],[394,38,312],[492,40,306]].forEach(([x,w,top]) => [x, M(x)].forEach(cx => {
+      R(g,cx-w/2,top+10,w,base-top-24,colC); R(g,cx+w*.12,top+10,w*.3,base-top-24,colS);
+      R(g,cx-w*.75,top,w*1.5,10,cream); Cc(g,cx-w*.55,top+9,w*.17,creamD); Cc(g,cx+w*.55,top+9,w*.17,creamD);
+      R(g,cx-w*.68,base-14,w*1.36,14,creamD);
+    }));
+    // brick piers with stone quoins either side of the centre bay
+    [[523,48],[M(523)-48,48]].forEach(([x,w]) => { R(g,x,226,w,base-226,brick);
+      for (let y=232, k=0; y<base-10; y+=22, k++) { R(g,x,y,k%2?12:20,11,cream); R(g,x+w-(k%2?20:12),y,k%2?20:12,11,cream); } });
+    // centre bay: a wide cylinder with a bowed crown, two stacked windows and a banded stone base
+    R(g,571,200,201,base-200,brick); R(g,571,200,22,base-200,'#000',{opacity:.1}); R(g,750,200,22,base-200,'#000',{opacity:.1});
+    R(g,592,170,160,34,brickL); P(g,`M586,172 Q672,150 758,172 L758,180 Q672,158 586,180Z`,cream);
+    P(g,`M553,212 Q672,174 791,212 L791,238 Q672,200 553,238Z`,cream,{stroke:creamD,'stroke-width':1.5});
+    P(g,`M560,238 Q672,202 784,238 L784,256 Q672,220 560,256Z`,creamD);
+    const pane = (x,y,w,h,cols,rows) => { R(g,x-9,y-9,w+18,h+18,cream); R(g,x,y,w,h,'#2c3640');
+      for (let i=1;i<cols;i++) A(g,'line',{x1:x+i*w/cols,x2:x+i*w/cols,y1:y,y2:y+h,stroke:'#ffffff','stroke-width':3});
+      for (let j=1;j<rows;j++) A(g,'line',{x1:x,x2:x+w,y1:y+j*h/rows,y2:y+j*h/rows,stroke:'#ffffff','stroke-width':3});
+      R(g,x,y,w,h,'none',{stroke:'#ffffff','stroke-width':3}); };
+    pane(652,296,40,32,2,2); R(g,630,346,84,8,cream); pane(651,374,42,80,2,4);
+    R(g,571,462,201,base-462,rustic); for (let y=476; y<base; y+=16) A(g,'line',{x1:571,x2:772,y1:y,y2:y,stroke:'#a98b55','stroke-width':2});
+    R(g,563,456,217,8,creamD);
+    // steps, then grey paving
+    R(g,190,base-6,960,8,creamD);
+    ground(g,'#a9a69f'); R(g,-1400,base,W+2800,G-base,'#c9c5bc');
+    for (let i=-12;i<26;i++) A(g,'line',{x1:i*110,x2:i*110-40,y1:G,y2:H+200,stroke:'#98958e','stroke-width':2});
+    for (let j=1;j<6;j++) A(g,'line',{x1:-1400,x2:W+1400,y1:G+j*30,y2:G+j*30,stroke:'#98958e','stroke-width':2});
     if ((sc.props||{}).caps) [[240,180,-20],[420,140,15],[900,170,30],[1060,130,-10]].forEach(([x,y,r]) => { const c=A(g,'g',{transform:`translate(${x},${y}) rotate(${r})`}); P(c,'M-24,0 L0,-10 L24,0 L0,10Z','#1a1a1a'); A(c,'line',{x1:0,x2:10,y1:0,y2:18,stroke:'#ffc23d','stroke-width':2}); });
   },
   office(g,sc){
     const o = Object.assign({lit:.5,lease:0,ruin:false}, sc.props||{});
     sky(g); weather(g,sc.y);
-    const towers = [[20,170,330,'#5b6f8a'],[210,150,420,'#3f5068'],[380,200,480,'#6c7f96'],[600,180,380,'#2f3d52'],[800,160,450,'#58708e'],[980,200,360,'#465a75'],[1200,140,300,'#3a4a62']];
+    const towers = [[20,170,330,'#5b6f8a'],[210,150,420,'#3f5068'],[380,200,480,'#6c7f96'],[600,180,380,'#2f3d52'],[800,160,450,'#58708e'],[980,200,360,'#465a75'],[1200,140,300,'#3a4a62'],[-200,180,360,'#4a5d78'],[1360,190,400,'#53698a']];
     let rnd = 3; const r = () => (rnd = (rnd*9301+49297)%233280)/233280;
     towers.forEach(([x,w,h,c],ti) => {
       const top = G-40-h; R(g,x,top,w,h,c); R(g,x,top,w,10,d3.color(c).darker(.6).formatHex());
@@ -580,72 +718,186 @@ const BG = {
 };
 
 /* ================= characters ================= */
+// Flat, outlined figures: one dark outline colour for every part, rounded limbs, big friendly heads.
+const OUT = '#1d1b33';
+const tint = (c, k=.35) => d3.color(c).darker(k).formatHex();
+function limb(g, d, color, w){
+  P(g, d, 'none', {stroke:OUT, 'stroke-width':w+5, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+  P(g, d, 'none', {stroke:color, 'stroke-width':w, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+}
 function person(g, o){
-  const S = 1.75, h = o.cm*S, feet = G - 4, x = o.x;
-  const hr = h * (o.age<3 ? .125 : o.age<8 ? .1 : o.age<13 ? .088 : o.age<17 ? .078 : .068);
-  const cy = feet - h + hr, neck = cy + hr, sh = neck + hr*.2, hip = feet - h*.47;
-  const tw = h*(o.age<13 ? .27 : .25), lw = tw*.36;
+  const S = 1.75, h = o.cm*S, feet = G - 2, x = o.x, kid = o.age < 13;
+  const hr = h * (o.age<3 ? .13 : o.age<8 ? .118 : o.age<13 ? .102 : o.age<17 ? .094 : .088);
+  const cy = feet - h + hr*1.04;                  // head centre
+  const sh = cy + hr*1.3;                          // shoulder line
+  const hip = feet - h*(kid ? .40 : .46);
+  const tw = h*(kid ? .26 : .235);                 // shoulder width
+  const lw = Math.max(9, tw*.27), aw = Math.max(8, tw*.19), sw = 2.5;
+  const fit = o.outfit || 'sweater';
+  const top = fit==='uni' ? '#1e3765' : fit==='suit' ? '#2b2f3a' : fit==='gown' ? '#17161f' : o.top;
+  const bottom = fit==='suit' ? '#2b2f3a' : o.bottom;
   const g2 = A(g,'g',{class: o.talking && !REDUCED ? 'talk' : null});
-  A(g2,'ellipse',{cx:x,cy:feet+2,rx:tw*.9,ry:8,fill:'#000',opacity:.18});
-  const top = o.outfit==='uni' ? '#1e3765' : o.outfit==='suit' ? '#2b2f38' : o.outfit==='gown' ? '#151515' : o.top;
-  const bottom = o.outfit==='suit' ? '#2b2f38' : o.bottom;
-  if (o.hair==='long') A(g2,'ellipse',{cx:x,cy:cy+hr*.5,rx:hr*1.18,ry:hr*1.55,fill:o.hairColor});
-  // legs
-  R(g2,x-tw*.42,hip,lw,feet-hip-4,bottom,{rx:lw/2}); R(g2,x+tw*.42-lw,hip,lw,feet-hip-4,bottom,{rx:lw/2});
-  A(g2,'ellipse',{cx:x-tw*.42+lw/2-3,cy:feet-4,rx:lw*.75,ry:6,fill:'#222'}); A(g2,'ellipse',{cx:x+tw*.42-lw/2+3,cy:feet-4,rx:lw*.75,ry:6,fill:'#222'});
-  // torso and arms
-  const aw = tw*.22, al = (hip - sh)*1.02;
-  R(g2,x-tw/2-aw+3,sh+4,aw,al,top,{rx:aw/2}); R(g2,x+tw/2-3,sh+4,aw,al,top,{rx:aw/2});
-  Cc(g2,x-tw/2-aw/2+3,sh+4+al,aw*.55,o.skin); Cc(g2,x+tw/2+aw/2-3,sh+4+al,aw*.55,o.skin);
-  R(g2,x-tw/2,sh,tw,hip-sh+10,top,{rx:tw*.22});
-  if (o.outfit==='gown') P(g2,`M${x-tw/2},${sh+10} L${x+tw/2},${sh+10} L${x+tw*.75},${feet-30} L${x-tw*.75},${feet-30}Z`,'#151515');
-  if (o.outfit==='uni'){ Tt(g2,x,sh+(hip-sh)*.45,'TORONTO',{'text-anchor':'middle','font-size':Math.max(8,tw*.15),fill:'#fff'}); P(g2,`M${x-tw*.3},${sh} Q${x},${sh+16} ${x+tw*.3},${sh}`,'none',{stroke:'#fff','stroke-width':2}); }
-  if (o.outfit==='suit'){ P(g2,`M${x-tw*.18},${sh} L${x},${sh+(hip-sh)*.5} L${x+tw*.18},${sh}Z`,'#ffffff'); P(g2,`M${x-4},${sh+4} L${x+4},${sh+4} L${x+3},${sh+(hip-sh)*.42} L${x},${sh+(hip-sh)*.48} L${x-3},${sh+(hip-sh)*.42}Z`,'#c0392b'); }
-  if (o.outfit==='apron'){ R(g2,x-tw*.38,sh+(hip-sh)*.3,tw*.76,(hip-sh)*.8,'#6b4a33',{rx:6}); }
-  if (o.outfit==='hoodie') P(g2,`M${x-tw*.36},${sh+2} Q${x},${sh-hr*.5} ${x+tw*.36},${sh+2}`,'none',{stroke:d3.color(top).darker(.6).formatHex(),'stroke-width':6});
+  A(g2,'ellipse',{cx:x, cy:feet+3, rx:tw*.85, ry:7, fill:'#000', opacity:.2});
+
+  // long hair falls behind the shoulders
+  if (o.hair==='long') P(g2, `M${x-hr*1.08},${cy} C${x-hr*1.2},${cy+hr*1.5} ${x-hr*.95},${sh+hr*.6} ${x-hr*.6},${sh+hr*.7} L${x+hr*.6},${sh+hr*.7} C${x+hr*.95},${sh+hr*.6} ${x+hr*1.2},${cy+hr*1.5} ${x+hr*1.08},${cy}Z`, o.hairColor, {stroke:OUT,'stroke-width':sw});
+
+  // legs and shoes
+  const lx = tw*.2;
+  [-1,1].forEach(s => limb(g2, `M${x+s*lx},${hip} L${x+s*lx*1.08},${feet-lw*.5}`, bottom, lw));
+  [-1,1].forEach(s => A(g2,'ellipse',{cx:x+s*(lx*1.08+lw*.3), cy:feet-lw*.35, rx:lw*.85, ry:lw*.45, fill:'#2b2a33', stroke:OUT, 'stroke-width':sw}));
+
+  // neck, then torso
+  R(g2, x-hr*.22, cy+hr*.7, hr*.44, sh-cy-hr*.7+6, tint(o.skin,.25));
+  const r = tw*.3, wst = tw*.43;
+  const torso = `M${x-tw/2},${sh+r} Q${x-tw/2},${sh} ${x-tw/2+r},${sh} L${x+tw/2-r},${sh} Q${x+tw/2},${sh} ${x+tw/2},${sh+r} L${x+wst},${hip+lw*.35} Q${x},${hip+lw*.6} ${x-wst},${hip+lw*.35}Z`;
+  if (fit==='gown') P(g2, `M${x-tw/2},${sh+r} Q${x-tw/2},${sh} ${x-tw/2+r},${sh} L${x+tw/2-r},${sh} Q${x+tw/2},${sh} ${x+tw/2},${sh+r} L${x+tw*.66},${feet-lw*1.1} Q${x},${feet-lw*.6} ${x-tw*.66},${feet-lw*1.1}Z`, top, {stroke:OUT,'stroke-width':sw});
+  else P(g2, torso, top, {stroke:OUT,'stroke-width':sw});
+  const mid = sh + (hip-sh)*.45;
+  if (fit==='uni'){
+    P(g2, `M${x-tw*.28},${sh+1} Q${x},${sh+tw*.24} ${x+tw*.28},${sh+1}`, 'none', {stroke:'#e9eef8','stroke-width':3});
+    A(g2,'line',{x1:x-tw*.08,x2:x-tw*.08,y1:sh+tw*.12,y2:sh+tw*.3,stroke:'#e9eef8','stroke-width':2});
+    A(g2,'line',{x1:x+tw*.08,x2:x+tw*.08,y1:sh+tw*.12,y2:sh+tw*.3,stroke:'#e9eef8','stroke-width':2});
+    Tt(g2, x, mid+tw*.05, 'TORONTO', {'text-anchor':'middle','font-size':tw*.15,fill:'#ffffff'});
+  }
+  if (fit==='hoodie'){
+    P(g2, `M${x-tw*.32},${sh+1} Q${x},${sh+tw*.28} ${x+tw*.32},${sh+1}`, 'none', {stroke:tint(top,.6),'stroke-width':4});
+    R(g2, x-tw*.26, mid+tw*.05, tw*.52, (hip-mid)*.6, tint(top,.25), {rx:tw*.08});
+  }
+  if (fit==='tee' || fit==='sweater') P(g2, `M${x-tw*.18},${sh+1} Q${x},${sh+tw*.16} ${x+tw*.18},${sh+1}`, 'none', {stroke:tint(top,.5),'stroke-width':3});
+  if (fit==='apron'){
+    R(g2, x-tw*.34, sh+(hip-sh)*.25, tw*.68, (hip-sh)*.95, '#6b4a33', {rx:6, stroke:OUT,'stroke-width':2});
+    A(g2,'line',{x1:x-tw*.3,x2:x-tw*.16,y1:sh+(hip-sh)*.27,y2:sh+1,stroke:'#6b4a33','stroke-width':3});
+    A(g2,'line',{x1:x+tw*.3,x2:x+tw*.16,y1:sh+(hip-sh)*.27,y2:sh+1,stroke:'#6b4a33','stroke-width':3});
+  }
+  if (fit==='suit'){
+    P(g2, `M${x-tw*.17},${sh+1} L${x},${sh+(hip-sh)*.55} L${x+tw*.17},${sh+1}Z`, '#ffffff');
+    P(g2, `M${x-4},${sh+5} L${x+4},${sh+5} L${x+3.5},${sh+(hip-sh)*.42} L${x},${sh+(hip-sh)*.5} L${x-3.5},${sh+(hip-sh)*.42}Z`, '#c0392b');
+    P(g2, `M${x-tw*.17},${sh+1} L${x-tw*.05},${sh+(hip-sh)*.6} M${x+tw*.17},${sh+1} L${x+tw*.05},${sh+(hip-sh)*.6}`, 'none', {stroke:OUT,'stroke-width':2});
+  }
+
+  // arms (shoulder to hand); a short sleeve shows skin below it
+  const sL = [x-tw/2+aw*.45, sh+aw*.6], sR = [x+tw/2-aw*.45, sh+aw*.6];
+  const sleeve = fit==='tee' ? o.skin : top;
+  let hL, hR;
+  if (o.carry){
+    const bx = x + tw*.04, by = sh + (hip-sh)*.42, rx = tw*.5, ry = tw*.28;
+    A(g2,'ellipse',{cx:bx, cy:by, rx, ry, fill:'#bfe0f6', stroke:OUT, 'stroke-width':sw});
+    P(g2, `M${bx-rx*.15},${by-ry*.95} Q${bx+rx*.3},${by} ${bx+rx*.05},${by+ry*.95}`, 'none', {stroke:'#9ccbe8','stroke-width':3});
+    const fx = bx - rx*.52, fy = by - ry*.18, fr = ry*.66;
+    Cc(g2, fx, fy, fr, LEO.skin, {stroke:OUT,'stroke-width':sw});
+    P(g2, `M${fx-fr*.55},${fy-fr*.1} q${fr*.18},${fr*.16} ${fr*.36},0 M${fx+fr*.15},${fy-fr*.1} q${fr*.18},${fr*.16} ${fr*.36},0`, 'none', {stroke:OUT,'stroke-width':2,'stroke-linecap':'round'});
+    P(g2, `M${fx-fr*.2},${fy-fr*.92} q${fr*.25},-${fr*.35} ${fr*.45},0`, 'none', {stroke:LEO.hairColor,'stroke-width':3,'stroke-linecap':'round'});
+    hL = [bx - rx*.05, by + ry*.85]; hR = [bx + rx*.55, by + ry*.55];
+    limb(g2, `M${sL[0]},${sL[1]} Q${x-tw*.66},${by+ry*.9} ${hL[0]},${hL[1]}`, top, aw);
+    limb(g2, `M${sR[0]},${sR[1]} Q${x+tw*.62},${by+ry*.7} ${hR[0]},${hR[1]}`, top, aw);
+  } else {
+    const hy = hip - (hip-sh)*.04;
+    hL = [x-tw/2-aw*.3, hy]; hR = [x+tw/2+aw*.3, hy];
+    limb(g2, `M${sL[0]},${sL[1]} Q${x-tw/2-aw*.55},${(sh+hy)/2} ${hL[0]},${hL[1]}`, sleeve, fit==='gown' ? aw*1.5 : aw);
+    limb(g2, `M${sR[0]},${sR[1]} Q${x+tw/2+aw*.55},${(sh+hy)/2} ${hR[0]},${hR[1]}`, sleeve, fit==='gown' ? aw*1.5 : aw);
+    if (fit==='tee'){   // short sleeves over the skin-coloured arm
+      [[sL,-1],[sR,1]].forEach(([s0,sg]) => limb(g2, `M${s0[0]},${s0[1]} L${s0[0]+sg*aw*.25},${s0[1]+(hy-sh)*.3}`, top, aw*1.15));
+    }
+  }
+  [hL,hR].forEach(([hx,hy]) => Cc(g2, hx, hy, aw*.6, o.skin, {stroke:OUT,'stroke-width':sw}));
+
   // head
-  R(g2,x-hr*.25,neck-4,hr*.5,hr*.4,o.skin);
-  Cc(g2,x-hr*.98,cy+hr*.1,hr*.18,o.skin); Cc(g2,x+hr*.98,cy+hr*.1,hr*.18,o.skin);
-  Cc(g2,x,cy,hr,o.skin);
-  if (o.beard) P(g2,`M${x-hr*.8},${cy+hr*.2} Q${x},${cy+hr*1.35} ${x+hr*.8},${cy+hr*.2} Q${x},${cy+hr*.75} ${x-hr*.8},${cy+hr*.2}Z`,o.hairColor,{opacity:.85});
-  P(g2,`M${x-hr*1.04},${cy+hr*.08} A${hr*1.04},${hr*1.1} 0 0 1 ${x+hr*1.04},${cy+hr*.08} Q${x+hr*.55},${cy-hr*.5} ${x+hr*.05},${cy-hr*.38} Q${x-hr*.6},${cy-hr*.52} ${x-hr*1.04},${cy+hr*.08}Z`,o.hairColor);
+  [-1,1].forEach(s => Cc(g2, x+s*hr*.97, cy+hr*.14, hr*.2, o.skin, {stroke:OUT,'stroke-width':sw}));
+  A(g2,'ellipse',{cx:x, cy, rx:hr, ry:hr*1.03, fill:o.skin, stroke:OUT, 'stroke-width':sw});
+  if (o.beard) P(g2, `M${x-hr*.97},${cy+hr*.12} Q${x-hr*.95},${cy+hr*1.12} ${x},${cy+hr*1.16} Q${x+hr*.95},${cy+hr*1.12} ${x+hr*.97},${cy+hr*.12} L${x+hr*.74},${cy+hr*.2} Q${x+hr*.6},${cy+hr*.78} ${x},${cy+hr*.8} Q${x-hr*.6},${cy+hr*.78} ${x-hr*.74},${cy+hr*.2}Z`, o.hairColor, {stroke:OUT,'stroke-width':2});
+  if (o.hair==='long') P(g2, `M${x-hr*1.06},${cy+hr*.65} C${x-hr*1.22},${cy-hr*1.7} ${x+hr*1.22},${cy-hr*1.7} ${x+hr*1.06},${cy+hr*.65} L${x+hr*.86},${cy+hr*.55} C${x+hr*.82},${cy-hr*.1} ${x+hr*.42},${cy-hr*.5} ${x},${cy-hr*.46} C${x-hr*.5},${cy-hr*.36} ${x-hr*.82},${cy-hr*.1} ${x-hr*.86},${cy+hr*.55}Z`, o.hairColor, {stroke:OUT,'stroke-width':sw});
+  else if (o.hair==='side'){   // older look: side parting and a higher hairline
+    P(g2, `M${x-hr*1.03},${cy+hr*.1} C${x-hr*1.14},${cy-hr*1.56} ${x+hr*1.14},${cy-hr*1.56} ${x+hr*1.03},${cy+hr*.1} C${x+hr*.96},${cy-hr*.42} ${x+hr*.62},${cy-hr*.66} ${x+hr*.3},${cy-hr*.7} L${x+hr*.22},${cy-hr*.86} C${x-hr*.3},${cy-hr*.66} ${x-hr*.86},${cy-hr*.42} ${x-hr*1.03},${cy+hr*.1}Z`, o.hairColor, {stroke:OUT,'stroke-width':sw});
+    if (o.grey) [-1,1].forEach(k => P(g2, `M${x+k*hr*1.02},${cy+hr*.1} C${x+k*hr*1.07},${cy-hr*.25} ${x+k*hr*1.0},${cy-hr*.5} ${x+k*hr*.9},${cy-hr*.66} L${x+k*hr*.84},${cy-hr*.36} C${x+k*hr*.88},${cy-hr*.15} ${x+k*hr*.93},${cy} ${x+k*hr*1.02},${cy+hr*.1}Z`, '#b3aea6'));
+  }
+  else {   // short hair: tufted fringe, sideburns and a cowlick, so it reads as hair rather than a cap
+    P(g2, `M${x-hr*1.0},${cy+hr*.32} C${x-hr*1.16},${cy-hr*.9} ${x-hr*.62},${cy-hr*1.36} ${x-hr*.06},${cy-hr*1.22} Q${x+hr*.12},${cy-hr*1.5} ${x+hr*.32},${cy-hr*1.28} C${x+hr*.86},${cy-hr*1.24} ${x+hr*1.16},${cy-hr*.8} ${x+hr*1.0},${cy+hr*.32} L${x+hr*.88},${cy+hr*.06} Q${x+hr*.82},${cy-hr*.34} ${x+hr*.56},${cy-hr*.44} Q${x+hr*.46},${cy-hr*.22} ${x+hr*.3},${cy-hr*.3} Q${x+hr*.14},${cy-hr*.5} ${x-hr*.06},${cy-hr*.4} Q${x-hr*.2},${cy-hr*.2} ${x-hr*.36},${cy-hr*.32} Q${x-hr*.6},${cy-hr*.52} ${x-hr*.76},${cy-hr*.3} Q${x-hr*.86},${cy-hr*.12} ${x-hr*.88},${cy+hr*.06}Z`, o.hairColor, {stroke:OUT,'stroke-width':sw,'stroke-linejoin':'round'});
+    P(g2, `M${x-hr*.52},${cy-hr*.92} Q${x-hr*.1},${cy-hr*1.1} ${x+hr*.38},${cy-hr*1.0}`, 'none', {stroke:d3.color(o.hairColor).brighter(1.2).formatHex(),'stroke-width':Math.max(2,hr*.07),'stroke-linecap':'round',opacity:.55});
+  }
+
   // face
-  const ey = cy + hr*.12, ex = hr*.36, er = Math.max(2, hr*.1), m = o.mood || 'neutral';
-  Cc(g2,x-ex,ey,er,'#1d1b33'); Cc(g2,x+ex,ey,er,'#1d1b33');
-  const by = ey - hr*.26, bw = hr*.22;
-  const brow = {happy:[0,0],neutral:[0,0],worried:[-4,4],sad:[-5,5],shocked:[-5,-5]}[m] || [0,0];
-  A(g2,'line',{x1:x-ex-bw,y1:by+(m==='worried'||m==='sad'?2:0),x2:x-ex+bw,y2:by+brow[0]*(hr/40),stroke:'#1d1b33','stroke-width':Math.max(2,hr*.07),'stroke-linecap':'round'});
-  A(g2,'line',{x1:x+ex-bw,y1:by+brow[0]*(hr/40),x2:x+ex+bw,y2:by+(m==='worried'||m==='sad'?2:0),stroke:'#1d1b33','stroke-width':Math.max(2,hr*.07),'stroke-linecap':'round'});
-  const my = cy + hr*.5, mw = hr*.32, sw = Math.max(2,hr*.07);
-  if (m==='happy') P(g2,`M${x-mw},${my-2} Q${x},${my+hr*.3} ${x+mw},${my-2}`,'none',{stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
-  else if (m==='sad') P(g2,`M${x-mw},${my+6} Q${x},${my-hr*.2} ${x+mw},${my+6}`,'none',{stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
-  else if (m==='worried') P(g2,`M${x-mw},${my+2} q${mw/2},-5 ${mw},0 t${mw},0`,'none',{stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
-  else if (m==='shocked') A(g2,'ellipse',{cx:x,cy:my+3,rx:hr*.13,ry:hr*.19,fill:'#1d1b33'});
-  else A(g2,'line',{x1:x-mw*.8,x2:x+mw*.8,y1:my+2,y2:my+2,stroke:'#1d1b33','stroke-width':sw,'stroke-linecap':'round'});
-  if (o.age < 13) { Cc(g2,x-hr*.62,cy+hr*.42,hr*.13,'#ff8fa3',{opacity:.5}); Cc(g2,x+hr*.62,cy+hr*.42,hr*.13,'#ff8fa3',{opacity:.5}); }
-  if (o.outfit==='gown'){ P(g2,`M${x-hr*1.3},${cy-hr*.75} L${x},${cy-hr*1.15} L${x+hr*1.3},${cy-hr*.75} L${x},${cy-hr*.35}Z`,'#151515'); A(g2,'line',{x1:x,y1:cy-hr*.75,x2:x+hr*1.1,y2:cy-hr*.2,stroke:'#ffc23d','stroke-width':3}); }
-  if (o.carry){ A(g2,'ellipse',{cx:x+tw*.1,cy:sh+(hip-sh)*.45,rx:tw*.55,ry:tw*.32,fill:'#bfe0f6'}); Cc(g2,x+tw*.45,sh+(hip-sh)*.33,tw*.2,LEO.skin); Cc(g2,x+tw*.5,sh+(hip-sh)*.3,2.5,'#1d1b33'); P(g2,`M${x+tw*.32},${sh+(hip-sh)*.2} q10,-10 20,0`,'none',{stroke:LEO.hairColor,'stroke-width':3}); }
+  const m = o.mood || 'neutral', ey = cy + hr*.14, ex = hr*.36, big = m==='shocked' ? 1.25 : 1;
+  [-1,1].forEach(s => {
+    A(g2,'ellipse',{cx:x+s*ex, cy:ey, rx:hr*.085*big, ry:hr*.125*big, fill:OUT});
+    Cc(g2, x+s*ex+hr*.025, ey-hr*.045, hr*.032, '#ffffff');
+  });
+  const by = ey - hr*.27, bw = hr*.16, bs = Math.max(2, hr*.065);
+  if (m==='worried' || m==='sad') [-1,1].forEach(s => A(g2,'line',{x1:x+s*(ex+bw), y1:by+hr*.03, x2:x+s*(ex-bw), y2:by-hr*.08, stroke:OUT,'stroke-width':bs,'stroke-linecap':'round'}));
+  if (m==='shocked') [-1,1].forEach(s => A(g2,'line',{x1:x+s*(ex+bw), y1:by-hr*.1, x2:x+s*(ex-bw), y2:by-hr*.1, stroke:OUT,'stroke-width':bs,'stroke-linecap':'round'}));
+  if (o.brows && !['worried','sad','shocked'].includes(m)) [-1,1].forEach(s => A(g2,'line',{x1:x+s*(ex+bw*1.1), y1:by+hr*.02, x2:x+s*(ex-bw), y2:by-hr*.02, stroke:o.hairColor,'stroke-width':bs*1.6,'stroke-linecap':'round'}));
+  if (o.glasses){
+    const gw = hr*.5, gh = hr*.38;
+    [-1,1].forEach(s => {
+      R(g2, x+s*ex-gw/2, ey-gh/2, gw, gh, '#ffffff', {rx:hr*.1, 'fill-opacity':.18, stroke:OUT, 'stroke-width':2.2});
+      A(g2,'line',{x1:x+s*(ex+gw/2), y1:ey-gh*.2, x2:x+s*hr*.97, y2:ey-gh*.35, stroke:OUT, 'stroke-width':2});
+    });
+    P(g2, `M${x-ex+gw/2},${ey-gh*.1} Q${x},${ey-gh*.4} ${x+ex-gw/2},${ey-gh*.1}`, 'none', {stroke:OUT,'stroke-width':2});
+  }
+  [-1,1].forEach(s => Cc(g2, x+s*hr*.6, cy+hr*.42, hr*.15, '#ff8fa3', {opacity: kid ? .55 : .35}));
+  const my = cy + hr*(o.beard ? .47 : .5), mw = hr*.27, ms = Math.max(2, hr*.07);
+  if (m==='happy') P(g2, `M${x-mw},${my-hr*.03} Q${x},${my+hr*.36} ${x+mw},${my-hr*.03}Z`, OUT, {stroke:OUT,'stroke-width':1.5,'stroke-linejoin':'round'});
+  else if (m==='sad') P(g2, `M${x-mw*.7},${my+hr*.12} Q${x},${my-hr*.06} ${x+mw*.7},${my+hr*.12}`, 'none', {stroke:OUT,'stroke-width':ms,'stroke-linecap':'round'});
+  else if (m==='worried') P(g2, `M${x-mw*.75},${my+hr*.06} q${mw*.375},-${hr*.08} ${mw*.75},0 t${mw*.75},0`, 'none', {stroke:OUT,'stroke-width':ms,'stroke-linecap':'round'});
+  else if (m==='shocked') A(g2,'ellipse',{cx:x, cy:my+hr*.06, rx:hr*.11, ry:hr*.15, fill:OUT});
+  else P(g2, `M${x-mw*.6},${my+hr*.02} Q${x},${my+hr*.13} ${x+mw*.6},${my+hr*.02}`, 'none', {stroke:OUT,'stroke-width':ms,'stroke-linecap':'round'});
+
+  if (fit==='gown'){   // mortarboard
+    R(g2, x-hr*.68, cy-hr*1.02, hr*1.36, hr*.38, '#17161f', {stroke:OUT,'stroke-width':2});
+    P(g2, `M${x-hr*1.4},${cy-hr*1.02} L${x},${cy-hr*1.38} L${x+hr*1.4},${cy-hr*1.02} L${x},${cy-hr*.7}Z`, '#17161f', {stroke:OUT,'stroke-width':2});
+    P(g2, `M${x},${cy-hr*1.02} L${x+hr*1.15},${cy-hr*.9} L${x+hr*1.15},${cy-hr*.35}`, 'none', {stroke:'#ffc23d','stroke-width':3});
+  }
   return g2;
 }
 function leoOutfit(sc){
   if (sc.outfit) return sc.outfit;
-  if (sc.age <= 1) return 'baby';
+  if (sc.age <= 1) return 'tee';
   if (sc.age >= 13) return 'hoodie';
   return 'tee';
 }
+// Where people stand in each scene, so nobody covers the props that tell the story
+const SPOTS = {
+  playground:{mom:600, leo:730, dad:860},
+  street:{leo:650, dad:910},
+  streetMove:{mom:430, leo:545, dad:660},
+  bedroom:{leo:560},
+  cafe:{leo:800},
+  fair:{leo:640},
+  convocation:{mom:400, leo:900, dad:1030},   // the round centre bay stays visible
+};
 function drawCast(sc, line){
   gCast.selectAll('*').remove();
   const who = line ? line[0] : null, mood = (line && line[0]==='LEO' && line[2]) || sc.mood || 'neutral';
   const pmood = (line && (line[0]==='MOM'||line[0]==='DAD') && line[2]) || (sc.mood==='happy'?'happy':sc.mood==='worried'||sc.mood==='sad'?'worried':'neutral');
   const many = sc.cast.length;
-  const pos = many===2 ? {mom:440, leo:640, dad:840} : many===1 ? {leo:560, [sc.cast[0]]:760} : {leo:640};
+  const key = sc.bg==='street' && (sc.props||{}).mode==='move' ? 'streetMove' : sc.bg;
+  const pos = Object.assign(many===2 ? {mom:440, leo:640, dad:840} : many===1 ? {leo:560, [sc.cast[0]]:760} : {leo:640}, SPOTS[key] || {});
   if (sc.cast.includes('mom')) person(gCast, Object.assign({}, MOM, {x:pos.mom, mood: who==='MOM' ? (line[2]||pmood) : pmood, talking: who==='MOM', carry: sc.age===0}));
   if (sc.cast.includes('dad')) person(gCast, Object.assign({}, DAD, {x:pos.dad, mood: who==='DAD' ? (line[2]||pmood) : pmood, talking: who==='DAD'}));
   if (sc.age === 0) return;
-  const cols = {5:['#ffc23d','#3d6fb6'],9:['#e2483a','#34405e'],10:['#3fbf8f','#34405e'],13:['#8b8fa0','#2a3046'],15:['#2fa3b5','#2a3046'],17:['#f4efe6','#2a3046']};
-  const c = cols[sc.age] || ['#f6e7a8','#f6e7a8'];
-  person(gCast, Object.assign({}, LEO, {x:pos.leo, cm:HEIGHT[sc.age]||181, age:sc.age, outfit:leoOutfit(sc), top: leoOutfit(sc)==='baby' ? '#f6e7a8' : c[0], bottom: leoOutfit(sc)==='baby' ? '#f6e7a8' : c[1], mood, talking: who==='LEO'}));
+  const cols = {1:['#f6e7a8','#7fb3d9'],5:['#ffc23d','#3d6fb6'],9:['#e2483a','#34405e'],10:['#3fbf8f','#34405e'],13:['#8b8fa0','#2a3046'],15:['#2fa3b5','#2a3046'],17:['#f4efe6','#2a3046']};
+  const c = cols[sc.age] || ['#f4efe6','#d8c69a'];
+  person(gCast, Object.assign({}, LEO, {x:pos.leo, cm:HEIGHT[sc.age]||181, age:sc.age, outfit:leoOutfit(sc), top:c[0], bottom:c[1], mood, talking: who==='LEO'}));
 }
+
+/* ================= fit the scene to the stage ================= */
+// The important part of every scene (SAFE, in scene units) always fits above the dialogue box;
+// extra width or height just shows more of the background.
+const SAFE = {x:110, y:40, w:1060, h:580};
+let lastFit = '';
+function fitScene(){
+  const st = $('stage'), sw = st.clientWidth, sh = st.clientHeight;
+  if (!sw || !sh) return;
+  const dh = document.querySelector('.box').offsetHeight + 34;
+  const avail = Math.max(sh*.5, sh - dh);
+  const k = Math.min(sw / SAFE.w, avail / SAFE.h);
+  const vw = sw/k, vh = sh/k, x = SAFE.x + SAFE.w/2 - vw/2, y = SAFE.y - (avail/k - SAFE.h)/2;
+  const vb = `${x.toFixed(1)} ${y.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`;
+  if (vb !== lastFit){ lastFit = vb; svg.attr('viewBox', vb); }
+}
+let lastBox = 0;
+new ResizeObserver(fitScene).observe($('stage'));
+new ResizeObserver(() => { const hgt = document.querySelector('.box').offsetHeight; if (Math.abs(hgt - lastBox) > 24){ lastBox = hgt; fitScene(); } }).observe(document.querySelector('.box'));
 
 /* ================= rain + lightning ================= */
 const cv = $('rain'), ctx = cv.getContext('2d');
@@ -678,8 +930,8 @@ const OUTDOOR = new Set(['playground','street','campus','robarts','convocation',
 let typing = null;
 function renderScene(sc){
   setSky(sc.y);
-  gBg.selectAll('*').remove();
-  BG[sc.bg](gBg, sc);
+  gBg.selectAll('*').remove(); gFg.selectAll('*').remove();
+  BG[sc.bg](gBg, sc, gFg);
   const t = storm(sc.y);
   rainAmt = OUTDOOR.has(sc.bg) ? clamp((sc.y-4.6)/2.6, 0, 1) : 0;
   lightning = OUTDOOR.has(sc.bg) && sc.y >= 6.8;
@@ -718,13 +970,13 @@ function goScene(i, lineIdx=0){
     si = i; li = lineIdx;
     renderScene(sc);
     if (sc.choice){ enterChoice(); }
-    else { $('chooser').hidden = true; $('talkbox').hidden = false; showLine(); }
+    else { $('chooser').hidden = true; $('talkbox').hidden = false; showLine(); fitScene(); }
     stage.classList.remove('fading');
   };
   if (REDUCED){ swap(); return; }
   stage.classList.add('fading'); setTimeout(swap, 330);
 }
-function startStory(){ $('titleCard').hidden = true; }
+function startStory(){ $('titleCard').hidden = true; $('stage').classList.remove('carded'); }
 function next(){
   if (!$('titleCard').hidden){ startStory(); next(); return; }
   if (!$('endCard').hidden || story[si].choice) return;
@@ -742,7 +994,7 @@ function back(){
 /* ================= choice ================= */
 function enterChoice(){
   mode = 'choice';
-  $('talkbox').hidden = true; $('chooser').hidden = false;
+  $('talkbox').hidden = true; $('chooser').hidden = false; fitScene();
   drawCast(story[si], ['LEO','','neutral']);
   updatePick();
   $('pick').focus({preventScroll:true});
@@ -754,7 +1006,7 @@ function updatePick(){
   $('pickBand').textContent = f.b.name; $('pickBand').style.color = R >= 5 ? 'var(--hot)' : R < 3.5 ? 'var(--calm)' : 'var(--sun)';
   $('pickHint').textContent = `${f.b.hint} Parents’ 2027 renewal: ${fmt$(f.P27)}/mo (${f.d>=0?'+':'−'}${fmt$(Math.abs(f.d))}).`;
   const sc = story[si]; sc.y = TODAY + (R-TODAY)*.35;     // preview the coming weather over campus
-  setSky(sc.y); gBg.selectAll('*').remove(); BG.campus(gBg, sc);
+  setSky(sc.y); gBg.selectAll('*').remove(); gFg.selectAll('*').remove(); BG.campus(gBg, sc, gFg);
   rainAmt = clamp((sc.y-4.6)/2.6,0,1); lightning = false; shade.attr('opacity', storm(sc.y)*.18);
   drawCast(sc, ['LEO','', R >= 6.5 ? 'worried' : R < 3.5 ? 'happy' : 'neutral']);
   drawTrack(2026.5, TODAY);
@@ -786,9 +1038,9 @@ function finish(){
       <button class="btn ghost" id="replayBtn">Replay from 2007</button>
       <a class="btn ghost" href="https://claude.ai/artifact/J9gyGiXFkU67AMGexurjUA" target="_blank" rel="noopener">See the data ▸</a>
     </div>`;
-  $('endCard').hidden = false;
-  $('againBtn').onclick = () => { $('endCard').hidden = true; goScene(0); };
-  $('replayBtn').onclick = () => { $('endCard').hidden = true; restartMain(); };
+  $('endCard').hidden = false; $('stage').classList.add('carded');
+  $('againBtn').onclick = () => { $('endCard').hidden = true; $('stage').classList.remove('carded'); goScene(0); };
+  $('replayBtn').onclick = () => { $('endCard').hidden = true; $('stage').classList.remove('carded'); restartMain(); };
 }
 function restartMain(){
   MAIN = future(7.4);
@@ -800,16 +1052,16 @@ function restartMain(){
 /* ================= wiring ================= */
 $('next').addEventListener('click', next);
 $('back').addEventListener('click', back);
-$('stage').addEventListener('click', e => { if (e.target.closest('.overlay')) return; next(); });
+$('stage').addEventListener('click', e => { if (e.target.closest('.overlay, .box')) return; next(); });
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,a')) return;
   if (e.target.matches('button') && (e.key==='Enter' || e.key===' ')) return;
   if (['ArrowRight','Enter',' '].includes(e.key)){ e.preventDefault(); next(); }
   if (e.key === 'ArrowLeft'){ e.preventDefault(); back(); }
 });
-$('startBtn').addEventListener('click', () => { $('titleCard').hidden = true; $('next').focus(); });
-$('skipBtn').addEventListener('click', () => { $('titleCard').hidden = true; goScene(PAST.length-1); });
+$('startBtn').addEventListener('click', () => { startStory(); $('next').focus(); });
+$('skipBtn').addEventListener('click', () => { startStory(); goScene(PAST.length-1); });
 
 // first frame: 2007 behind the title card
-renderScene(story[0]); showLine(); clearInterval(typing); typing = null; $('line').textContent = story[0].lines[0][1];
+fitScene(); renderScene(story[0]); showLine(); clearInterval(typing); typing = null; $('line').textContent = story[0].lines[0][1];
 </script>
