@@ -1,29 +1,22 @@
-"""Query prototype/data/project.db and push the numbers into the prototypes.
+"""Query prototype/data/project.db and write the data files the pages load with D3.
 
 Usage (from the repo root):
     python scripts/export_data.py
 
-Writes prototype/data/bundle.json and replaces the inlined data block in each
-page between the markers
+Writes:
+    prototype/data/leo.json      -> loaded by index.html (Leo's Forecast) with d3.json
+    prototype/data/weather.json  -> loaded by prototype/rate-weather.html with d3.json
 
-    /* @data:begin */ ... /* @data:end */
-
-The pages stay single files (they are published as standalone artifacts), so
-the data is inlined rather than fetched. Never edit the inlined block by hand:
-change the queries here and rerun.
+Never edit these files by hand: change the queries here and rerun.
 """
 import datetime as dt
 import json
 import os
-import re
 import sqlite3
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(ROOT, "prototype", "data", "project.db")
-PAGES = {
-    "prototype/rate-weather.html": "B",
-    "prototype/leos-forecast.html": "DATA",
-}
+OUT = {"DATA": "leo.json", "B": "weather.json"}   # which data object goes into which file
 
 # Story ids -> Canadian Labour Force Survey industry series (Bloomberg tickers)
 INDUSTRIES = {
@@ -131,22 +124,13 @@ def build():
     return {"B": rate_weather, "DATA": leo}
 
 
-def inject(path, name, obj):
-    full = os.path.join(ROOT, path)
-    html = open(full, encoding="utf-8").read()
-    block = f"/* @data:begin */ const {name} = {json.dumps(obj, separators=(',', ':'))}; /* @data:end */"
-    new, n = re.subn(r"/\* @data:begin \*/.*?/\* @data:end \*/", lambda _: block, html, flags=re.S)
-    if n != 1:
-        raise SystemExit(f"{path}: expected exactly one @data block, found {n}")
-    open(full, "w", encoding="utf-8", newline="\n").write(new)
-    print(f"{path}: {len(block) / 1000:.0f} kB of data")
-
-
 def main():
     out = build()
-    json.dump(out, open(os.path.join(ROOT, "prototype", "data", "bundle.json"), "w"), separators=(",", ":"))
-    for path, name in PAGES.items():
-        inject(path, name, out[name])
+    for name, fname in OUT.items():
+        path = os.path.join(ROOT, "prototype", "data", fname)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(out[name], f, separators=(",", ":"))
+        print(f"prototype/data/{fname}: {os.path.getsize(path) / 1000:.0f} kB")
     c = out["B"]
     print("as of", c["asof"], "| 10y last", c["us10"]["last"], "peak", c["us10"]["peak"], "prev", c["us10"]["prevAbovePeak"])
 
