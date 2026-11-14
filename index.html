@@ -278,11 +278,36 @@ a.btn{text-decoration:none;display:inline-block}
 @keyframes rattle{50%{transform:translateY(-1.5px)}}
 @keyframes arrive{35%{transform:translateY(-8px)}70%{transform:translateY(3px)}}
 @keyframes chain{to{stroke-dashoffset:-14}}
+/* Interactive scenes: Mom's budget pad, the café dominoes, the CN Tower binoculars */
+#scene .ui{cursor:pointer}
+#scene .drag{cursor:ew-resize;touch-action:none}
+#scene .ui:focus{outline:none}
+#scene .ui:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+#scene .district:hover .sign,#scene .district.on .sign,#scene .district:focus-visible .sign{fill:#fff3b0}
+#scene .chips.hint .chip-bg{animation:chiphint .7s ease-in-out infinite alternate}
+@keyframes chiphint{to{stroke:#ffc23d;stroke-width:4}}
+#scene .knock{animation:knock .4s ease-out;transform-box:fill-box;transform-origin:100% 100%}
+@keyframes knock{30%{transform:rotate(3deg)}65%{transform:rotate(-1deg)}}
+.a-ticket{animation:ticket 1s cubic-bezier(.3,1.4,.5,1) both;transform-box:fill-box;transform-origin:50% 0}
+@keyframes ticket{0%{transform:rotate(-28deg) translateY(-24px);opacity:0}30%{opacity:1}55%{transform:rotate(8deg)}78%{transform:rotate(-3deg)}100%{transform:none;opacity:1}}
+.a-stamp{animation:stamp .45s cubic-bezier(.2,1.6,.4,1) both;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes stamp{from{transform:scale(2.4) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+.a-clack{animation:clack 1s ease-out both;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes clack{0%{transform:scale(.3);opacity:0}18%{transform:scale(1.15);opacity:1}65%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
+.a-vibrate{animation:vibrate 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes vibrate{0%,78%,100%{transform:none}80%,84%,88%{transform:rotate(-2.5deg)}82%,86%,90%{transform:rotate(2.5deg)}}
+.a-hover{animation:hover 4s ease-in-out infinite alternate}
+@keyframes hover{from{transform:translate(-5px,0)}to{transform:translate(5px,-4px)}}
+.a-glassdrop{animation:glassdrop var(--dur,6s) ease-in infinite}
+@keyframes glassdrop{0%,20%{transform:translateY(0);opacity:0}26%{opacity:.85}100%{transform:translateY(var(--dy,80px));opacity:0}}
+.lens-in{animation:lensin .45s cubic-bezier(.3,1.4,.5,1) both;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes lensin{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){
+  .lens-in,#scene .knock,#scene .chips.hint .chip-bg,
   .ride-bob,.whee,.chain.on,.drift,.talk,.rock,.breathe,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.chapter.show,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
   .stage .fadeable{transition:none}
   .mouth-open{display:none}
-  .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote{display:none}
+  .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote,.a-glassdrop,.a-clack{display:none}
 }
 </style>
 
@@ -377,6 +402,38 @@ d3.json('prototype/data/leo.json').then(DATA => {
     for (let j = i - 1; j >= 0; j--) if (a[j][1] <= v) return `its lowest since ${MONTH(a[j][0])}`;
     return 'the lowest of the whole ride so far';
   };
+  // Canadian jobs by industry (Labour Force Survey via Bloomberg, thousands of jobs, monthly since 2019). Feb 2022 is the
+  // last month before the Bank of Canada began raising rates; DATA.asof.jobs (JM) is the newest month in the data.
+  const JOBS = DATA.ind, JM = DATA.asof.jobs;
+  const jobsAt = (key, m) => (JOBS[key].series.find(d => d[0] === m) || [null, NaN])[1];
+  const jobsChg = (key, from, to) => 100*(jobsAt(key, to)/jobsAt(key, from) - 1);      // % change between two months
+  const sg = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1) + '%';
+  const CA5M = DATA.ca5Monthly, UQ = DATA.canUnempQ;   // Canada 5-yr bond yield (monthly) and unemployment rate (quarterly)
+  // The café dominoes (2024): shop and wholesale jobs vs all jobs from Feb 2022 to Dec 2024, and unemployment from its
+  // 2022 low to the end of 2024
+  const D24 = (() => {
+    const low = UQ.filter(d => d[0] >= '2022-01' && d[0] <= '2022-12').reduce((a, b) => b[1] < a[1] ? b : a);
+    return {trade: jobsChg('ret', '2022-02', '2024-12'), all: jobsChg('all', '2022-02', '2024-12'), uLow: low[1], u24: UQ.find(d => d[0] === '2024-12')[1]};
+  })();
+  // The CN Tower view (October 2026): one neighbourhood per industry, ordered from more exposed to more sheltered by how
+  // far its jobs grew behind (or ahead of) all Canadian jobs since Feb 2022. The notes only explain; they add no numbers.
+  const ALLJ = 100*(JOBS.all.now/JOBS.all.feb22 - 1);
+  const DIST = [
+    {id:'ret', short:'Shops', full:'Retail & wholesale trade', kind:'shop', note:'When loan payments grow, households cut shopping first.'},
+    {id:'man', short:'Factories', full:'Manufacturing', kind:'factory', note:'Factories make big-ticket goods that buyers usually borrow for. Trade with the US matters a lot here too.'},
+    {id:'edu', short:'Schools', full:'Educational services', kind:'school', note: d => 'Teaching doesn’t run on loans.' + (d.yr < 0 ? ' Much of the recent drop is linked to Canada’s caps on international students since 2024.' : '')},
+    {id:'con', short:'Builders', full:'Construction', kind:'site', note: d => 'Builders borrow to build, and buyers borrow to buy.' + (d.gap > -2 ? ' Yet jobs here have held up so far: exposure is a risk, not a guarantee.' : '')},
+    {id:'fin', short:'Banks', full:'Finance, insurance & real estate', kind:'bank', note:'Home sales slow when borrowing is expensive, but banks also earn more on loans. A mixed picture.'},
+    {id:'pub', short:'Government', full:'Public administration', kind:'civic', note:'Government payrolls don’t depend on borrowing costs in the short run.'},
+    {id:'tech', short:'Tech', full:'Professional, scientific & tech services', kind:'tech', note:'Startups run on investor money, which gets scarcer when safe bonds pay more.'},
+    {id:'health', short:'Hospitals', full:'Health care & social assistance', kind:'hospital', note:'People need care in any economy, so demand holds up when rates rise.'},
+    {id:'food', short:'Restaurants', full:'Accommodation & food services', kind:'food', note:'Eating out is one of the first things a tight budget cuts, but much of the growth since 2022 is a rebound from pandemic closures.'}
+  ].map(d => { const r = JOBS[d.id], since = 100*(r.now/r.feb22 - 1); return Object.assign(d, {since, gap: since - ALLJ, yr: 100*(r.now/r.yr - 1)}); })
+   .sort((a, b) => a.gap - b.gap);
+  const EXPOSED = DIST[0], SHELTERED = DIST[DIST.length - 1], MANU = DIST.find(d => d.id === 'man');
+  // where graduates of each program often work (a rough guide, the same mapping as the Rate Weather page)
+  const MAJORS = [['cs','Computer Sci',['tech','fin']], ['eng','Engineering',['con','man','tech']], ['com','Commerce',['fin','ret']],
+                  ['arch','Architecture',['con','fin']], ['life','Life Sci / Nursing',['health','edu']], ['hum','Humanities',['edu','pub']]];
   document.getElementById('pickToday').textContent = `2026 peak ${TODAY.toFixed(2)}%`;
   document.getElementById('pick').value = TODAY.toFixed(1);
 
@@ -398,6 +455,13 @@ d3.json('prototype/data/leo.json').then(DATA => {
   const B22 = BAL(750000, m17, 300, 60);
   const m22 = +(CA5[2022]+SPREAD).toFixed(2), P22 = MORT(B22, m22, 240);
   const B27 = BAL(B22, m22, 240, 60);
+  // The family's month in 2022 for Mom's budget pad (fictional, typical Toronto amounts). The mortgage payment comes from
+  // the renewal rate: the balance left in 2022 (B22), renewed for the 20 years left of the 25. PAY(m17) equals P17.
+  const INCOME = 9200, TRIP = 500;
+  const COSTS = [['Bills & taxes', 950], ['Groceries', 1300], ['Car & transit', 1150], ['Everything else', 1500]];
+  const FIXED = d3.sum(COSTS, d => d[1]);
+  const PAY = rate => MORT(B22, rate, 240);
+  const LEFT = rate => INCOME - FIXED - PAY(rate);
 
   /* ================= cast ================= */
   const LEO = {skin:'#f1c8a0', hair:'short', hairColor:'#3b2a20'};
@@ -475,19 +539,52 @@ d3.json('prototype/data/leo.json').then(DATA => {
     {year:2022, age:15, y:US10[2022], bg:'kitchen', props:{tv:'INFLATION HITS 8.1%', bills:true}, cast:['mom','dad'], mood:'worried', lines:[
       ['FACT','2022. Prices rise fast everywhere. Canada’s inflation peaks at 8.1% in June, the highest in about 40 years.'],
       ['FACT','To cool prices, the Bank of Canada lifts its rate from 0.25% to 4.25% in under a year. Bond yields shoot up.'],
-      ['DAD',`Our five-year term is up. New rate: ${m22.toFixed(1)}%. The payment goes from ${fmt$(P17)} to ${fmt$(P22)}.`,'worried'],
-      ['MOM',`That’s ${fmt$(P22-P17)} more every month, and groceries cost more every week. We’re cancelling the summer trip.`,'worried'],
+      ['DAD','Our five-year term is up. The bank just sent the renewal offer.','worried'],
+      ['MOM','And groceries cost more every week. Leo, come sit with us. Let’s do the budget together.','worried']]},
+    // Summer 2022, Mom's budget pad seen from above. waitAt is the line that waits for you to drag the renewal rate.
+    {year:2022, age:15, y:US10[2022], bg:'budget', pov:true, waitAt:2, cast:[], mood:'worried',
+      nudge:`Drag the red pin on the ruler to the bank’s offer (${m22.toFixed(2)}%), or press Next again to skip.`, lines:[
+      ['MOM','This pad is our month: everything we take home, stacked by what it pays for. Every block is drawn to scale.'],
+      ['MOM',`Red is the mortgage: ${fmt$(P17)} a month at the 2017 rate, ${m17.toFixed(2)}%. Green is what’s left over, and this year it was paying for our summer trip.`,'happy'],
+      ['LEO',`The bank’s new offer is ${m22.toFixed(2)}%. Drag the red pin on the ruler to it.`],
+      ['DAD',`Same house, same loan: ${fmt$(P17)} becomes ${fmt$(P22)}. That’s ${fmt$(P22-P17)} more every month, for the next five years.`,'worried'],
+      ['MOM',`That leaves ${fmt$(LEFT(m22))}, and the trip needs ${fmt$(TRIP)} a month. We’re cancelling it.`,'worried'],
+      ['WHATIF',`Try any rate. At 7%, the payment would be ${fmt$(PAY(7))}, and the month would end ${LEFT(7) < 0 ? fmt$(-LEFT(7)) + ' short' : 'with ' + fmt$(LEFT(7)) + ' left'}.`],
       ['LEO','It was the first time I heard my parents argue about money.','sad']]},
-    {year:2024, age:17, y:US10[2024], bg:'cafe', outfit:'apron', cast:[], mood:'neutral', lines:[
-      ['LEO','I got a part-time job at a café on Bloor. A latte is $5.75 now.'],
-      ['LEO','My manager says the regulars come in less often. Everyone’s budget is squeezed.','worried'],
-      ['FACT',`The 10-year yield averaged ${US10[2024].toFixed(2)}% in 2024, ${(US10[2024]/US10[2020]).toFixed(1)} times its 2020 level.`]]},
+    // 2024, the café after closing: a domino for each link from the 10-year yield to Leo's shifts. waitAt: push the first one.
+    {year:2024, age:17, y:US10[2024], bg:'dominoes', outfit:'apron', cast:[], mood:'neutral', waitAt:1,
+      nudge:'Click the first domino (the small one on the left) to push it, or press Next again to skip.', lines:[
+      ['LEO','I work part-time at a café on Bloor. A latte is $5.75 now, the regulars come in less often, and my shifts just got cut.','worried'],
+      ['LEO','After closing, I lined up dominoes to figure out why. Push the first one.'],
+      ['FACT',`1 · Yields rise. The US 10-year yield averaged ${US10[2020].toFixed(2)}% in 2020 and ${US10[2024].toFixed(2)}% in 2024.`],
+      ['FACT',`2 · Loans cost more. Canada’s 5-year bond yield followed, from ${CA5[2020].toFixed(2)}% to ${CA5[2024].toFixed(2)}%, and banks price 5-year mortgages off it.`],
+      ['LEO',`3 · Budgets get squeezed. My parents’ mortgage went from ${fmt$(P17)} to ${fmt$(P22)} a month.`],
+      ['FACT',`4 · Squeezed budgets can mean less spending. From Feb 2022 to Dec 2024, jobs in shops and wholesale ${D24.trade < 0 ? 'fell' : 'grew only'} ${Math.abs(D24.trade).toFixed(1)}%, while all Canadian jobs grew ${D24.all.toFixed(1)}%.`],
+      ['FACT',`5 · Hiring slows. Canada’s unemployment rate rose from ${D24.uLow.toFixed(1)}% in late 2022 to ${D24.u24.toFixed(1)}% at the end of 2024.`],
+      ['LEO','6 · And the last domino is me. Four shifts a week became two.','shocked'],
+      ['FACT','Higher rates can push each domino into the next, but it isn’t automatic: other forces push too, and a chain can stop. Studies of past rate hikes find unemployment tends to rise a year or two later (Romer & Romer, 2023).']]},
     {year:2026, age:19, y:TODAY, bg:'campus', outfit:'uni', cast:[], mood:'happy', key:'uni', lines:[
       ['FACT','September 2026. Leo starts at the University of Toronto, St. George campus.'],
       ['LEO','Front campus. University College. I made it!','happy'],
       ['FACT',`On ${DAY(PEAK.d)}, the 10-year yield closes at ${PEAK.v.toFixed(2)}%, its highest since ${MONTH(DATA.us10.prevAbovePeak)}. By ${DAY(LAST.d)} it is back to ${LAST.v.toFixed(2)}%, but nobody knows where it goes next.`],
       ['LEO','Friends at Rotman say all of Bay Street is watching that number. I still don’t know what it means for me.','neutral'],
-      ['MOM','(on the phone) Our next renewal is in 2027. Your dad checks rates every morning now.','worried'],
+      ['MOM','(on the phone) Our next renewal is in 2027. Your dad checks rates every morning now.','worried']]},
+    // Thanksgiving 2026 on the CN Tower: the family at the window, then the city through the binoculars (waitAt: tap one)
+    {year:2026, age:19, y:TODAY, bg:'tower', outfit:'uni', cast:['mom','dad'], mood:'neutral', lines:[
+      ['FACT','Thanksgiving weekend, October 2026. Leo’s family rides up the CN Tower to the LookOut level, 346 metres above Toronto.'],
+      ['DAD','Every neighbourhood down there is a different kind of job. My plant is out past the highway.'],
+      ['MOM','And look at the weather: it’s pouring over some parts of the city, and the sun is out over others.'],
+      ['LEO','Pass me a toonie for the binoculars. I want a closer look.','happy']]},
+    {year:2026, age:19, y:TODAY, bg:'city', pov:true, waitAt:2, cast:[], mood:'neutral',
+      nudge:'Tap any neighbourhood (a group of buildings with a sign) to see it through the binoculars, or press Next again to skip.', lines:[
+      ['FACT',`Each neighbourhood is an industry, with real Canadian job numbers. Since rates began rising in Feb 2022, all jobs grew ${sg(ALLJ)}.`],
+      ['FACT','A rain cloud means an industry’s jobs grew less than that. An umbrella means they grew more. The bigger it is, the bigger the gap.'],
+      ['LEO','Tap a neighbourhood to look at it through the binoculars.'],
+      ['FACT',`Most exposed: ${EXPOSED.full.toLowerCase()}, ${sg(EXPOSED.since)}. Most sheltered: ${SHELTERED.full.toLowerCase()}, ${sg(SHELTERED.since)}${SHELTERED.id === 'food' ? ', though much of that is a rebound from pandemic closures' : ''}.`],
+      ['DAD',`My plant is down there with the factories. Manufacturing jobs: ${sg(MANU.since)} since 2022, ${MANU.gap < -3 ? 'well behind' : MANU.gap < 0 ? 'a bit behind' : 'ahead of'} all jobs.`, MANU.gap < 0 ? 'worried' : 'neutral'],
+      ['FACT','Research finds construction and manufacturing usually feel rate hikes the most (Singh, Suda & Zervou, 2022). Construction has held up so far: exposure is a risk, not a guarantee.'],
+      ['LEO','I still have to pick a program after first year. Tap one on the bottom row to see where its grads usually work.'],
+      ['LEO','Same rates, different weather. Before I choose, I’ll check the forecast where my program leads.','happy'],
       ['WHATIF','Every rate up to here is real. From now on, the story is one possible future.']]}
   ];
 
@@ -645,6 +742,15 @@ d3.json('prototype/data/leo.json').then(DATA => {
     stops(defs.append('linearGradient').attr('id','cone').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1), [[0,'#fff3c4',.6],[1,'#fff3c4',0]]);
     stops(defs.append('linearGradient').attr('id','beam').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1), [[0,'#fffbe6',.55],[1,'#fffbe6',0]]);
     stops(defs.append('linearGradient').attr('id','headbeam').attr('x1',0).attr('x2',1).attr('y1',0).attr('y2',0), [[0,'#fff6cf',.65],[1,'#fff6cf',0]]);
+  })();
+  // patterns for the interactive scenes: a gingham tablecloth, red hatching for debt, café bricks, the binoculars' shape
+  (function kitDefs(){
+    const pat = (id, w, h, at={}) => { const p = defs.append('pattern').attr('id', id).attr('width', w).attr('height', h).attr('patternUnits', 'userSpaceOnUse'); for (const k in at) p.attr(k, at[k]); return p; };
+    const box = (p, x, y, w, h, fill, op=1) => p.append('rect').attr('x', x).attr('y', y).attr('width', w).attr('height', h).attr('fill', fill).attr('opacity', op);
+    const gi = pat('gingham', 48, 48); box(gi,0,0,48,48,'#fbf5ea'); box(gi,0,0,24,48,'#d9534f',.15); box(gi,0,0,48,24,'#d9534f',.15);
+    const dh = pat('debtHatch', 10, 10, {patternTransform:'rotate(45)'}); box(dh,0,0,10,10,'#f7d3cc'); box(dh,0,0,4,10,'#d63b2a',.8);
+    const br = pat('brick', 64, 32); box(br,0,0,64,32,'#874230'); box(br,1,1,62,14,'#b25e3e'); box(br,-31,17,62,14,'#a9573a'); box(br,33,17,62,14,'#b8653f');
+    const lc = defs.append('clipPath').attr('id', 'lensClip'); [-70, 70].forEach(cx => lc.append('circle').attr('cx', cx).attr('cy', 0).attr('r', 124));
   })();
   const world = svg.append('g').attr('class','fadeable');
   const gBg = world.append('g'), gCast = world.append('g'), gFg = world.append('g');
@@ -941,6 +1047,12 @@ d3.json('prototype/data/leo.json').then(DATA => {
   /* ---- Leo's sketchbook and the Yield Coaster ---- */
   // handwriting on Leo's sketchbook
   const hw = (g,x,y,t,at={}) => A(g,'text',Object.assign({x,y,'font-family':'"Gochi Hand","Comic Sans MS",cursive','font-size':22,fill:'#3f4148'},at)).text(t);
+  // small print in the scene: monospaced numbers and labels, and the body font for short notes
+  const MONO = '"DM Mono",ui-monospace,Consolas,monospace', SANS = 'Nunito,"Trebuchet MS",sans-serif';
+  const mono = (g,x,y,t,at={}) => A(g,'text',Object.assign({x,y,'font-family':MONO,'font-size':11,fill:'#3f4148'},at)).text(t);
+  const sans = (g,x,y,t,at={}) => A(g,'text',Object.assign({x,y,'font-family':SANS,'font-weight':800,'font-size':13,fill:'#3f4148'},at)).text(t);
+  // split a sentence into lines of at most n characters (whole words)
+  const wrapText = (t, n) => t.split(' ').reduce((ls, w) => { const i = ls.length - 1; if (i >= 0 && (ls[i] + ' ' + w).length <= n) ls[i] += ' ' + w; else ls.push(w); return ls; }, []);
   // a slightly shaky pencil line between two points (repeatable, so it looks the same every time)
   function wobble(x1,y1,x2,y2,seed){
     const r = seeded(seed + 3), n = 8;
@@ -971,6 +1083,11 @@ d3.json('prototype/data/leo.json').then(DATA => {
     return {g:h, pencil:body};
   }
 
+  // The interactive scene on stage (Mom's budget pad, the café dominoes, the CN Tower view) registers a controller:
+  //   line(i, step) is called for every line shown, so the picture matches it (step = moved by one line: animate);
+  //   ready() says whether the reader has done the scene's action yet (Next waits on the scene's waitAt line);
+  //   auto() does it for them when they press Next a second time.
+  let CTRL = null;
   let SK = null;    // the sketchbook: what you drew and whether the real line is shown
   function nextLabel(){
     const sc = story[si], waiting = sc && sc.draw && li === sc.drawAt && SK && !SK.revealed;
@@ -1574,6 +1691,724 @@ d3.json('prototype/data/leo.json').then(DATA => {
         SK.guess = sc.drawnGuess.slice(); SK.last = SK.guess.length - 1; SK.done = !!sc.drawnDone; SK.guessPath.attr('d', SK.line(SK.guess));
         revealSketch(true);
       }
+    },
+    budget(g,sc,fg){
+      // Summer 2022, the kitchen table seen from above: Mom's budget on a yellow legal pad. The column is the family's
+      // month (fictional amounts): take-home pay is its full height, costs stack up from the bottom, and the green block
+      // on top is what's left. The red block is the mortgage payment at the renewal rate on the ruler (the real 2017 and
+      // 2022 rates, Canadian mortgage math). Heights are proportional to dollars, so when the red block grows, the green
+      // one has to shrink. Drag the red pin (or focus it and use the arrow keys) to try any rate from 2% to 7%.
+      fg = fg || g;
+      // the kitchen floor past the table's edges (wide screens), the gingham tablecloth, soft folds and window light
+      R(g,-1400,-800,W+2800,H+1600,'#a8b6bc');
+      R(g,-70,-800,W+140,H+1600,'url(#gingham)');
+      [-70, W+62].forEach(x => R(g,x,-800,8,H+1600,'#000',{opacity:.12}));
+      [[-80,230,500,170],[380,650,980,560],[700,-40,1400,90]].forEach(([x1,y1,x2,y2]) =>
+        P(g,`M${x1},${y1} Q${(x1+x2)/2},${(y1+y2)/2-40} ${x2},${y2}`,'none',{stroke:'#000','stroke-width':26,opacity:.035,'stroke-linecap':'round'}));
+      const beam = A(g,'g',{class:'a-beam'});
+      P(beam,'M-260,-120 L640,-120 L220,760 L-680,760Z','#fff4cf',{opacity:.22});
+      P(beam,'M150,-120 L190,-120 L-230,760 L-270,760Z','#000',{opacity:.03});
+
+      // ---- around the pad: Dad's coffee, the calculator, the bills, the bank's text on Mom's phone, her tea and glasses
+      const mug = (x, y, col, drink, k) => {
+        E(g,x+7,y+9,38,38,'#000',{opacity:.13});
+        R(g,x+28,y-9,28,18,col,{rx:9,stroke:OUT,'stroke-width':2.5});
+        Cc(g,x,y,36,col,{stroke:OUT,'stroke-width':3}); Cc(g,x,y,27,drink); E(g,x-9,y-10,10,5,'#ffffff',{opacity:.25});
+        [0,1.3].forEach(d => Cc(g,x+(d ? 8 : -6),y-6,10,'#ffffff',{opacity:.6,class:'a-steam',style:`animation-delay:${d+k}s`}));
+      };
+      mug(100,118,'#3d6fb6','#6b4a33',0);
+      const calc = A(g,'g',{transform:'rotate(-9,112,380)'});
+      E(calc,118,390,62,92,'#000',{opacity:.12});
+      R(calc,52,290,120,180,'#3a3d42',{rx:12,stroke:OUT,'stroke-width':3}); R(calc,64,304,96,34,'#bfe0c8',{rx:4});
+      const calcTxt = A(calc,'text',{x:154,y:328,'text-anchor':'end','font-family':MONO,'font-size':16,fill:'#1d2b22'});
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) R(calc,66+c*23,350+r*27,18,20,c === 3 ? '#e0a83a' : '#5b6068',{rx:4});
+      [['HYDRO',-12,40,500],['PROPERTY TAX',7,24,548],['VISA',-4,70,598]].forEach(([t,r,x,y]) => {
+        const b = A(g,'g',{transform:`rotate(${r},${x+70},${y+30})`});
+        R(b,x+4,y+5,140,62,'#000',{opacity:.1}); R(b,x,y,140,62,'#ffffff',{stroke:'#c9c2b0','stroke-width':1.5});
+        P(b,`M${x},${y} L${x+70},${y+32} L${x+140},${y}`,'none',{stroke:'#d8d2c2','stroke-width':1.5}); Tt(b,x+10,y+53,t,{'font-size':10,fill:'#d63b2a'});
+      });
+      const phone = A(g,'g',{transform:'rotate(7,1190,212)'}), buzz = A(phone,'g',{class:'a-vibrate'});
+      R(buzz,1136,106,116,224,'#000',{opacity:.15,rx:16}); R(buzz,1130,100,116,224,'#1d1b33',{rx:16,stroke:OUT,'stroke-width':3});
+      R(buzz,1138,114,100,196,'#24365a',{rx:8}); Tt(buzz,1188,140,'9:41',{'text-anchor':'middle','font-size':14,fill:'#ffffff'});
+      R(buzz,1144,152,88,84,'#f4f2ff',{rx:8}); Cc(buzz,1156,166,7,'#2f6b4a'); Tt(buzz,1168,170,'BANK',{'font-size':8,fill:'#2f6b4a'});
+      hw(buzz,1150,190,'Renewal offer:',{'font-size':13,fill:'#1d1b33'}); hw(buzz,1150,206,'5-yr fixed',{'font-size':13,fill:'#1d1b33'});
+      hw(buzz,1150,227,`${m22.toFixed(2)}%`,{'font-size':19,fill:'#d63b2a'});
+      mug(1196,504,'#33b3a6','#c98d4e',.6);
+      const gl = A(g,'g',{transform:'rotate(-14,1180,396)'});
+      [1160,1204].forEach(x => Cc(gl,x,396,17,'#cfe6f3',{opacity:.55,stroke:OUT,'stroke-width':3})); P(gl,'M1177,392 Q1182,384 1187,392','none',{stroke:OUT,'stroke-width':3});
+      L(gl,1143,392,1120,374,OUT,3); L(gl,1221,392,1244,374,OUT,3);
+
+      // ---- the pad: cardboard binding with staples, yellow paper, blue rules and the red double margin
+      const X0 = 200, X1 = 1100, Y0 = 56, Y1 = 576;
+      R(g,X0+12,Y0+16,X1-X0,Y1-Y0,'#000',{opacity:.14,rx:6});
+      R(g,X0,Y0,X1-X0,Y1-Y0,'#fcefa8',{rx:4});
+      for (let y=Y0+86; y<Y1-8; y+=32) L(g,X0+4,y,X1-4,y,'#8fb8d6',1.2,{opacity:.5});
+      [40,45].forEach(dx => L(g,X0+dx,Y0+34,X0+dx,Y1,'#e07a7a',1.4,{opacity:.8}));
+      R(g,X0-4,Y0-8,X1-X0+8,40,'#7a2a22',{rx:5}); for (let x=X0+40; x<X1; x+=110) R(g,x,Y0+4,22,6,'#c9ced3',{rx:2});
+      P(g,'M664,92 L850,116 L847,128 L661,104Z','#ffc23d',{stroke:OUT,'stroke-width':2}); P(g,'M850,116 L874,125 L847,128Z','#e8c9a0',{stroke:OUT,'stroke-width':1.5});
+      P(g,'M664,92 L652,90 L649,102 L661,104Z','#ff8fa3',{stroke:OUT,'stroke-width':1.5});                      // a pencil lying on the pad
+      hw(g,X0+62,Y0+80,'Our month · summer 2022',{'font-size':36,fill:'#2b3a55'});
+      hw(g,X0+64,Y0+112,`Take-home pay ${fmt$(INCOME)} · every block drawn to scale`,{'font-size':19,fill:'#5a6b88'});
+
+      // ---- the column: income at the top line, the mortgage at the bottom, what's left on top
+      const CX0 = 300, CW = 150, CT = 228, CB = 524, k = (CB - CT)/INCOME;
+      R(g,CX0-4,CT,CW+8,CB-CT,'none',{stroke:'#2b3a55','stroke-width':2,'stroke-dasharray':'6 5',opacity:.5});
+      L(g,CX0-14,CT,CX0+CW+14,CT,'#2b3a55',2.5); L(g,CX0-14,CB,CX0+CW+14,CB,'#2b3a55',2.5);
+      hw(g,CX0-18,CT+6,fmt$(INCOME),{'text-anchor':'end','font-size':16,fill:'#2b3a55'}); hw(g,CX0-18,CB+6,'$0',{'text-anchor':'end','font-size':16,fill:'#2b3a55'});
+      const SEG = [{name:'Mortgage', fill:'url(#debtHatch)', stroke:'#a8261a', col:'#c0392b', w:2.5}]
+        .concat(COSTS.map(([name], i) => ({name, fill:['#ddd9ce','#cfcabd','#e4e0d6','#c8c3b6'][i], stroke:'#8a857a', col:'#4a4f5a', w:1.5})))
+        .concat([{name:'Left over', fill:'#d6f0dc', stroke:'#2f9e5e', col:'#23794a', w:2.5, dash:'7 5'}]);
+      SEG.forEach((s, i) => {
+        s.rect = R(g,CX0,CB,CW,0,s.fill,{stroke:s.stroke,'stroke-width':s.w,'stroke-dasharray':s.dash || null});
+        s.lead = L(g,0,0,0,0,s.col,1.5,{opacity:.6});
+        s.txt = hw(g,0,0,'',{'font-size': i === 0 ? 22 : 18, fill:s.col});
+      });
+      const over = R(g,CX0,CT,CW,0,'url(#debtHatch)',{stroke:'#a8261a','stroke-width':2.5,'stroke-dasharray':'4 3'});   // spending past the top: the month runs short
+      const yP17 = CB - P17*k;                                                                                            // where the 2017 payment reached
+      L(g,CX0-10,yP17,CX0+CW+10,yP17,'#a8261a',2,{'stroke-dasharray':'5 4'}); hw(g,CX0-14,yP17+5,'2017',{'text-anchor':'end','font-size':15,fill:'#a8261a'});
+
+      // ---- the summer trip, taped to the pad; it gets stamped CANCELLED when the green block can't pay for it
+      const pol = A(g,'g',{transform:'rotate(6,1000,170)'}), polIn = A(pol,'g');
+      R(polIn,940,101,132,150,'#000',{opacity:.15,rx:3}); R(polIn,934,95,132,150,'#ffffff',{stroke:'#d6d0c2','stroke-width':1.5,rx:3});
+      R(polIn,944,105,112,92,'#9fd3f0'); Cc(polIn,1030,124,10,'#ffc23d');
+      P(polIn,'M944,175 L972,132 L992,160 L1012,124 L1042,170 L1056,152 L1056,197 L944,197Z','#6f8fa8');
+      P(polIn,'M972,132 L980,144 L964,144Z M1012,124 L1021,138 L1003,138Z','#ffffff'); R(polIn,944,180,112,17,'#3d8fc0');
+      hw(polIn,1000,220,'Rockies trip!',{'text-anchor':'middle','font-size':18,fill:'#2b3a55'});
+      hw(polIn,1000,240,`needs ${fmt$(TRIP)} a month`,{'text-anchor':'middle','font-size':14,fill:'#5a6b88'});
+      R(pol,976,86,48,18,'#f2e6b8',{opacity:.85,transform:'rotate(-8,1000,95)'});
+      const stamp = A(pol,'g',{display:'none'}), stampIn = A(stamp,'g',{class:'a-stamp'});
+      R(stampIn,938,138,124,40,'#ffffff',{opacity:.55,rx:6,transform:'rotate(-14,1000,158)'});
+      R(stampIn,938,138,124,40,'none',{stroke:'#d63b2a','stroke-width':4,rx:6,transform:'rotate(-14,1000,158)'});
+      Tt(stampIn,1000,166,'CANCELLED',{'text-anchor':'middle','font-size':17,fill:'#d63b2a',transform:'rotate(-14,1000,158)'});
+      const arrow = P(g,'','none',{stroke:'#2f9e5e','stroke-width':2,'stroke-dasharray':'5 5','stroke-linecap':'round'}), arrowHead = P(g,'','#2f9e5e');
+
+      // ---- the payment, and the ruler with the two real rates flagged
+      Tt(g,700,316,'MORTGAGE PAYMENT',{'font-size':13,fill:'#5a6b88'});
+      const payTxt = hw(g,700,364,'',{'font-size':46,fill:'#c0392b'}), wasTxt = hw(g,702,396,'',{'font-size':19,fill:'#2b3a55'});
+      const RX0 = 700, RX1 = 1060, RY = 478, rx = r => RX0 + (r - 2)/5*(RX1 - RX0), rateAt = x => clamp(2 + (x - RX0)/(RX1 - RX0)*5, 2, 7);
+      R(g,RX0-13,RY-12,RX1-RX0+36,40,'#000',{opacity:.12,rx:5});
+      R(g,RX0-18,RY-18,RX1-RX0+36,40,'#f0cf83',{rx:5,stroke:'#a8843a','stroke-width':2});
+      for (let q=8; q<=28; q++){ const r = q/4, big = q % 4 === 0, half = q % 2 === 0;
+        L(g,rx(r),RY-18,rx(r),RY-18+(big ? 16 : half ? 11 : 7),'#5a4520',big ? 2 : 1.3);
+        if (big) hw(g,rx(r),RY+16,`${r}%`,{'text-anchor':'middle','font-size':16,fill:'#5a4520'}); }
+      [[m17,'2017','#2f9e5e'],[m22,'2022 offer','#c0392b']].forEach(([r,t,c]) => {
+        L(g,rx(r),RY-18,rx(r),RY-64,c,2.5); P(g,`M${rx(r)},${RY-64} l16,6 l-16,6Z`,c);
+        hw(g,rx(r)+6,RY-48,`${t} · ${r.toFixed(2)}%`,{'font-size':15,fill:c});
+      });
+      const hit = R(g,RX0-34,RY-72,RX1-RX0+68,134,'transparent',{class:'ui drag','pointer-events':'all'});
+      const pin = A(g,'g',{class:'ui drag',tabindex:0,role:'slider','aria-label':'Mortgage renewal rate','aria-valuemin':2,'aria-valuemax':7});
+      L(pin,0,RY-22,0,RY+18,'#7a1f16',3);
+      Cc(pin,0,RY-30,16,'#d63b2a',{stroke:OUT,'stroke-width':2.5}); Cc(pin,-5,RY-35,5,'#ffffff',{opacity:.6});
+      R(pin,-38,RY+28,76,28,'#ffffff',{rx:8,stroke:'#c0392b','stroke-width':2});
+      const bubTxt = hw(pin,0,RY+49,'',{'text-anchor':'middle','font-size':19,fill:'#c0392b'});
+      mono(g,X0+62,Y1-30,'Leo’s family and its budget are fictional. Mortgage rates: Government of Canada 5-yr bond yield (Bank of Canada) + 1.5 pts.',{'font-size':10.5,fill:'#6b6a5e'});
+      mono(g,X0+62,Y1-16,'$750,000 borrowed in 2017 over 25 years, renewed in 2022 for the 20 years left; Canadian semi-annual compounding.',{'font-size':10.5,fill:'#6b6a5e'});
+
+      // ---- draw everything for one rate (called for every frame of a move, so the blocks slide smoothly)
+      let shown = null, cancelled = null;
+      function paint(rate){
+        shown = rate;
+        const pay = PAY(rate), left = LEFT(rate), vals = [pay].concat(COSTS.map(c => c[1]), [Math.max(0, left)]);
+        let y = CB, prev = Infinity;
+        SEG.forEach((s, i) => {
+          const h = vals[i]*k, mid = y - h/2; s.rect.attr('y', y - h).attr('height', h); y -= h;
+          const ly = Math.min(mid + 6, prev - 27); prev = ly;                 // labels beside the column, pushed apart so they never overlap
+          s.lead.attr('x1', CX0 + CW + 4).attr('y1', mid).attr('x2', CX0 + CW + 18).attr('y2', ly - 6);
+          s.txt.attr('x', CX0 + CW + 22).attr('y', ly)
+            .text(i === 0 ? `Mortgage ${fmt$(pay)}` : i === SEG.length - 1 ? (left < 0 ? `Nothing left: ${fmt$(-left)} short!` : `Left over ${fmt$(left)}`) : `${s.name} ${fmt$(vals[i])}`)
+            .attr('fill', i === SEG.length - 1 && left < 0 ? '#c0392b' : s.col);
+        });
+        const ov = Math.max(0, -left)*k; over.attr('y', CT - ov).attr('height', ov);
+        // the dashed arrow from the trip's photo to the "left over" label
+        const lt = SEG[SEG.length - 1].txt, ex = CX0 + CW + 32 + lt.node().getComputedTextLength(), ey = +lt.attr('y') - 6;
+        arrow.attr('d', `M930,186 C860,186 ${ex + 70},${ey} ${ex},${ey}`); arrowHead.attr('d', `M${ex - 2},${ey} l11,-6 l-1,12Z`);
+        const d = pay - P17;
+        payTxt.text(`${fmt$(pay)} a month`);
+        wasTxt.text(`at ${rate.toFixed(2)}% · ${Math.abs(d) < .5 ? 'same as' : d > 0 ? `${fmt$(d)} more than` : `${fmt$(-d)} less than`} in 2017`);
+        calcTxt.text(pay.toFixed(2));
+        pin.attr('transform', `translate(${rx(rate).toFixed(1)},0)`).attr('aria-valuenow', rate.toFixed(2)).attr('aria-valuetext', `${rate.toFixed(2)} percent: ${fmt$(pay)} a month`);
+        bubTxt.text(`${rate.toFixed(2)}%`);
+        const off = left < TRIP;
+        if (off !== cancelled){ cancelled = off; stamp.attr('display', off ? null : 'none'); polIn.attr('opacity', off ? .78 : 1); }   // showing the stamp replays its "slam"
+      }
+      // move to a rate, sliding there over ms milliseconds
+      function setRate(r, ms){
+        r = clamp(r, 2, 7);
+        const sel = d3.select(pin.node()).interrupt('rate');
+        if (!ms || REDUCED || shown == null){ paint(r); return; }
+        const from = shown;
+        sel.transition('rate').duration(ms).ease(d3.easeCubicInOut).tween('rate', () => t => paint(from + (r - from)*t));
+      }
+      // the reader's choice: rounded to 0.05, and pulled onto the 2017 rate or the 2022 offer when close to them
+      function pick(r, magnet=true){
+        r = Math.round(clamp(r, 2, 7)*20)/20;
+        if (magnet) [m17, m22].forEach(m => { if (Math.abs(r - m) < .08) r = m; });
+        sc.rate = r; if (r >= m22 - .004) sc.done = true;
+        setRate(r, 0);
+      }
+      let dragging = false;
+      [hit, pin].forEach(el => el
+        .on('pointerdown', ev => { dragging = true; try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* drag still works without capture */ } pick(rateAt(d3.pointer(ev, g.node())[0])); })
+        .on('pointermove', ev => { if (dragging) pick(rateAt(d3.pointer(ev, g.node())[0])); })
+        .on('pointerup pointercancel', () => { dragging = false; }));
+      pin.on('keydown', ev => {
+        const step = {ArrowLeft:-.05, ArrowDown:-.05, ArrowRight:.05, ArrowUp:.05, PageDown:-.5, PageUp:.5}[ev.key];
+        if (step != null){ ev.preventDefault(); pick(shown + step, false); }
+        if (ev.key === 'Home' || ev.key === 'End'){ ev.preventDefault(); pick(ev.key === 'Home' ? 2 : 7, false); }
+      });
+      if (sc.rate == null) sc.rate = m17;
+      paint(sc.rate);
+      // Each line sets the pin: the 2017 rate while Mom explains, the reader's choice on the "drag" line, the bank's
+      // offer while Dad and Mom talk about it, then wherever the reader leaves it.
+      CTRL = {
+        ready: () => !!sc.done,
+        auto: () => { sc.done = true; },
+        line: (i, step) => {
+          if (i > sc.waitAt && i <= sc.waitAt + 2) sc.rate = m22;
+          setRate(i < sc.waitAt ? m17 : sc.rate, step ? 1100 : 0);
+        }
+      };
+    },
+    dominoes(g,sc,fg){
+      // 2024, the café on Bloor after closing time. Six dominoes stand on the counter, one for each link in the chain from
+      // the 10-year yield to Leo's shifts. The reader pushes the first; each Next tips the next one, and its order ticket
+      // swings onto the rail above with that link's real data (or Leo's story, labelled as such). The dominoes fall with
+      // simple physics: each one tips until it rests on the next, and when the last one lies flat they all go down.
+      fg = fg || g;
+      // ---- the back wall: brick in the evening, wood panelling, a chalk menu, a shelf, a clock, the window onto Bloor
+      R(g,-1400,-800,W+2800,G+800,'url(#brick)');
+      R(g,-1400,-800,W+2800,G+800,'#1d1b33',{opacity:.34});
+      R(g,-1400,430,W+2800,G-430,'#5a3d2b'); for (let x=-1400; x<W+1400; x+=40) L(g,x,434,x,G,'#4a3123',2); R(g,-1400,426,W+2800,8,'#3a2a1f');
+      R(g,238,258,184,122,'#20211f',{stroke:'#7a5236','stroke-width':9,rx:3});
+      Tt(g,330,286,'MENU',{'text-anchor':'middle','font-size':18,fill:'#f4f2ff'});
+      [['LATTE','5.75'],['MUFFIN','4.25'],['SANDWICH','12.50']].forEach(([a,b],i) => {
+        hw(g,252,312+i*22,a,{'font-size':17,fill:'#e8e6dc'}); hw(g,408,312+i*22,b,{'text-anchor':'end','font-size':17,fill:'#ffc23d'}); });
+      shelf(g,430,300,210,'#5a3d2b');
+      [[446,'#3a2a1f'],[480,'#8a5a3c'],[514,'#3a2a1f']].forEach(([x,c]) => { R(g,x,260,28,40,c,{rx:3}); R(g,x+5,272,18,14,'#efe2c9'); });
+      [552,580,608].forEach((x,i) => { R(g,x,276,22,24,['#ffffff','#3fbf8f','#ffc23d'][i],{rx:3}); P(g,`M${x+22},282 q8,4 0,12`,'none',{stroke:'#ffffff','stroke-width':2}); });
+      clock(g,808,292,20);
+      windowView(g,980,268,270,156, v => {
+        R(v,970,300,290,124,'#2c2f45');
+        for (let i=0;i<6;i++) for (let j=0;j<3;j++) R(v,990+i*44,312+j*28,22,16,(i+j)%3 ? '#ffd98a' : '#3a3e58',{opacity:.9});
+        const car = A(v,'g',{class:'a-pass',style:'animation-delay:-4s'}); R(car,1000,362,220,50,'#d0312d',{rx:8});
+        for (let i=0;i<5;i++) R(car,1010+i*40,372,30,20,'#ffe9a8'); L(car,1110,362,1120,330,'#555',2);
+        R(v,970,410,290,20,'#3a3f4a');
+      }, {night:true, frame:'#3a2a1f', cols:2, rows:1});
+      const neon = A(g,'g',{class:'a-neon'}); R(neon,994,292,82,30,'#1d1b33',{rx:6,stroke:'#ff5a7a','stroke-width':2.5});
+      Tt(neon,1035,313,'CLOSED',{'text-anchor':'middle','font-size':13,fill:'#ff8aa0'});
+      // pendant lamps: warm light pooling on the counter
+      [330,700].forEach((x,i) => { const lp = A(g,'g',{class:'a-sway-sm',style:`animation-delay:-${i*1.4}s`});
+        L(lp,x,-300,x,26,'#2b2b2b',2); P(lp,`M${x-24},48 Q${x},14 ${x+24},48Z`,'#2f5d4a'); E(lp,x,48,24,4,'#24493a'); Cc(lp,x,52,6,'#ffe9a8');
+        glow(lp,x,58,90,.8); P(lp,`M${x-20},52 L${x+20},52 L${x+150},486 L${x-150},486Z`,'url(#cone)',{opacity:.2}); });
+      // the order rail the tickets hang from
+      R(g,128,50,10,28,'#7c858c',{rx:2}); R(g,1150,50,10,28,'#7c858c',{rx:2});
+      L(g,133,64,1155,64,'#aeb6bc',7); L(g,133,62,1155,62,'#eef1f3',2);
+
+      // ---- the six order tickets (hidden until their domino falls)
+      const tixX = i => 148 + i*164, TW = 156, TT = 72, TH = 176;
+      const paper = x => { let d = `M${x},${TT} H${x+TW} V${TT+TH}`; for (let xx = x+TW, n = 0; xx > x; xx -= 6, n++) d += ` L${Math.max(x, xx-6)},${TT+TH-(n%2 ? 0 : 5)}`; return d + 'Z'; };
+      const tag = (gg, x, y, real, t) => { R(gg,x,y-11,t.length*6+12,15,real ? '#2e4d40' : '#4a3a86',{rx:4});
+        mono(gg,x+6,y,t,{'font-size':9,fill: real ? '#9ff0c8' : '#e2d8ff','letter-spacing':'.04em'}); };
+      // a small line chart; the last series is the main one (red), the others are grey context
+      function lineChart(cg, b, list, fromZero, mark){
+        const flat = list.flat(), x = d3.scaleTime().domain(d3.extent(flat, d => parseM(d[0]))).range([b.x0, b.x1]);
+        const lo = fromZero ? 0 : d3.min(flat, d => d[1]), hi = d3.max(flat, d => d[1]), pad = fromZero ? 0 : (hi - lo)*.12;
+        const y = d3.scaleLinear().domain([lo - pad, hi + pad]).range([b.y1, b.y0]);
+        L(cg,b.x0,b.y1,b.x1,b.y1,'#b9b2a0',1);
+        if (mark) L(cg,x(parseM(mark)),b.y0,x(parseM(mark)),b.y1,'#8a8478',1,{'stroke-dasharray':'2 3'});
+        const ln = d3.line().x(d => x(parseM(d[0]))).y(d => y(d[1]));
+        list.forEach((s, n) => { const main = n === list.length - 1;
+          P(cg,ln(s),'none',{stroke: main ? '#d63b2a' : '#6f6a5f','stroke-width': main ? 2.4 : 1.8,'stroke-dasharray': main ? null : '4 3','stroke-linejoin':'round'}); });
+        const e = list[list.length - 1].slice(-1)[0]; Cc(cg,x(parseM(e[0])),y(e[1]),3,'#d63b2a');
+        mono(cg,b.x0,b.y1+11,flat[0][0].slice(0,4),{'font-size':8}); mono(cg,b.x1,b.y1+11,e[0].slice(0,4),{'font-size':8,'text-anchor':'end'});
+      }
+      function payBars(cg, b){
+        const y = d3.scaleLinear().domain([0, P22]).range([b.y1, b.y0 + 9]);
+        [[P17,'2017','#cfcabd','#8a857a'],[P22,'2022','url(#debtHatch)','#a8261a']].forEach(([v, t, f, s], n) => {
+          const x = b.x0 + 20 + n*64;
+          R(cg,x,y(v),36,b.y1 - y(v),f,{stroke:s,'stroke-width':1.5});
+          mono(cg,x+18,b.y1+11,t,{'font-size':8,'text-anchor':'middle'}); mono(cg,x+18,y(v)-3,fmt$(v),{'font-size':8,'text-anchor':'middle',fill: n ? '#c0392b' : '#5a5a52'});
+        });
+        L(cg,b.x0,b.y1,b.x1,b.y1,'#8a8478',1);
+      }
+      const uq = UQ.filter(d => d[0] >= '2022-01' && d[0] <= '2024-12');
+      function uBars(cg, b){
+        const y = d3.scaleLinear().domain([0, 8]).range([b.y1, b.y0]), bw = (b.x1 - b.x0)/uq.length;
+        uq.forEach(([m, v], n) => R(cg,b.x0 + n*bw + 1.5,y(v),bw - 3,b.y1 - y(v),n === uq.length - 1 ? '#d63b2a' : '#b9b2a0'));
+        L(cg,b.x0,b.y1,b.x1,b.y1,'#8a8478',1);
+        mono(cg,b.x0,b.y1+11,'2022',{'font-size':8}); mono(cg,b.x1,b.y1+11,'2024',{'font-size':8,'text-anchor':'end'});
+      }
+      function shifts(cg, b){
+        const bw = (b.x1 - b.x0)/7, on = [1,3,5,6], cut = [1,5];
+        ['M','T','W','T','F','S','S'].forEach((t, n) => {
+          const x = b.x0 + n*bw;
+          R(cg,x+2,b.y0+14,bw-4,b.y1-b.y0-14,'#f4f0e4',{stroke:'#b9b2a0','stroke-width':1,rx:2}); mono(cg,x+bw/2,b.y0+9,t,{'font-size':8,'text-anchor':'middle'});
+          if (on.includes(n)){ Cc(cg,x+bw/2,(b.y0+b.y1)/2+7,bw*.27,'#8a5a3c');
+            if (cut.includes(n)) P(cg,`M${x+4},${b.y0+18} L${x+bw-4},${b.y1-4} M${x+bw-4},${b.y0+18} L${x+4},${b.y1-4}`,'none',{stroke:'#d63b2a','stroke-width':2.4,'stroke-linecap':'round'}); }
+        });
+      }
+      const us = DATA.us10Monthly.filter(d => d[0] >= '2019-01' && d[0] <= '2024-12'), ca = CA5M.filter(d => d[0] <= '2024-12');
+      const upTo24 = key => JOBS[key].series.filter(d => d[0] <= '2024-12').map(([m, v]) => [m, 100*v/jobsAt(key, '2022-02')]);
+      const SPEC = [
+        {kick:'Yields rise', sub:'US 10-yr Treasury yield', real:true, val:`${US10[2020].toFixed(2)}% → ${US10[2024].toFixed(2)}%`, foot:'2020 avg → 2024 avg', draw:(cg,b) => lineChart(cg,b,[us],true)},
+        {kick:'Loans cost more', sub:'Canada 5-yr bond yield', real:true, val:`${CA5[2020].toFixed(2)}% → ${CA5[2024].toFixed(2)}%`, foot:'2020 avg → 2024 avg', draw:(cg,b) => lineChart(cg,b,[ca],true)},
+        {kick:'Budgets squeezed', sub:'Mom & Dad’s mortgage', real:false, tagText:'STORY · REAL RATES', val:`+${fmt$(P22 - P17)} a month`, foot:`${fmt$(P17)} → ${fmt$(P22)} (2022)`, draw:payBars},
+        {kick:'Less spending', sub:'Shop jobs since Feb 2022', real:true, val:sg(D24.trade), foot:`all jobs ${sg(D24.all)} (grey)`, draw:(cg,b) => lineChart(cg,b,[upTo24('all'), upTo24('ret')],false,'2022-02')},
+        {kick:'Hiring slows', sub:'Unemployment, Canada', real:true, val:`${D24.uLow.toFixed(1)}% → ${D24.u24.toFixed(1)}%`, foot:'late 2022 → end of 2024', draw:uBars},
+        {kick:'You', sub:'Leo’s shifts a week', real:false, tagText:'LEO’S STORY', val:'4 → 2', foot:'hours cut in 2024', draw:shifts}
+      ];
+      const TK = SPEC.map((s, i) => {
+        const x = tixX(i), tg = A(g,'g',{display:'none'}), inner = A(tg,'g');
+        P(inner,paper(x),'#000',{opacity:.2,transform:'translate(4,5)'}); P(inner,paper(x),'#fffdf6',{stroke:'#d8d0bd','stroke-width':1.2});
+        R(inner,x+TW/2-13,TT-14,26,16,'#2b2d31',{rx:3});                                   // the clip that holds it on the rail
+        Cc(inner,x+18,TT+20,11,i === 5 ? '#ff8a3d' : '#1d1b33'); Tt(inner,x+18,TT+24.5,String(i+1),{'text-anchor':'middle','font-size':11,fill:'#ffffff'});
+        const kt = hw(inner,x+35,TT+26,s.kick,{'font-size':17,fill: i === 5 ? '#d9662a' : '#1d1b33'});
+        if (s.kick.length > 15) kt.attr('textLength', 112).attr('lengthAdjust', 'spacingAndGlyphs');      // keep long ones on the ticket
+        mono(inner,x+10,TT+44,s.sub,{'font-size':9,fill:'#6b6a5e'});
+        s.draw(A(inner,'g'),{x0:x+12, x1:x+TW-12, y0:TT+52, y1:TT+104});
+        hw(inner,x+10,TT+136,s.val,{'font-size':21,fill:'#1d1b33'});
+        mono(inner,x+10,TT+151,s.foot,{'font-size':8.5,fill:'#6b6a5e'});
+        tag(inner,x+10,TT+168,s.real,s.tagText || 'REAL DATA');
+        return {g:tg, inner};
+      });
+
+      // ---- the counter Leo stands behind (in front of him), with a rag and a sugar jar
+      R(fg,-1400,472,W+2800,14,'#a8754a'); R(fg,-1400,484,W+2800,8,'#7a5236');
+      R(fg,-1400,492,W+2800,H,'#5a3d2b');
+      for (let x = 564 - 170*11; x < W + 1400; x += 170){ R(fg,x,506,152,70,'#4e3324',{rx:4}); R(fg,x+6,512,140,58,'#61422e',{rx:3}); L(fg,x+8,514,x+144,514,'#7a5236',2,{opacity:.6}); }
+      L(fg,-1400,G-22,W+1400,G-22,'#c9a227',4); for (let x = 564 - 170*11; x < W + 1400; x += 170) R(fg,x+72,G-26,8,26,'#a8862a');
+      // the café's painted logo on the middle panel
+      P(fg,'M622,522 h36 l-4,22 q-14,8 -28,0Z','#e9d8b0',{stroke:'#1d1b33','stroke-width':2}); P(fg,'M658,527 q10,0 8,9 q-2,6 -10,5','none',{stroke:'#e9d8b0','stroke-width':3});
+      [628,640,652].forEach((x,i) => P(fg,`M${x},516 q-4,-6 0,-11`,'none',{stroke:'#e9d8b0','stroke-width':2,'stroke-linecap':'round',class:'a-steam',style:`animation-delay:${i*.8}s`}));
+      Tt(fg,640,564,'BLOOR ST. CAFÉ',{'text-anchor':'middle','font-size':11,fill:'#e9c46a'});
+      mono(fg,640,598,'Sources: Bloomberg (US 10-yr; Canadian jobs & unemployment, StatCan Labour Force Survey), Bank of Canada (5-yr bond). Leo’s shifts and budget are fictional.',
+        {'text-anchor':'middle','font-size':9.5,fill:'#e9d8b0',opacity:.85});
+      P(fg,'M40,476 Q70,464 110,474 L116,482 L36,484Z','#e8e2d4',{stroke:'#c9c2b0','stroke-width':1.5});
+      R(fg,1216,436,34,44,'#dff1f7',{rx:6,opacity:.8,stroke:'#9aa3aa','stroke-width':2}); R(fg,1216,452,34,28,'#ffffff',{opacity:.7}); R(fg,1220,428,26,10,'#c9ced3',{rx:3});
+
+      // ---- the dominoes: each grows 15% over the one before; the last one is YOU (dark, with Leo's colour)
+      const Y = 482, deg = Math.PI/180;
+      const DOM = d3.range(6).map(i => ({i, h:100*Math.pow(1.15, i)}));
+      let px = 190;
+      DOM.forEach(d => { d.w = d.h*.44; d.px = px + d.w; px = d.px + d.h*.55; });     // px: the bottom-right corner it tips over
+      const PIPS = {1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
+      const ICON = [
+        ic => { Tt(ic,0,-6,'10Y',{'text-anchor':'middle','font-size':17,fill:OUT}); P(ic,'M-22,18 L-8,6 L2,12 L18,-4','none',{stroke:'#d63b2a','stroke-width':4,'stroke-linecap':'round','stroke-linejoin':'round'}); P(ic,'M22,-8 l-12,1 l9,9Z','#d63b2a'); },
+        ic => P(ic,'M0,-22 L5,-12 L12,-15 L9,-3 L19,-6 L15,2 L22,6 L8,9 L10,16 L1,12 L1,22 L-1,22 L-1,12 L-10,16 L-8,9 L-22,6 L-15,2 L-19,-6 L-9,-3 L-12,-15 L-5,-12Z','#d63b2a'),
+        ic => { P(ic,'M-20,2 L0,-18 L20,2 L20,22 L-20,22Z','#3d6fb6',{stroke:OUT,'stroke-width':2.5,'stroke-linejoin':'round'}); R(ic,-5,8,10,14,'#ffc23d',{stroke:OUT,'stroke-width':1.5}); },
+        ic => { P(ic,'M-9,-6 Q-9,-20 0,-20 Q9,-20 9,-6','none',{stroke:OUT,'stroke-width':3}); R(ic,-16,-6,32,28,'#ff8a3d',{rx:3,stroke:OUT,'stroke-width':2.5}); },
+        ic => { R(ic,-25,-11,50,22,'#ffffff',{stroke:OUT,'stroke-width':2.5,rx:3}); P(ic,'M-21,-9 L21,9 M21,-9 L-21,9','none',{stroke:'#d63b2a','stroke-width':2.5,'stroke-linecap':'round',opacity:.85});
+          Tt(ic,0,4,'HIRING',{'text-anchor':'middle','font-size':8,fill:OUT,'paint-order':'stroke',stroke:'#ffffff','stroke-width':3}); },
+        ic => Tt(ic,0,7,'YOU',{'text-anchor':'middle','font-size':19,fill:'#ff8a3d'})
+      ];
+      DOM.forEach(d => {
+        const you = d.i === 5, face = you ? '#1d1b33' : '#fbf7ec', ink = you ? '#ffffff' : OUT;
+        d.sh = E(fg,d.px - d.w/2,Y+1,d.w*.6,5,'#000',{opacity:.3});                       // its shadow on the counter
+        d.g = A(fg,'g',{class: d.i === 0 ? 'ui' : null});
+        d.body = A(d.g,'g');
+        P(d.body,`M${-d.w+3},${-d.h+3} l7,-7 h${d.w-6} l-7,7Z M-3,${-d.h+3} l7,-7 v${d.h-8} l-7,7Z`, you ? '#3a3660' : '#e2d9c3', {stroke:OUT,'stroke-width':2.2,'stroke-linejoin':'round'});
+        R(d.body,-d.w,-d.h,d.w,d.h,face,{rx:d.w*.13,stroke:OUT,'stroke-width':3});
+        R(d.body,-d.w+4,-d.h+4,d.w*.3,d.h-8,'#ffffff',{opacity: you ? .05 : .35,rx:d.w*.1});   // a sheen down its left side
+        L(d.body,-d.w+8,-d.h/2,-8,-d.h/2,ink,2.5);
+        PIPS[d.i+1].forEach(([a, b]) => Cc(d.body,-d.w/2 + a*d.w*.26,-d.h/4 + b*d.w*.27,d.w*.075,you ? '#ff8a3d' : OUT));
+        ICON[d.i](A(d.body,'g',{transform:`translate(${-d.w/2},${-d.h*.75}) scale(${(d.w/62).toFixed(3)})`}));
+      });
+      const push = A(fg,'g',{display:'none'}), pushIn = A(push,'g',{class:'a-bob'});
+      hw(pushIn,114,404,'push!',{'font-size':28,fill:'#ffc23d','paint-order':'stroke',stroke:'#1d1b33','stroke-width':5});
+      P(pushIn,'M134,414 Q150,440 176,440','none',{stroke:'#1d1b33','stroke-width':8,'stroke-linecap':'round'}); P(pushIn,'M134,414 Q150,440 176,440','none',{stroke:'#ffc23d','stroke-width':4,'stroke-linecap':'round'});
+      P(pushIn,'M186,440 l-13,-7 l0,14Z','#ffc23d',{stroke:'#1d1b33','stroke-width':1.5});
+
+      // ---- physics: a point given in a domino's own frame (pivot at its bottom-right corner), after tipping a degrees
+      const pt = (d, a, x, y) => [d.px + x*Math.cos(a*deg) - y*Math.sin(a*deg), Y + x*Math.sin(a*deg) + y*Math.cos(a*deg)];
+      // how far domino d tips before it rests on domino e (itself tipped b degrees); 90 = it falls flat on the counter
+      function rest(d, e, b){
+        if (!e) return 90;
+        const BL = pt(e, b, -e.w, 0), TL = pt(e, b, -e.w, -e.h), fx = TL[0] - BL[0], fy = TL[1] - BL[1];
+        let best = 90;
+        // (1) d's top corner lands on e's left face
+        const side = a => { const T = pt(d, a, 0, -d.h); return fx*(T[1] - BL[1]) - fy*(T[0] - BL[0]); };
+        const s0 = Math.sign(side(0));
+        for (let a = 1; a <= 90; a++){
+          if (Math.sign(side(a)) === s0) continue;
+          let lo = a - 1, hi = a;
+          for (let n = 0; n < 16; n++){ const m = (lo + hi)/2; if (Math.sign(side(m)) === s0) lo = m; else hi = m; }
+          const T = pt(d, hi, 0, -d.h), u = ((T[0] - BL[0])*fx + (T[1] - BL[1])*fy)/(fx*fx + fy*fy);
+          if (u >= 0 && u <= 1) best = hi;
+          break;
+        }
+        // (2) one of e's left corners (lifted as e tips) catches d's right face
+        [BL, TL].forEach(([cx, cy]) => { const dx = cx - d.px, dy = Y - cy;
+          if (dy > .5 && dx > 0 && Math.hypot(dx, dy) <= d.h){ const a = Math.atan2(dx, dy)/deg; if (a < best) best = a; } });
+        return best;
+      }
+      const ang = DOM.map(() => 0);
+      let fallen = 0, raf = 0;
+      function place(){
+        DOM.forEach((d, i) => {
+          d.g.attr('transform', `translate(${d.px.toFixed(1)},${Y}) rotate(${ang[i].toFixed(2)})`);
+          const s = Math.sin(ang[i]*deg), c = Math.cos(ang[i]*deg);
+          d.sh.attr('cx', d.px - d.w*c/2 + d.h*s/2).attr('rx', (d.w*c + d.h*s)*.55);
+        });
+      }
+      // the resting tilt of every domino once the first n have fallen
+      function restState(n){
+        const a = DOM.map(() => 0);
+        if (n > 0){ a[n-1] = rest(DOM[n-1], DOM[n], 0); for (let j = n - 2; j >= 0; j--) a[j] = rest(DOM[j], DOM[j+1], a[j+1]); }
+        return a;
+      }
+      function showTickets(n){ TK.forEach((t, i) => { t.g.attr('display', i < n ? null : 'none'); t.inner.classed('a-ticket', false); }); }
+      function setFallen(n){ cancelAnimationFrame(raf); fallen = n; restState(n).forEach((v, i) => { ang[i] = v; }); place(); showTickets(n); }
+      const pop = (x, y, t, big) => { if (REDUCED) return;
+        const el = hw(fg,x,y,t,{'text-anchor':'middle','font-size': big ? 34 : 22,fill:'#ffffff','paint-order':'stroke',stroke:'#1d1b33','stroke-width':5,class:'a-clack'});
+        setTimeout(() => el.remove(), 1000); };
+      // tip domino n-1 (the dominoes before it follow it down); its ticket swings in when it hits
+      function tipNext(n){
+        setFallen(n - 1); fallen = n;
+        const a = n - 1, d = DOM[a], e = DOM[n], to = rest(d, e, 0), dur = 360 + a*50;
+        let t0 = null, last = 0, hitAt = null;
+        const frame = now => {
+          if (t0 === null){ t0 = now; last = now; }
+          const dt = Math.min(.05, (now - last)/1000); last = now;
+          const t = Math.min(1, (now - t0)/dur);
+          ang[a] = to*t*t;                                                     // like gravity: slow at first, then faster
+          if (t === 1){
+            if (hitAt === null){
+              hitAt = now;
+              const tk = TK[a]; tk.g.attr('display', null); tk.inner.classed('a-ticket', true);
+              if (e){ const [cx, cy] = pt(d, to, 0, -d.h); pop(cx + 6, cy - 10, 'clack!'); e.body.classed('knock', false); e.body.node().getBoundingClientRect(); e.body.classed('knock', true); }
+              else pop(d.px + d.h*.55, Y - d.w - 18, 'THUD!', true);
+            }
+            const bt = (now - hitAt)/170; ang[a] = to - (bt < 1 ? 3*Math.sin(Math.PI*bt) : 0);    // a little bounce
+          }
+          let moving = t < 1 || now - hitAt < 170;
+          for (let j = a - 1; j >= 0; j--){                                     // the ones already down lean on it
+            const want = rest(DOM[j], DOM[j+1], ang[j+1]), nv = ang[j] + (want - ang[j])*Math.min(1, dt*16);
+            if (Math.abs(want - nv) > .05) moving = true;
+            ang[j] = Math.abs(want - nv) > .05 ? nv : want;
+          }
+          place();
+          if (moving) raf = requestAnimationFrame(frame);
+        };
+        raf = requestAnimationFrame(frame);
+      }
+      // the first domino is the button: on the "push" line it starts the chain, on the line before it moves the story on
+      const go = ev => { ev.stopPropagation(); if (fallen) return; if (li === sc.waitAt) sc.pushed = true; stopTyping(); next(); };
+      DOM[0].g.attr('tabindex',0).attr('role','button').attr('aria-label','Push the first domino')
+        .on('click', go).on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); go(ev); } });
+      CTRL = {
+        ready: () => !!sc.pushed,
+        auto: () => { sc.pushed = true; },
+        line: (i, step) => {
+          const n = clamp(i - sc.waitAt, 0, 6);
+          push.attr('display', i === sc.waitAt && n === 0 ? null : 'none');
+          if (step && n === fallen + 1 && !REDUCED) tipNext(n); else setFallen(n);
+        }
+      };
+      setFallen(0);
+    },
+    tower(g,sc,fg){
+      // Thanksgiving weekend 2026 on the CN Tower's LookOut level, 346 m up. Through the glass: Toronto far below, with
+      // rain pouring on some neighbourhoods and sun breaking through over others (the next scene turns that into job
+      // data). Inside: the window frames, the handrail, coin binoculars, and a tourist strolling past.
+      fg = fg || g;
+      sky(g);
+      const HZ = 200;
+      P(g,`M-1400,${HZ+6} Q-500,${HZ-16} 300,${HZ} T1500,${HZ-8} T2700,${HZ+2} V${HZ+40} H-1400Z`,'#a3adb4',{opacity:.85});
+      R(g,-1400,HZ+8,W+2800,560-HZ,'#a9ad9f');
+      for (let n=-7; n<=7; n++) L(g,640+n*26,HZ+10,640+n*250,560,'#bfc2b6',2,{opacity:.7});       // avenues running away to the horizon
+      // a river winding toward the lake behind us, and a big park, both widening as they come closer
+      const depth = y => (y - HZ)/(560 - HZ);
+      const riverX = y => 930 + depth(y)*330 + Math.sin(depth(y)*7)*38, riverW = y => 5 + depth(y)*70;
+      const bank = side => d3.range(HZ + 8, 562, 6).map(y => [riverX(y) + side*riverW(y)/2, y]);
+      P(g,'M' + bank(-1).concat(bank(1).reverse()).map(p => p.map(v => v.toFixed(1)).join(',')).join(' L') + 'Z','#7f9fb4');
+      const park = {x: 300, y: 330, rx: 210, ry: 54};
+      const inPark = (x, y) => ((x - park.x)/park.rx)**2 + ((y - park.y)/park.ry)**2 < 1;
+      E(g,park.x,park.y,park.rx,park.ry,'#7ea56a'); E(g,park.x - 40,park.y - 8,park.rx*.55,park.ry*.5,'#8db876',{opacity:.7});
+      // the city: rows of buildings seen from above, smaller and hazier toward the horizon (none in the river or the park)
+      const cr = seeded(31), pal = ['#cfc8b8','#bdb6a8','#ddd6c6','#aeb6bc','#c8d0d6','#e3d8c2','#b9a99a'];
+      for (let r = 0; r < 12; r++){
+        const f = (r + 1)/12, y = HZ + 14 + 330*Math.pow(f, 1.8), s = .22 + f*1.25, haze = (1 - f)*.7;
+        const fronts = pal.map(() => ''), roofs = pal.map(() => ''); let trees = '';
+        for (let x = -700 + cr()*30*s; x < W + 700; x += (22 + cr()*26)*s){
+          const bw = (12 + cr()*18)*s, bh = (6 + cr()*(r > 8 ? 60 : 22))*s, c = Math.floor(cr()*pal.length);
+          if (Math.abs(x + bw/2 - riverX(y)) < riverW(y)/2 + bw/2 + 2) continue;
+          if (inPark(x + bw/2, y)){ trees += `M${(x + bw/2).toFixed(1)},${(y - 3*s).toFixed(1)}m-${(5*s).toFixed(1)},0a${(5*s).toFixed(1)},${(5*s).toFixed(1)} 0 1 0 ${(10*s).toFixed(1)},0a${(5*s).toFixed(1)},${(5*s).toFixed(1)} 0 1 0 -${(10*s).toFixed(1)},0`; continue; }
+          fronts[c] += `M${x.toFixed(1)},${y.toFixed(1)}v${(-bh).toFixed(1)}h${bw.toFixed(1)}v${bh.toFixed(1)}Z`;
+          roofs[c] += `M${x.toFixed(1)},${(y - bh).toFixed(1)}l${(3*s).toFixed(1)},${(-4*s).toFixed(1)}h${bw.toFixed(1)}l${(-3*s).toFixed(1)},${(4*s).toFixed(1)}Z`;
+        }
+        if (trees) P(g,trees,mix('#4f8a4a','#9aab9a',haze));
+        pal.forEach((c, i) => { if (fronts[i]){ P(g,fronts[i],mix(c,'#b8c1c7',haze)); P(g,roofs[i],mix(lt(c,.4),'#c8cfd4',haze)); } });
+      }
+      R(g,-1400,HZ+8,W+2800,90,'#c3cbd0',{opacity:.35});                                         // haze near the horizon
+      // downtown right below the tower: a few tall towers, seen from above (roofs, fronts and shaded sides)
+      [[40,520,46,150,'#6f8ba3'],[120,548,58,190,'#4f6b86'],[205,530,44,130,'#8aa0b2'],[600,552,52,120,'#5e7f96'],[690,540,40,160,'#40607e'],[1180,546,60,170,'#56738e']].forEach(([x,b,w,h,c]) => {
+        P(g,`M${x+w},${b-h} l12,-8 v${h} l-12,8Z`,dk(c,.4)); R(g,x,b-h,w,h,c); P(g,`M${x},${b-h} l12,-8 h${w} l-12,8Z`,lt(c,.5));
+        let wpath = ''; for (let yy = b - h + 8; yy < b - 6; yy += 10) wpath += `M${x+4},${yy}h${w-8}`; P(g,wpath,'none',{stroke:lt(c,.8),'stroke-width':2.5,opacity:.45});
+      });
+      // the weather over the city: dark clouds raining on the west side, a break with sunbeams over the east
+      P(g,'M-80,180 L560,180 L700,500 L-200,500Z','#4f5a66',{opacity:.3});
+      const rr = seeded(5); let shaft = '';
+      for (let i=0;i<80;i++){ const x = -60 + rr()*620, y = 170 + rr()*260; shaft += `M${x.toFixed(0)},${y.toFixed(0)} l-6,26`; }
+      P(A(g,'g',{class:'a-rainfall',style:'animation-duration:1s'}),shaft,'none',{stroke:'#d7e0ea','stroke-width':1.4,opacity:.55});
+      [[40,130,1.5],[290,112,1.35],[520,146,1.1]].forEach(([x,y,s],i) => cloud(g,x,y,s,'#5f6a76',.95,i));
+      const beams = A(g,'g',{class:'a-beam'});
+      [[950,990,820,950],[1010,1050,1010,1150],[1070,1110,1190,1330]].forEach(([a,b,c,d]) => P(beams,`M${a},150 L${b},150 L${d},500 L${c},500Z`,'#fff3c4',{opacity:.26}));
+      E(g,1090,440,250,48,'#fff6d6',{opacity:.28});
+      [[880,96,1.2],[1200,118,1.3]].forEach(([x,y,s],i) => cloud(g,x,y,s,'#d3d9de',.95,i + 3));
+      const plane = A(g,'g',{class:'a-drive',style:'--from:-500px;--to:1800px;--dur:46s;animation-delay:-14s'});
+      P(plane,'M0,226 l38,-3 l6,-7 l4,7 l12,1 l-12,3 l-4,5 l-6,-4 l-38,1Z','#eef1f3');
+      // the glass: a faint tint, reflections of the room, and raindrops running down it
+      R(g,-1400,60,W+2800,480,'#cfe8ff',{opacity:.07});
+      [[60,-200],[620,330],[1100,900]].forEach(([a,b]) => P(g,`M${a},66 L${a+90},66 L${b+90},536 L${b},536Z`,'#ffffff',{opacity:.05}));
+      const dr = seeded(77);
+      for (let i=0;i<26;i++) Cc(g,-100 + dr()*1480,80 + dr()*400,1.6 + dr()*1.6,'#eaf4fb',{opacity:.55});
+      for (let i=0;i<12;i++) E(g,40 + dr()*1200,70 + dr()*220,2.2,3,'#eaf4fb',{opacity:.8,class:'a-glassdrop',
+        style:`--dur:${(5 + dr()*5).toFixed(1)}s;--dy:${(60 + dr()*140).toFixed(0)}px;animation-delay:-${(dr()*8).toFixed(1)}s`});
+      // ---- inside: ceiling with downlights, slanted window frames with the level's sign, sill, handrail, carpet
+      R(g,-1400,-800,W+2800,852,'#22262f');
+      for (let x=-1340; x<W+1400; x+=160){ glow(g,x,44,60,.45); E(g,x,38,16,4,'#fff6d8'); }
+      R(g,-1400,50,W+2800,16,'#3a3f4b'); R(g,-1400,64,W+2800,3,'#555b68');
+      for (let x=-1380; x<W+1400; x+=236) P(g,`M${x-6},66 L${x+10},66 L${x+18},538 L${x+2},538Z`,'#3a3f4b',{stroke:'#2a2e38','stroke-width':1.5});
+      R(g,512,46,256,24,'#1d1b33',{rx:4,stroke:'#555b68','stroke-width':1.5}); Tt(g,640,63,'LOOKOUT · 346 M',{'text-anchor':'middle','font-size':12,fill:'#ffc23d'});
+      R(g,-1400,536,W+2800,16,'#4a505c'); R(g,-1400,552,W+2800,G-552,'#2d323d');
+      R(g,-1400,502,W+2800,8,'#b8c0c6',{rx:4}); for (let x=-1262; x<W+1400; x+=236) R(g,x,510,6,28,'#8a939a');
+      ground(g,'#363c49'); for (let n=0;n<8;n++) L(g,-1400,G+10+n*n*4,W+1400,G+10+n*n*4,'#3e4552',2);
+      [200,640,1080].forEach(x => E(g,x,G+30,180,20,'#fff6d8',{opacity:.05}));
+      walker(g,G-24,.8,{dir:-1,dur:46,delay:14,col:'#7a6a9a',item:'backpack',packCol:'#3fbf8f'});
+      // coin binoculars on a post by the window (the next scene looks through them)
+      const bx = 1080;
+      E(g,bx,G+2,46,8,'#000',{opacity:.25}); R(g,bx-8,452,16,G-452,'#2f5d7c',{stroke:OUT,'stroke-width':2}); R(g,bx-26,G-12,52,12,'#24485f',{rx:3,stroke:OUT,'stroke-width':2});
+      const head = A(g,'g',{transform:`rotate(-10,${bx},438)`});
+      R(head,bx-38,414,76,44,'#e0a83a',{rx:14,stroke:OUT,'stroke-width':2.5}); R(head,bx-30,420,60,8,'#f2c766',{rx:4,opacity:.7});
+      [[-56,418],[-56,438]].forEach(([dx,y]) => R(head,bx+dx,y,20,15,'#1d1b33',{rx:4}));
+      R(head,bx+14,446,14,4,'#1d1b33',{rx:2}); Tt(head,bx+6,444,'$2',{'font-size':9,fill:'#1d1b33'});
+    },
+    city(g,sc,fg){
+      // Through the CN Tower's binoculars, October 2026: one neighbourhood per industry (real Labour Force Survey data for
+      // all of Canada), ordered from more exposed (left) to more sheltered (right). A rain cloud hangs over an industry
+      // whose jobs grew less than all Canadian jobs since Feb 2022; an umbrella shelters one that grew more. The AREA of
+      // each cloud or umbrella is proportional to that gap, and the exact gap is printed on it; each sign gives the
+      // industry's own change. Click a neighbourhood for its job trend (the binocular view); pick a program for pins.
+      fg = fg || g;
+      sky(g);
+      // far away: hazy towers on the horizon, the ground far below, and a light drizzle over everyone (rates are high)
+      const fr = seeded(41); let far = '';
+      for (let x = -700; x < W + 700; x += 18 + fr()*26){ const w = 10 + fr()*16, h = 8 + fr()*34; far += `M${x.toFixed(0)},318 v${(-h).toFixed(0)} h${w.toFixed(0)} v${h.toFixed(0)}Z`; }
+      P(g,'M-1400,320 Q-400,302 640,314 T2700,308 V340 H-1400Z','#9ba7ae',{opacity:.8}); P(g,far,'#8e9aa3',{opacity:.75});
+      R(g,-1400,318,W+2800,500,'#94a08c');
+      for (let n=0; n<7; n++) L(g,-1400,336+n*n*5,W+1400,336+n*n*5,'#a6ae9d',1.5,{opacity:.6});
+      R(g,-1400,470,W+2800,17,'#7d858b'); L(g,-1400,478.5,W+1400,478.5,'#e9ecec',1.5,{'stroke-dasharray':'10 9'});
+      R(g,-1400,487,W+2800,400,'#b9bcae');
+      const dz = seeded(43); [0, -.45].forEach(delay => { let p = '';
+        for (let i=0;i<120;i++){ const x = -300 + dz()*(W + 600), y = 60 + dz()*400; p += `M${x.toFixed(0)},${y.toFixed(0)} l-3,12`; }
+        P(A(g,'g',{class:'a-rainfall',style:`animation-duration:.9s;animation-delay:${delay}s`}),p,'none',{stroke:'#e3ebf2','stroke-width':1.2,opacity:.4}); });
+      // a compact storm cloud that hovers in place over its neighbourhood (so it never drifts onto the next one)
+      const stormCloud = (gg, x, y, s, k) => {
+        const c = A(A(gg,'g',{transform:`translate(${x},${y}) scale(${s.toFixed(3)})`}),'g',{class:'a-hover',style:`animation-delay:-${k*.7}s`});
+        E(c,4,24,96,18,'#3f4852'); [[-60,10,34],[-20,-10,44],[30,-2,40],[70,12,30],[0,16,38]].forEach(([dx,dy,r]) => Cc(c,dx,dy,r,'#5b6571'));
+        [[-26,-24,18],[22,-14,15]].forEach(([dx,dy,r]) => Cc(c,dx,dy,r,'#76808b',{opacity:.6}));
+      };
+      // a little 3-D building seen from above and to the right: front, roof and side, with a grid of windows
+      const box3 = (gg, x, b, w, h, col, o={}) => {
+        const dd = o.d ?? 8, top = b - h;
+        P(gg,`M${x+w},${top} l${dd},${-dd*.7} v${h} l${-dd},${dd*.7}Z`,dk(col,.35),{stroke:OUT,'stroke-width':1.2});
+        P(gg,`M${x},${top} l${dd},${-dd*.7} h${w} l${-dd},${dd*.7}Z`,lt(col,.35),{stroke:OUT,'stroke-width':1.2});
+        R(gg,x,top,w,h,col,{stroke:OUT,'stroke-width':1.2});
+        if (o.win !== false){ let p = ''; for (let yy = top + 7; yy < b - 10; yy += 11) for (let xx = x + 5; xx < x + w - 6; xx += 9) p += `M${xx},${yy}h4v6h-4Z`;
+          if (p) P(gg,p,o.winCol || '#f4e9b8',{opacity:o.winOp ?? .8}); }
+      };
+      // each kind of neighbourhood; returns how high its roofs reach
+      const BUILD = {
+        shop(gg, x, b, d){
+          [[-48,30,40,'#c4685a','#d63b2a'],[-15,30,50,'#d49a58','#3d6fb6'],[18,30,36,'#8a7ab3','#3fbf8f']].forEach(([dx,w,h,col,aw]) => {
+            box3(gg,x+dx,b,w,h,col,{win:false}); R(gg,x+dx+4,b-22,w-8,15,'#cfe6f3',{stroke:OUT,'stroke-width':1});
+            for (let j=0;j<4;j++) P(gg,`M${x+dx+j*w/4},${b-28} h${w/4} l1.5,7 h${-w/4}Z`,j % 2 ? '#ffffff' : aw,{stroke:OUT,'stroke-width':.6}); });
+          if (d.since < 0){ R(gg,x-11,b-44,26,11,'#ffffff',{stroke:'#d63b2a','stroke-width':1.2}); Tt(gg,x+2,b-35.5,'LEASE',{'text-anchor':'middle','font-size':6,fill:'#d63b2a'}); }
+          return b - 58;
+        },
+        factory(gg, x, b){
+          box3(gg,x-48,b,74,42,'#7e8b6a',{win:false});
+          let saw = `M${x-48},${b-42}`; for (let j=0;j<4;j++) saw += ` l${74/8},-12 l${74/8},12`; P(gg,saw + 'Z','#6c7859',{stroke:OUT,'stroke-width':1.2});
+          for (let j=0;j<4;j++) R(gg,x-44+j*18,b-30,12,10,'#f4e9b8',{opacity:.8});
+          [[30,96],[46,80]].forEach(([dx,h],j) => { box3(gg,x+dx-4,b,10,h,'#5b5f5c',{win:false,d:4}); R(gg,x+dx-4,b-h+6,10,4,'#d63b2a');
+            [0,1,2].forEach(n => Cc(gg,x+dx+1,b-h-10,7+n*2,'#c9ced3',{opacity:.75,class:'a-steam',style:`animation-delay:${j*.7+n*.9}s;animation-duration:3s`})); });
+          return b - 112;
+        },
+        school(gg, x, b){
+          box3(gg,x-46,b,78,52,'#b5603f');
+          box3(gg,x-14,b-52,16,34,'#a14f33',{win:false,d:5}); P(gg,`M${x-16},${b-86} L${x-6},${b-100} L${x+4},${b-86}Z`,'#58616b',{stroke:OUT,'stroke-width':1.2});
+          Cc(gg,x-6,b-72,5,'#ffffff',{stroke:OUT,'stroke-width':1});
+          L(gg,x+26,b-56,x+26,b-86,OUT,1.5); P(A(gg,'g',{class:'a-flag'}),`M${x+26},${b-86} l16,4 l-16,5Z`,'#d63b2a');
+          return b - 100;
+        },
+        site(gg, x, b){
+          for (let j=0;j<5;j++) L(gg,x-44,b-j*18,x+4,b-j*18,'#8a6b48',2);
+          for (let j=0;j<4;j++) L(gg,x-44+j*16,b,x-44+j*16,b-72,'#8a6b48',2);
+          box3(gg,x-44,b,48,22,'#cf8a3a',{win:false}); R(gg,x-50,b-12,104,12,'#ffc23d',{stroke:OUT,'stroke-width':1});
+          const cx = x + 30, top = b - 150;
+          R(gg,cx-4,top,8,150,'#e0a83a',{stroke:OUT,'stroke-width':1}); for (let yy=top+6; yy<b-12; yy+=12) L(gg,cx-4,yy,cx+4,yy+8,'#a8761a',1);
+          R(gg,cx-64,top-6,88,6,'#e0a83a',{stroke:OUT,'stroke-width':1}); R(gg,cx+12,top-2,12,12,'#7c858c',{stroke:OUT,'stroke-width':1});
+          const hook = A(gg,'g',{class:'a-swing-sm'}); L(hook,cx-52,top,cx-52,top+66,OUT,1); R(hook,cx-60,top+66,16,10,'#8a6b48',{stroke:OUT,'stroke-width':1});
+          return top - 8;
+        },
+        bank(gg, x, b){
+          box3(gg,x-46,b,36,150,'#3f5f86',{winCol:'#cfe6f3',winOp:.55}); R(gg,x-46,b-150,36,8,'#c9a227');
+          box3(gg,x-4,b,42,118,'#2f4a6b',{winCol:'#cfe6f3',winOp:.5});
+          return b - 158;
+        },
+        civic(gg, x, b){
+          box3(gg,x-46,b,92,44,'#c9b48d',{win:false});
+          for (let j=0;j<7;j++) R(gg,x-40+j*13,b-38,5,34,'#efe6d0');
+          P(gg,`M${x-50},${b-44} L${x},${b-62} L${x+50},${b-44}Z`,'#b59f78',{stroke:OUT,'stroke-width':1.2});
+          P(gg,`M${x-18},${b-60} A18,18 0 0 1 ${x+18},${b-60}Z`,'#6aa58a',{stroke:OUT,'stroke-width':1.2});
+          L(gg,x,b-78,x,b-104,OUT,1.5); const fl = A(gg,'g',{class:'a-flag'});
+          R(fl,x,b-104,22,12,'#ffffff'); R(fl,x,b-104,5.5,12,'#d63b2a'); R(fl,x+16.5,b-104,5.5,12,'#d63b2a'); Cc(fl,x+11,b-98,2.6,'#d63b2a');
+          return b - 104;
+        },
+        tech(gg, x, b){
+          box3(gg,x-44,b,38,112,'#5c93ad',{winCol:'#e6f4ff',winOp:.5});
+          box3(gg,x,b,40,86,'#4f8aa3',{winCol:'#e6f4ff',winOp:.5});
+          L(gg,x-25,b-112,x-25,b-134,OUT,1.5); Cc(gg,x-25,b-136,3,'#ff5a3c',{class:'a-blink'});
+          return b - 136;
+        },
+        hospital(gg, x, b){
+          box3(gg,x-46,b,88,74,'#eef3f1',{winCol:'#9fc6d9',winOp:.9});
+          R(gg,x-17,b-66,34,34,'#ffffff',{stroke:OUT,'stroke-width':1}); R(gg,x-5,b-62,10,26,'#d63b2a'); R(gg,x-13,b-54,26,10,'#d63b2a');
+          E(gg,x+4,b-80,18,5,'#c9ced3',{stroke:OUT,'stroke-width':1}); Tt(gg,x+4,b-77.5,'H',{'text-anchor':'middle','font-size':7,fill:OUT});
+          return b - 86;
+        },
+        food(gg, x, b){
+          box3(gg,x-48,b,44,46,'#d49a58',{win:false}); box3(gg,x,b,44,38,'#c4685a',{win:false});
+          [[-48,44,'#3fbf8f'],[0,44,'#ffc23d']].forEach(([dx,w,aw]) => { R(gg,x+dx+4,b-22,w-8,15,'#ffe9a8',{stroke:OUT,'stroke-width':1});
+            for (let j=0;j<4;j++) P(gg,`M${x+dx+j*w/4},${b-28} h${w/4} l1.5,7 h${-w/4}Z`,j % 2 ? '#ffffff' : aw,{stroke:OUT,'stroke-width':.6}); });
+          P(gg,`M${x-38},${b-70} h26 l-3,20 h-20Z`,'#ffffff',{stroke:OUT,'stroke-width':1.5}); P(gg,`M${x-12},${b-64} q9,0 6,8 q-2,5 -8,4`,'none',{stroke:OUT,'stroke-width':1.5});
+          L(gg,x-25,b-50,x-25,b-46,OUT,1.5);
+          [0,1.3].forEach(n => Cc(gg,x-25,b-76,4,'#ffffff',{opacity:.7,class:'a-steam',style:`animation-delay:${n}s`}));
+          return b - 80;
+        }
+      };
+      // ---- the nine neighbourhoods
+      const NB = DIST.length, XC = n => 178 + n*115, BASE = 470, maxGap = d3.max(DIST, d => Math.abs(d.gap));
+      DIST.forEach((d, n) => {
+        const xc = XC(n), dg = A(g,'g',{class:'district ui',tabindex:0,role:'button','aria-label':`${d.full}: jobs ${sg(d.since)} since February 2022. Show details.`});
+        d.xc = xc; d.g = dg;
+        d.spot = E(dg,xc,BASE+2,64,15,'#fff3b0',{opacity:0});
+        d.roof = BUILD[d.kind](A(dg,'g'), xc, BASE, d);
+        const f = Math.sqrt(Math.abs(d.gap)/maxGap), lab = `${d.gap >= 0 ? '+' : '−'}${Math.abs(d.gap).toFixed(1)} pts`;
+        const labAt = (x, y, size) => hw(dg,x,y,lab,{'text-anchor':'middle','font-size':size,fill:'#ffffff','paint-order':'stroke',stroke:'#1d1b33','stroke-width':4});
+        if (d.gap < 0){
+          // rain cloud: AREA proportional to how far the industry fell behind all jobs; rain falls from it to the roofs
+          const s = .66*f, cy = 196, bottom = cy + 34*s, w = 150*s;
+          const rain = seeded(60 + n); let p = '';
+          for (let i = 0, nn = Math.round(6 + 22*f*f); i < nn; i++){ const x = xc - w/2 + rain()*w, y = bottom + rain()*Math.max(10, d.roof - bottom - 70); p += `M${x.toFixed(1)},${y.toFixed(1)} l-3,13`; }
+          P(A(dg,'g',{class:'a-rainfall',style:`animation-delay:-${(n*.13).toFixed(2)}s`}),p,'none',{stroke:'#7fa6c9','stroke-width':1.8,'stroke-linecap':'round'});
+          stormCloud(dg, xc, cy, s, n);
+          labAt(xc, cy + 8, 13 + 7*f);
+        } else {
+          // umbrella: AREA proportional to how far the industry got ahead of all jobs; the drizzle stops at its canopy
+          const uw = Math.max(26, 130*f), uh = uw*.42, uy = Math.min(d.roof - 12, BASE - 70);
+          L(dg,xc,uy - uh,xc,uy + 44,OUT,3); P(dg,`M${xc},${uy+44} q0,10 -8,10 q-6,0 -6,-6`,'none',{stroke:OUT,'stroke-width':3,'stroke-linecap':'round'});
+          let cpy = `M${xc - uw/2},${uy} C${xc - uw/2},${uy - uh*1.32} ${xc + uw/2},${uy - uh*1.32} ${xc + uw/2},${uy}`;
+          for (let j = 0; j < 4; j++){ const x1 = xc + uw/2 - j*uw/4; cpy += ` Q${x1 - uw/8},${uy - uh*.2} ${x1 - uw/4},${uy}`; }
+          P(dg,cpy + 'Z','#3d6fb6',{stroke:OUT,'stroke-width':2.5,'stroke-linejoin':'round'});
+          [-.25,.25].forEach(t => P(dg,`M${xc},${uy - uh*.99} Q${xc + uw*t*.9},${uy - uh*.7} ${xc + uw*t*1.25},${uy - uh*.1}`,'none',{stroke:'#7fb0e6','stroke-width':2}));
+          L(dg,xc,uy - uh*.99,xc,uy - uh - 9,OUT,3);
+          if (uw >= 80) labAt(xc, uy - uh*.38, 12 + 7*f); else labAt(xc, uy - uh - 16, 15);
+        }
+        // the sign: short name and the industry's own job change since Feb 2022
+        R(dg,xc-52,491,104,35,'#f4ecd8',{class:'sign',rx:6,stroke:OUT,'stroke-width':2});
+        Tt(dg,xc,506,d.short.toUpperCase(),{'text-anchor':'middle','font-size':10,fill:OUT});
+        mono(dg,xc,521,sg(d.since),{'text-anchor':'middle','font-size':13.5,'font-weight':500,fill: d.gap < 0 ? '#c0392b' : '#2f6b9a'});
+        d.pin = A(dg,'g',{display:'none'});
+        R(dg,xc-57,96,114,432,'transparent',{'pointer-events':'all'});        // the whole column is the click target
+        dg.on('click', ev => { ev.stopPropagation(); if (lensFor === d) closeLens(); else openLens(d); })
+          .on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openLens(d); } });
+      });
+      // the legend across the top, and which way is which along the bottom
+      const lg = A(g,'g'); R(lg,150,52,980,40,'#1d1b33',{opacity:.78,rx:10});
+      const lcl = A(lg,'g',{transform:'translate(178,72) scale(.17)'}); E(lcl,4,24,96,18,'#3f4852'); [[-60,10,34],[-20,-10,44],[30,-2,40],[70,12,30],[0,16,38]].forEach(([dx,dy,r]) => Cc(lcl,dx,dy,r,'#8f99a4'));
+      sans(lg,202,78,'jobs grew less than all jobs',{fill:'#f4f2ff','font-size':13.5});
+      P(lg,'M418,78 C418,62 446,62 446,78 Q439,74 432,78 Q425,74 418,78Z','#3d6fb6',{stroke:'#f4f2ff','stroke-width':1.2}); L(lg,432,64,432,86,'#f4f2ff',1.5);
+      sans(lg,454,78,'grew more',{fill:'#f4f2ff','font-size':13.5});
+      sans(lg,1116,78,`Size = the gap in % points · all Canadian jobs since Feb 2022: ${sg(ALLJ)}`,{'text-anchor':'end',fill:'#ffc23d','font-size':13.5});
+      L(g,170,546,1110,546,'#1d1b33',2.5); P(g,'M160,546 l14,-7 v14Z M1120,546 l-14,-7 v14Z','#1d1b33');
+      sans(g,180,541,'MORE EXPOSED',{'font-size':10.5,fill:'#c0392b'}); sans(g,1100,541,'MORE SHELTERED',{'font-size':10.5,fill:'#2f6b9a','text-anchor':'end'});
+      // ---- program chips: where graduates of each program usually work (a rough guide)
+      const chips = A(fg,'g',{class:'chips'});
+      hw(chips,150,580,'Leo’s program?',{'font-size':19,fill:'#ffffff','paint-order':'stroke',stroke:'#1d1b33','stroke-width':4});
+      const chipEls = MAJORS.map(([id, label], n) => {
+        const x = 290 + n*136, c = A(chips,'g',{class:'ui chip',tabindex:0,role:'button','aria-label':`Show where ${label} graduates usually work`});
+        const bgc = R(c,x,558,128,32,'#2a2747',{rx:16,stroke:'#120f24','stroke-width':2.5,class:'chip-bg'});
+        sans(c,x+64,579,label,{'text-anchor':'middle','font-size':12.5,fill:'#f4f2ff'});
+        c.on('click', ev => { ev.stopPropagation(); pins(sc.prog === id ? null : id, true); })
+         .on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); pins(sc.prog === id ? null : id, true); } });
+        return {id, bg:bgc};
+      });
+      function pins(id, anim){
+        sc.prog = id;
+        const m = MAJORS.find(x => x[0] === id);
+        DIST.forEach(d => {
+          const on = !!m && m[2].includes(d.id);
+          d.pin.selectAll('*').remove(); d.pin.attr('display', on ? null : 'none');
+          if (!on) return;
+          const p = A(d.pin,'g',{class: anim && !REDUCED ? 'a-drop' : null}), x = d.xc + 44, y = 493;
+          P(p,`M${x},${y} C${x-6},${y-10} ${x-14},${y-16} ${x-14},${y-27} A14,14 0 1 1 ${x+14},${y-27} C${x+14},${y-16} ${x+6},${y-10} ${x},${y}Z`,'#ff8a3d',{stroke:OUT,'stroke-width':2});
+          Tt(p,x,y-24,'YOU',{'text-anchor':'middle','font-size':7.5,fill:'#ffffff'});
+        });
+        chipEls.forEach(c => c.bg.attr('fill', c.id === id ? '#ff8a3d' : '#2a2747'));
+      }
+      if (sc.prog) pins(sc.prog, false);
+      mono(fg,150,606,`Jobs: Statistics Canada Labour Force Survey (via Bloomberg), all of Canada, Feb 2022 → ${MONTH(JM)}. Program pins are a rough guide.`,{'font-size':10,fill:'#1d1b33'});
+      // ---- the binocular view: the job trend for one neighbourhood, inside a pair of round lenses
+      const lens = A(fg,'g',{class:'lens ui',display:'none'});
+      let lensFor = null, lensLine = -1;
+      lens.on('click', ev => ev.stopPropagation());
+      function closeLens(){ lens.attr('display','none').selectAll('*').remove(); lensFor = null; DIST.forEach(o => o.g.classed('on', false)); }
+      function openLens(d){
+        sc.opened = true; lensFor = d; lensLine = li;
+        lens.selectAll('*').remove();
+        const cx = clamp(d.xc, 330, 950), cy = 238, bad = d.gap < 0;
+        lens.attr('display', null).attr('transform', `translate(${cx},${cy})`);
+        const inn = A(lens,'g',{class:'lens-in'});
+        [-70,70].forEach(dx => Cc(inn,dx+7,9,134,'#000',{opacity:.25}));
+        [-70,70].forEach(dx => Cc(inn,dx,0,134,'#1d1b33'));                  // the rims: drawn behind the glass, so only the outline shows
+        const cg = A(inn,'g',{'clip-path':'url(#lensClip)'});
+        R(cg,-200,-130,400,260,'#14233a'); E(cg,-40,-60,150,60,'#ffffff',{opacity:.04});
+        sans(cg,0,-86,d.full,{'text-anchor':'middle','font-size':13,fill:'#ffc23d'});
+        // the chart: this industry's jobs and all jobs, both set to 100 in Feb 2022 (when rates began rising)
+        const idx = key => JOBS[key].series.map(([m, v]) => [parseM(m), 100*v/JOBS[key].feb22]);
+        const me = idx(d.id), all = idx('all'), both = me.concat(all);
+        const x = d3.scaleTime().domain(d3.extent(me, p => p[0])).range([-150, 150]);
+        const yv = d3.extent(both, p => p[1]), y = d3.scaleLinear().domain([yv[0] - 2, yv[1] + 2]).range([-2, -72]);
+        const ln = d3.line().x(p => x(p[0])).y(p => y(p[1]));
+        L(cg,x(parseM('2022-02')),-74,x(parseM('2022-02')),-2,'#9fb0c8',1,{'stroke-dasharray':'2 3'});
+        mono(cg,x(parseM('2022-02')) + 4,-64,'rates start rising',{'font-size':8,fill:'#9fb0c8'});
+        L(cg,-150,-2,150,-2,'#3a4a64',1);
+        P(cg,ln(all),'none',{stroke:'#9aa6b8','stroke-width':1.8,'stroke-dasharray':'4 3'});
+        const path = P(cg,ln(me),'none',{stroke: bad ? '#ff7b6b' : '#7fc8f8','stroke-width':3,'stroke-linejoin':'round'});
+        if (!REDUCED){ const len = path.node().getTotalLength(); path.attr('stroke-dasharray', `${len} ${len}`).attr('stroke-dashoffset', len).transition().duration(900).ease(d3.easeCubicOut).attr('stroke-dashoffset', 0); }
+        mono(cg,-150,10,'2019',{'font-size':8,fill:'#9fb0c8'}); mono(cg,150,10,JM.slice(0,4),{'font-size':8,fill:'#9fb0c8','text-anchor':'end'});
+        hw(cg,0,34,`${sg(d.since)} since Feb 2022`,{'text-anchor':'middle','font-size':21,fill: bad ? '#ff9c8f' : '#9fdcff'});
+        sans(cg,0,52,`All Canadian jobs: ${sg(ALLJ)} · past year: ${sg(d.yr)}`,{'text-anchor':'middle','font-size':11.5,fill:'#c9d4e6'});
+        const note = typeof d.note === 'function' ? d.note(d) : d.note;
+        wrapText(note, 52).slice(0, 3).forEach((t, n) => sans(cg,0,70 + n*15,t,{'text-anchor':'middle','font-size':11,'font-weight':600,fill:'#e6ecf5'}));
+        R(inn,-30,-128,60,30,'#1d1b33',{rx:9}); R(inn,-22,-124,44,6,'#3a3660',{rx:3});      // the bridge between the lenses
+        const x0 = A(inn,'g',{class:'ui',role:'button',tabindex:0,'aria-label':'Close the binoculars'});
+        Cc(x0,170,-84,15,'#ffc23d',{stroke:OUT,'stroke-width':2.5}); P(x0,'M164,-90 L176,-78 M176,-90 L164,-78','none',{stroke:OUT,'stroke-width':3,'stroke-linecap':'round'});
+        x0.on('click', ev => { ev.stopPropagation(); closeLens(); }).on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); closeLens(); } });
+        DIST.forEach(o => o.g.classed('on', o === d));
+      }
+      // Each line can point at neighbourhoods (a glow on the ground); moving on closes the binoculars
+      CTRL = {
+        ready: () => !!sc.opened,
+        auto: () => { sc.opened = true; },
+        line: i => {
+          if (lensFor && lensLine !== i) closeLens();
+          const w = sc.waitAt, ids = i === w + 1 ? [DIST[0].id, DIST[NB-1].id] : i === w + 2 ? ['man'] : i === w + 3 ? ['con','man'] : [];
+          DIST.forEach(d => { const on = ids.includes(d.id); d.spot.attr('opacity', on ? null : 0).classed('a-glow', on); });
+          chips.classed('hint', i === w + 4);
+        }
+      };
     },
     nursery(g,sc){
       // wallpaper stripes with stars and dots, panelled wainscot
@@ -2319,6 +3154,8 @@ d3.json('prototype/data/leo.json').then(DATA => {
     streetMove:{mom:430, leo:545, dad:660},
     bedroom:{leo:560},
     cafe:{leo:800},
+    dominoes:{leo:1110},                       // behind the counter, next to the last domino
+    tower:{mom:330, leo:560, dad:790},         // the binoculars stand on the right
     fair:{leo:640},
     convocation:{mom:400, leo:900, dad:1030},   // the round centre bay stays visible
   };
@@ -2329,7 +3166,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     const ck = CAST_SCALE[sc.bg] || 1;
     gCast.attr('transform', ck === 1 ? null : `translate(640,${G}) scale(${ck}) translate(-640,${-G})`);
     const intro = castIntro; castIntro = null;
-    if (sc.draw) return;                               // the sketchbook is seen through Leo's eyes: nobody on stage
+    if (sc.draw || sc.pov) return;                     // the sketchbook, the budget pad and the binoculars are seen through someone's eyes
     if (sc.ride){ drawRide(sc, line); return; }        // on the coaster the family sits in the cart
     const who = line ? line[0] : null, mood = (line && line[0]==='LEO' && line[2]) || sc.mood || 'neutral';
     const pmood = (line && (line[0]==='MOM'||line[0]==='DAD') && line[2]) || (sc.mood==='happy'?'happy':sc.mood==='worried'||sc.mood==='sad'?'worried':'neutral');
@@ -2431,6 +3268,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     WIND = OUTDOOR.has(sc.bg) ? storm(sc.y) : 0;
     gBg.selectAll('*').remove(); gFg.selectAll('*').remove();
     d3.select('#rideLayers').remove();             // the Yield Coaster's own layers (if we are leaving it)
+    CTRL = null;                                   // an interactive scene sets its own
     BG[sc.bg](gBg, sc, gFg);
     $('stage').classList.toggle('drawing', !!sc.draw);
     const t = storm(sc.y);
@@ -2450,6 +3288,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   function showLine(){
     const sc = story[si], line = sc.lines[li];
     drawCast(sc, line);
+    if (CTRL && CTRL.line){ const step = CTRL.at != null && Math.abs(li - CTRL.at) === 1; CTRL.at = li; CTRL.line(li, step); }
     const s = SPK[line[0]];
     if (line[0] !== lastSpeaker && !REDUCED){ const nm = $('who'); nm.classList.remove('pop'); void nm.offsetWidth; nm.classList.add('pop'); }
     lastSpeaker = line[0];
@@ -2498,6 +3337,10 @@ d3.json('prototype/data/leo.json').then(DATA => {
     if (scn.draw && li === scn.drawAt && SK && !SK.revealed){     // the sketchbook waits for your drawing
       if (!SK.done && !SK.nudged){ SK.nudged = true; $('line').textContent = 'Draw first: drag from the dot to the right edge of the page. Or press Next again to skip.'; return; }
       revealSketch(); li++; showLine(); return;
+    }
+    if (scn.waitAt === li && CTRL && !CTRL.ready()){              // an interactive scene waits for your drag, push or tap
+      if (!CTRL.nudged){ CTRL.nudged = true; $('line').textContent = scn.nudge; return; }
+      CTRL.auto();                                                 // pressed Next again: skip it
     }
     if (li < story[si].lines.length-1){ li++; showLine(); return; }
     if (si < story.length-1){ goScene(si+1); return; }
@@ -2550,7 +3393,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
         <dt>Career-fair booths hiring in 2028</dt><dd>${story[2].props.booths} of 5</dd>
         <dt>Leo in 2030</dt><dd>${{A:'Bay Street job',B:'Job at a smaller firm',C:'Six-month contract',D:'Moving back home'}[f.b.id]}</dd>
       </dl>
-      <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR); Government of Canada 5-year yield, Bank of Canada Valet API; 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada.</p>
+      <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR); Government of Canada 5-year yield, Bank of Canada Valet API; Canadian jobs by industry and unemployment rate, Statistics Canada Labour Force Survey via Bloomberg (to ${MONTH(JM)}); 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada. Research: Singh, Suda &amp; Zervou (2022) on which industries feel rate hikes most; Romer &amp; Romer (2023) on rate hikes and unemployment.</p>
       <div class="row">
         <button class="btn" id="againBtn">Choose another future</button>
         <button class="btn ghost" id="replayBtn">Replay from 2007</button>
@@ -2570,15 +3413,15 @@ d3.json('prototype/data/leo.json').then(DATA => {
   /* ================= wiring ================= */
   $('next').addEventListener('click', next);
   $('back').addEventListener('click', back);
-  $('stage').addEventListener('click', e => { if (e.target.closest('.overlay, .box') || story[si].draw) return; next(); });   // on the sketchbook, clicks draw
+  $('stage').addEventListener('click', e => { if (e.target.closest('.overlay, .box, .ui') || story[si].draw) return; next(); });   // on the sketchbook, clicks draw; things you can click in a scene handle their own
   document.addEventListener('keydown', e => {
-    if (e.target.matches('input,a')) return;
-    if (e.target.matches('button') && (e.key==='Enter' || e.key===' ')) return;
+    if (e.target.matches('input,a') || e.target.closest('[role=slider]')) return;       // the budget pin uses the arrow keys itself
+    if (e.target.matches('button,[role=button]') && (e.key==='Enter' || e.key===' ')) return;
     if (['ArrowRight','Enter',' '].includes(e.key)){ e.preventDefault(); next(); }
     if (e.key === 'ArrowLeft'){ e.preventDefault(); back(); }
   });
   $('startBtn').addEventListener('click', () => { startStory(); $('next').focus(); });
-  $('skipBtn').addEventListener('click', () => { startStory(false); goScene(PAST.length-1); });
+  $('skipBtn').addEventListener('click', () => { startStory(false); goScene(PAST.findIndex(sc => sc.key === 'uni')); });
 
   // first frame: 2007 behind the title card
   fitScene(); renderScene(story[0]); showLine(); stopTyping(); $('line').textContent = story[0].lines[0][1]; measureBox(); fitScene();

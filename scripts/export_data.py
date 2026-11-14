@@ -120,6 +120,12 @@ def build():
         # the Yield Coaster and Leo's sketchbook: the monthly 10-year yield since 1962
         "us10Monthly": gs10,
         "mortPeak": rate_weather["mortPeak"],
+        # the café dominoes (2024): Canada's 5-year bond yield (monthly) and unemployment rate (quarterly) since 2019
+        "ca5Monthly": rate_weather["boc"],
+        "canUnempQ": [[d[:7], r2(v)] for d, v in rows(
+            "SELECT date, value FROM observations WHERE series_id='EHUPCA' AND date>='2019' ORDER BY date")],
+        # the dominoes and the CN Tower view (2026): Canadian jobs by industry (Labour Force Survey) since 2019
+        "ind": ind,
     }
     return {"B": rate_weather, "DATA": leo}
 
