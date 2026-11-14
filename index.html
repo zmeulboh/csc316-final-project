@@ -251,8 +251,18 @@ a.btn{text-decoration:none;display:inline-block}
   .hud .trackwrap{grid-column:1/-1;order:3}
   .controls .hint{display:none}
 }
+/* Yield Coaster: the family's mood follows the ride (classes set on the cart), the lift chain runs on a climb */
+.cart .whee,.cart .speed{display:none}
+.cart.st-down .whee,.cart.st-down .speed{display:inline}
+.cart.st-up .ride-bob{animation:rattle .14s linear infinite}
+.cart.arrive .ride-bob{animation:arrive .5s ease-out}
+.cart.st-up .whl,.cart.st-down .whl,.cart.st-roll .whl{animation:spin .45s linear infinite;transform-box:fill-box;transform-origin:50% 50%}
+.chain.on{animation:chain .3s linear infinite}
+@keyframes rattle{50%{transform:translateY(-1.5px)}}
+@keyframes arrive{35%{transform:translateY(-8px)}70%{transform:translateY(3px)}}
+@keyframes chain{to{stroke-dashoffset:-14}}
 @media (prefers-reduced-motion:reduce){
-  .drift,.talk,.rock,.breathe,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.chapter.show,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
+  .ride-bob,.whl,.chain.on,.drift,.talk,.rock,.breathe,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.chapter.show,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
   .stage .fadeable{transition:none}
   .mouth-open{display:none}
   .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote{display:none}
@@ -342,9 +352,14 @@ d3.json('prototype/data/leo.json').then(DATA => {
   // The monthly US 10-year yield since 1962 (FRED GS10 before 1990, Bloomberg after) for the Yield Coaster and Leo's sketchbook
   const parseM = d3.timeParse('%Y-%m');
   const M10 = new Map(DATA.us10Monthly);
-  const pctM = m => M10.get(m).toFixed(1) + '%';
+  const pctM = m => M10.get(m).toFixed(2) + '%';
   const TOP = DATA.us10Monthly.reduce((a, b) => b[1] > a[1] ? b : a);                                        // the all-time high month
-  const LOW16 = M10.get('2016-07') <= d3.min(DATA.us10Monthly.filter(d => d[0] < '2016-07'), d => d[1]);  // is summer 2016 a record low?
+  // "its lowest since September 1967": the last earlier month that was at least as low; otherwise a new low for the ride
+  const sinceM = m => {
+    const a = DATA.us10Monthly, i = a.findIndex(d => d[0] === m), v = a[i][1];
+    for (let j = i - 1; j >= 0; j--) if (a[j][1] <= v) return `its lowest since ${MONTH(a[j][0])}`;
+    return 'the lowest of the whole ride so far';
+  };
   document.getElementById('pickToday').textContent = `2026 peak ${TODAY.toFixed(2)}%`;
   document.getElementById('pick').value = TODAY.toFixed(1);
 
@@ -375,31 +390,33 @@ d3.json('prototype/data/leo.json').then(DATA => {
   const SPK = {LEO:{c:'var(--leo)'}, MOM:{c:'var(--mom)'}, DAD:{c:'var(--dad)'}, FACT:{c:'#9ff0c8',label:'DATA',tag:'real'}, WHATIF:{c:'#d8c9ff',label:'WHAT IF',tag:'what'}};
 
   /* ================= story ================= */
-  // The Yield Coaster scene is switched off for now. To bring it back, add COASTER to PAST right after the 2016 street scene.
-  // Summer 2016, the Yield Coaster: the track's height is the real 10-year yield since 1962.
-  // The 4th item of each line is the station (year-month) the cart rolls to when that line shows; the camera follows the cart.
-  // eslint-disable-next-line no-unused-vars -- kept on purpose until the coaster goes back into the story
+  // Summer 2016, the Yield Coaster. The HEIGHT of the track is the US 10-year yield (monthly average) at each stop.
+  // The 4th item of a line is the stop (year-month) the cart rides to when that line shows: up a hill if the yield
+  // rose since the last stop, down if it fell. Every number in these lines comes from the data.
   const COASTER =
     {year:2016, age:9, y:US10[2016], bg:'coaster', ride:true, cast:[], mood:'happy', lines:[
-    ['LEO','That summer, Mom and Dad take me to the amusement park. I am finally tall enough for the big coaster!','happy','1962-01'],
-    ['DAD','It is called the Yield Coaster. How high we ride follows the US 10-year yield since 1962: the higher the track, the higher interest rates were. Hold on!','happy','1962-01'],
-    ['FACT',`1962: the ride starts at ${pctM('1962-01')}.`,null,'1962-01'],
-    ['FACT',`1970: prices are rising fast, and the yield climbs to ${pctM('1970-05')}.`,null,'1970-05'],
-    ['FACT',`End of 1971: a short dip, down to ${pctM('1971-12')}.`,null,'1971-12'],
-    ['FACT',`1974: up again to ${pctM('1974-08')}, as an oil shock pushes prices even higher.`,null,'1974-08'],
-    ['FACT',`${TOP[0].slice(0,4)}: the highest point of the whole ride, ${TOP[1].toFixed(1)}%. To stop runaway inflation, rates soared and US mortgages reached ${DATA.mortPeak.v.toFixed(1)}%. Two recessions came back to back.`,null,TOP[0]],
-    ['LEO','We are SO high up! I can’t even see the ground!','shocked',TOP[0]],
-    ['FACT',`1986: with inflation under control, the yield slides all the way down to ${pctM('1986-08')}.`,null,'1986-08'],
-    ['FACT',`1994: a sudden climb from ${pctM('1994-01')} to ${pctM('1994-11')} in ten months. Traders call it the bond massacre, but no recession follows. A climb is a warning, not a verdict.`,null,'1994-11'],
-    ['FACT',`2000: the top of the dot-com boom, ${pctM('2000-01')}. A recession follows in 2001.`,null,'2000-01'],
-    ['FACT',`2003: after that recession, down to ${pctM('2003-06')}.`,null,'2003-06'],
-    ['FACT',`2007, the year Leo was born: back up to ${pctM('2007-06')}.`,null,'2007-06'],
-    ['FACT',`December 2008: the financial crisis drags it down to ${pctM('2008-12')}.`,null,'2008-12'],
-    ['MOM',`By 2012 we were down at ${pctM('2012-07')}. That is why our mortgage got cheaper when we renewed.`,'happy','2012-07'],
-    ['FACT',`2013: a jolt up to ${pctM('2013-12')} when the US central bank hints it will stop holding rates down.`,null,'2013-12'],
-    ['FACT',`Summer 2016, right now: ${pctM('2016-07')}, ${LOW16 ? 'the lowest the ride has ever been' : 'close to the lowest the ride has ever been'}. Money is cheap, so house prices climb.`,null,'2016-07'],
+    ['LEO','Summer 2016. Mom and Dad take me to the amusement park, and I’m finally tall enough for the big coaster!','happy','1962-01'],
+    ['DAD',`This is the Yield Coaster. The height of the track is the US 10-year yield, starting in ${MONTH('1962-01')} at ${pctM('1962-01')}. Every stop is a real month: if rates went up, we climb. If they went down, we drop.`,'happy','1962-01'],
+    ['FACT',`${MONTH('1970-05')}: up to ${pctM('1970-05')}. Prices are rising faster every year, so lenders want more interest.`,null,'1970-05'],
+    ['FACT',`${MONTH('1971-12')}: down to ${pctM('1971-12')}. A recession cooled the economy for a while.`,null,'1971-12'],
+    ['FACT',`${MONTH('1974-08')}: up to ${pctM('1974-08')}. An oil shock sends gas prices and inflation soaring.`,null,'1974-08'],
+    ['FACT',`${MONTH('1979-12')}: still climbing, to ${pctM('1979-12')}. A second oil shock, and prices now rise more than 10% a year.`,null,'1979-12'],
+    ['LEO','Up AGAIN? Dad, do we ever go down?','worried','1979-12'],
+    ['FACT',`${MONTH(TOP[0])}: the top of the ride, ${pctM(TOP[0])}, the highest the 10-year yield has ever been. To stop runaway inflation, rates soared, US mortgages reached ${DATA.mortPeak.v.toFixed(1)}%, and two recessions came back to back.`,null,TOP[0]],
+    ['LEO','We’re SO high up! I can’t even see the ground!','shocked',TOP[0]],
+    ['LEO','WHEEEEE!','happy','1986-08'],
+    ['FACT',`${MONTH('1986-08')}: inflation is beaten, and the yield drops all the way to ${pctM('1986-08')}.`,null,'1986-08'],
+    ['FACT',`${MONTH('1993-10')}: still rolling down, to ${pctM('1993-10')}, ${sinceM('1993-10')}.`,null,'1993-10'],
+    ['FACT',`${MONTH('1994-11')}: a sudden climb from ${pctM('1994-01')} to ${pctM('1994-11')} in ten months. Traders call it the bond massacre, but no recession follows. A climb is a warning, not a verdict.`,null,'1994-11'],
+    ['FACT',`${MONTH('2000-01')}: a little lower, ${pctM('2000-01')}, at the top of the dot-com boom. In 2001 the bubble bursts and a recession follows.`,null,'2000-01'],
+    ['FACT',`${MONTH('2003-06')}: after that recession, down to ${pctM('2003-06')}, ${sinceM('2003-06')}.`,null,'2003-06'],
+    ['MOM',`2007, the year you were born and we bought our first home. The yield was back up to ${pctM('2007-06')}.`,'happy','2007-06'],
+    ['FACT',`${MONTH('2008-12')}: the financial crisis. Investors rush to safe US government bonds, and the yield drops to ${pctM('2008-12')}.`,null,'2008-12'],
+    ['MOM',`By 2012 it was down to ${pctM('2012-07')}. That’s why our mortgage got cheaper when we renewed.`,'happy','2012-07'],
+    ['FACT',`${MONTH('2013-12')}: a jolt up to ${pctM('2013-12')} when the US central bank hints it will stop holding rates down.`,null,'2013-12'],
+    ['FACT',`Summer 2016, right now: ${pctM('2016-07')}, ${sinceM('2016-07')}. Money is cheap, so house prices climb.`,null,'2016-07'],
     ['LEO','Wait, the track just ends!','shocked','2016-07'],
-    ['DAD','That part is not built yet. Nobody knows which way rates go next.','neutral','2016-07']]};
+    ['DAD','That part isn’t built yet. Nobody knows which way rates go next.','neutral','2016-07']]};
 
   const PAST = [
     {year:2007, age:0, y:US10[2007], bg:'nursery', outfit:'baby', cast:['mom','dad'], lines:[
@@ -417,6 +434,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
       ['MOM',`Our five years were up, so we renewed the mortgage. The new rate is ${m12.toFixed(1)}%.`,'happy'],
       ['DAD',`Same house, and the payment dropped from ${fmt$(P07)} to ${fmt$(P12)}. That’s ${fmt$(P07-P12)} a month back in our pockets.`,'happy'],
       ['FACT',`In 2012 the 10-year yield averaged ${US10[2012].toFixed(2)}%${DATA.us10AnnualMin[0]==='2012' ? ', the lowest yearly average since at least 1962' : ''}.`]]},
+    COASTER,   // summer 2016: the Yield Coaster ride through the 10-year yield since 1962
     {year:2016, age:9, y:US10[2016], bg:'street', props:{mode:'sold'}, cast:['dad'], mood:'happy', lines:[
       ['LEO','Grade four. Every adult on our street talks about the same thing: house prices.'],
       ['DAD','The neighbours sold for way over asking. Cheap mortgages mean everyone can borrow more, so everyone bids more.'],
@@ -979,158 +997,296 @@ d3.json('prototype/data/leo.json').then(DATA => {
       .on('end', finish);
   }
 
-  let RIDE = null;  // the Yield Coaster: the track, the camera layers, the gauge and where the cart is now
-  // The cart with Mom, Leo and Dad, seen up close. It rolls to the station named in the current line (Back rolls it back).
-  // The camera follows it, so the track scrolls past and the family climbs or drops with the rate; on the way down they
-  // throw their arms up.
+  /* ================= the Yield Coaster: the cart ================= */
+  let RIDE = null;  // the coaster built for the current scene: the track's shape, the camera, and where the cart is now
+  // who sits where in the cart (the cart faces right): x in the cart, and how high their feet are (Leo sits on a booster)
+  const RIDERS = [
+    {who:'MOM', base:MOM, x:-112, feet:-24},
+    {who:'LEO', base:Object.assign({}, LEO, {cm:HEIGHT[9], age:9, outfit:'tee', top:'#e2483a', bottom:'#34405e'}), x:-6, feet:-50},
+    {who:'DAD', base:DAD, x:100, feet:-24}
+  ];
+  // Arms thrown up in the air, drawn in person() coordinates (feet at x, G-2) with the same body proportions
+  function armsUp(g, o){
+    const h = o.cm*1.75, feet = G - 2, x = o.x, kid = o.age < 13;
+    const hr = h * (o.age<3 ? .13 : o.age<8 ? .118 : o.age<13 ? .102 : o.age<17 ? .094 : .088);
+    const cy = feet - h + hr*1.04, sh = cy + hr*1.3, tw = h*(kid ? .26 : .235), aw = Math.max(8, tw*.19);
+    const tee = (o.outfit || 'sweater') === 'tee';
+    [-1,1].forEach(s => {
+      const sx = x + s*(tw/2 - aw*.45), sy = sh + aw*.6, hx = x + s*(tw/2 + aw*1.3), hy = cy - hr*1.85;
+      limb(g, `M${sx},${sy} Q${x + s*tw*.72},${sh - hr*.3} ${hx},${hy}`, tee ? o.skin : o.top, aw);
+      if (tee) limb(g, `M${sx},${sy} L${sx + s*aw*.4},${sy - hr*.45}`, o.top, aw*1.15);
+      Cc(g, hx, hy, aw*.6, o.skin, {stroke:OUT, 'stroke-width':2.5});
+    });
+  }
+  // The family's cart, seen up close. When a line names a new stop, the cart rides there: it climbs a hill if the yield
+  // rose (slowly, pulled up by the chain, everyone nervous) and drops if it fell (fast, arms in the air). Back rolls it
+  // back. The camera follows the cart, so only the stop and the start of the next hill are on screen.
   function drawRide(sc, line){
     if (!RIDE) return;
-    const target = line && line[3] ? parseM(line[3]) : RIDE.t;
-    const cart = A(gCast,'g'), body = A(cart,'g',{transform:'scale(2.5)'});
-    const riders = [[-22,MOM,9.5,'#2f9c95'],[0,LEO,8,'#e2483a'],[22,DAD,9.5,'#d9a43c']];
-    const arms = A(body,'g');
-    riders.forEach(([rx,p,r,shirt]) => { const hy = -38; [-1,1].forEach(sd => { limb(arms, `M${rx+sd*5},${hy+12} L${rx+sd*11},${hy-14}`, shirt, 3); Cc(arms, rx+sd*11, hy-16, 2.6, p.skin, {stroke:OUT,'stroke-width':1.2}); }); });
-    riders.forEach(([rx,p,r,shirt]) => {
-      const hy = -38;
-      R(body, rx-7, hy+8, 14, 12, shirt, {rx:4, stroke:OUT, 'stroke-width':1.5});
-      if (p.hair === 'long') E(body, rx, hy+3, r*1.15, r*1.35, p.hairColor, {stroke:OUT, 'stroke-width':1.2});
-      Cc(body, rx, hy, r, p.skin, {stroke:OUT, 'stroke-width':1.5});
-      P(body, `M${rx-r},${hy-1} Q${rx},${hy-r*1.9} ${rx+r},${hy-1} Q${rx},${hy-r*.9} ${rx-r},${hy-1}Z`, p.hairColor);
-      Cc(body, rx-r*.35, hy, 1.3, OUT); Cc(body, rx+r*.35, hy, 1.3, OUT);
-      if (p.glasses) [-.62,.12].forEach(o => R(body, rx+r*o, hy-2.4, r*.5, r*.42, 'none', {stroke:OUT, 'stroke-width':1}));
+    const target = RIDE.xOf(line && line[3]), speaker = line ? line[0] : null;
+    const cart = A(gCast,'g',{class:'cart st-stop'}), bob = A(cart,'g',{class:'ride-bob'});
+    const speed = A(bob,'g',{class:'speed'});                                     // speed lines, shown on the way down
+    [[-60,-70],[-90,-124],[-40,-176],[-120,-210]].forEach(([x,y]) => L(speed, x-100, y, x-260, y, '#ffffff', 7, {opacity:.85}));
+    RIDERS.forEach(r => R(bob, r.x-70, -176, 24, 160, '#2c5aa0', {rx:10, stroke:OUT, 'stroke-width':2.5}));   // seat backs
+    const riders = A(bob,'g');
+    // the car: body with a curled nose, a yellow stripe, the lap bar, a headlight and two wheel trucks
+    P(bob,'M-196,-16 L-196,-84 Q-196,-96 -182,-96 L118,-96 Q146,-96 162,-116 L182,-140 Q194,-150 198,-134 L184,-56 Q176,-16 144,-16Z','#3d6fb6',{stroke:OUT,'stroke-width':3});
+    P(bob,'M-196,-76 L188,-76 L186,-60 L-196,-60Z','#ffc23d');
+    Tt(bob,-178,-38,'YIELD COASTER',{'font-size':14,fill:'#ffffff'});
+    R(bob,-180,-114,318,11,'#c9ced3',{rx:5,stroke:OUT,'stroke-width':2});
+    glow(bob,186,-122,30,.7); Cc(bob,186,-122,8,'#fff3b0',{stroke:OUT,'stroke-width':2});
+    [-118,110].forEach(wx => {
+      R(bob,wx-40,-32,80,14,'#2b2d31',{rx:4,stroke:OUT,'stroke-width':2});
+      [-21,21].forEach(dx => { const w = A(bob,'g',{class:'whl'}); Cc(w,wx+dx,-9,11,'#2b2d31',{stroke:OUT,'stroke-width':2}); L(w,wx+dx-7,-9,wx+dx+7,-9,'#c9ced3',3); });
     });
-    const leoWow = line && line[0] === 'LEO' && line[2] === 'shocked';
-    const smile = A(body,'g'), wow = A(body,'g');
-    riders.forEach(([rx,p]) => {
-      const hy = -38;
-      if (p === LEO && leoWow){ E(body, rx, hy+5, 2.2, 3, OUT); return; }
-      P(smile, `M${rx-3.5},${hy+4} Q${rx},${hy+7.5} ${rx+3.5},${hy+4}`, 'none', {stroke:OUT, 'stroke-width':1.4, 'stroke-linecap':'round'});
-      E(wow, rx, hy+5, 2.2, 3, OUT);
-    });
-    P(body,'M-42,-4 L-38,-28 L38,-28 L46,-4Z','#3d6fb6',{stroke:OUT,'stroke-width':2});
-    R(body,-36,-20,74,5,'#ffd166'); Tt(body,0,-8,'10-YR',{'text-anchor':'middle','font-size':7,fill:'#fff'});
-    [-26,26].forEach(wx => Cc(body, wx, -2, 5, '#2b2d31', {stroke:OUT, 'stroke-width':1.5}));
-    const tag = A(gCast,'g'), tagRect = R(tag,0,-16,10,32,'#1d1b33',{rx:7}), tagText = Tt(tag,0,7,'',{'text-anchor':'middle','font-size':17,fill:'#ffc23d'});
-    const place = t => {
-      RIDE.t = t;
-      const [wxp, wyp] = RIDE.pos(t), ang = RIDE.ang(t), dip = ang > 8;
-      const {ox, oy} = RIDE.camera(wxp, wyp);           // move the world so the cart stays in view
-      const sx = wxp + ox, sy = wyp + oy;
-      cart.attr('transform', `translate(${sx},${sy - 7}) rotate(${ang})`);
-      arms.style('display', dip ? null : 'none'); wow.style('display', dip ? null : 'none'); smile.style('display', dip ? 'none' : null);
-      RIDE.done.attr('d', RIDE.line(RIDE.data.filter(d => d.t <= t).concat([{t, v: RIDE.val(t)}])));
-      const label = `${t.getFullYear()} · ${RIDE.val(t).toFixed(1)}%`, w = label.length * 11.5 + 24;
-      tagRect.attr('x', -w/2).attr('width', w); tagText.text(label);
-      tag.attr('transform', `translate(${sx},${sy - 200})`);
-      RIDE.gauge(RIDE.val(t)); RIDE.timeline(t);
+    hw(bob,-60,-300,'WHEEEE!',{'font-size':48,fill:'#d63b2a',class:'whee','paint-order':'stroke',stroke:'#ffffff','stroke-width':8});
+    // the family: calm at a stop (whoever speaks talks), nervous on a climb, arms up on a drop
+    const seat = mode => {
+      riders.selectAll('*').remove();
+      cart.attr('class', 'cart st-' + mode);
+      RIDERS.forEach(r => {
+        const drop = mode === 'down';
+        const mood = mode === 'up' ? 'worried' : drop ? (r.who === 'DAD' ? 'shocked' : 'happy') : (speaker === r.who && line[2]) || 'happy';
+        const o = Object.assign({}, r.base, {x:640, mood, talking: speaker === r.who});
+        const g = A(riders,'g',{transform:`translate(${r.x},${r.feet}) scale(.66) translate(-640,${2 - G})`});
+        if (drop) armsUp(g, o);
+        const p = person(g, o);
+        if (drop) p.selectAll('.arm').attr('display', 'none');
+      });
     };
-    place(RIDE.t);
-    if (+target === +RIDE.t) return;
-    if (REDUCED){ place(target); return; }
-    const from = RIDE.t, years = Math.abs(target - from) / 3.156e10;
-    gCast.transition('ride').duration(clamp(years * 260, 1000, 4200)).ease(d3.easeCubicInOut)
-      .tween('ride', () => { const i = d3.interpolateDate(from, target); return k => place(i(k)); });
+    const place = x => {
+      RIDE.x = x;
+      const {ox, oy} = RIDE.camera(x);
+      cart.attr('transform', `translate(${x + ox},${RIDE.ty(x) + oy}) rotate(${Math.atan(RIDE.slope(x)) * 180 / Math.PI})`);
+    };
+    place(RIDE.x);
+    const from = RIDE.x, dist = Math.abs(target - from);
+    if (dist < .5 || REDUCED){ place(target); seat('stop'); return; }
+    const dv = RIDE.tv(target) - RIDE.tv(from);
+    const mode = target < from || dist > RIDE.SEG*2.5 ? 'roll' : dv > .005 ? 'up' : dv < -.005 ? 'down' : 'roll';
+    seat(mode);
+    const chain = mode === 'up' ? RIDE.chains.filter(d => d.x0 < target && d.x1 > from).classed('on', true) : null;
+    const stopChain = () => { if (chain) chain.classed('on', false); };
+    // climbs are slow (the chain pulls the cart up), drops are fast
+    const dur = mode === 'up' ? Math.min(3400, 1500 + dv*300) : mode === 'down' ? Math.min(2200, 1100 - dv*90) : clamp(dist*1.2, 700, 2200);
+    gCast.transition('ride').duration(dur).ease(mode === 'up' ? d3.easeSinInOut : mode === 'down' ? d3.easeQuadInOut : d3.easeCubicInOut)
+      .tween('ride', () => k => place(from + (target - from) * k))
+      .on('interrupt', stopChain)
+      .on('end', () => { stopChain(); seat('stop'); requestAnimationFrame(() => cart.classed('arrive', true)); });
   }
 
   const BG = {
-    coaster(g,sc){
-      // The Yield Coaster, up close: the camera rides with the family, so only about five years of track fit on screen.
-      // The track's height is the monthly US 10-year yield (1962 to summer 2016). Three layers move at different speeds
-      // (far city and Ferris wheel slowest, clouds in between, the track and ground with the camera) to give depth.
-      // A gauge on the left reads the cart's height as a rate; a timeline at the top shows where in the ride we are.
-      R(g,-1400,-800,W+2800,H+1600,'url(#sky)'); weather(g,sc.y);
-      const end = '2016-07', K = 200, V = 45, H0 = 60;          // world units per year and per percentage point; track height at 0%
-      const t0 = parseM('1962-01');
-      const data = DATA.us10Monthly.filter(d => d[0] <= end).map(([m,v]) => ({t: parseM(m), v}));
-      const wx = t => (t - t0) / 31557600000 * K, wy = v => -(H0 + v * V);
-      const lastX = wx(parseM(end)), val = t => trackVal(data, t);
-      const far = A(g,'g'), mid = A(g,'g'), world = A(g,'g');
-      // far: distant hills, the city with the CN Tower, a turning Ferris wheel
-      E(far,500,60,1500,150,'#a8cf8a'); E(far,2300,70,1400,160,'#9cc77e');
-      skyline(far,200,20,1.1,'#a9bdd6'); skyline(far,1500,20,1.0,'#b4c6dc'); skyline(far,2500,20,1.15,'#a9bdd6');
-      const fw = A(far,'g',{transform:'translate(1650,-170) scale(.7)',opacity:.85});   // smaller and further back, so it doesn't compete with the track
-      L(fw,-90,260,0,0,'#c9ced3',9); L(fw,90,260,0,0,'#c9ced3',9);
-      const wheel = A(fw,'g',{class:'a-spin',style:'animation-duration:70s'});
-      Cc(wheel,0,0,200,'none',{stroke:'#e0a83a','stroke-width':7}); Cc(wheel,0,0,178,'none',{stroke:'#f0c96a','stroke-width':2});
-      for (let k=0;k<12;k++){ const a = k*Math.PI/6; L(wheel,0,0,200*Math.cos(a),200*Math.sin(a),'#e0a83a',3); Cc(wheel,200*Math.cos(a),200*Math.sin(a),17,['#d63b2a','#3d6fb6','#3fbf8f','#ffc23d'][k%4],{stroke:OUT,'stroke-width':2}); }
-      Cc(fw,0,0,18,'#7a5236');
-      // mid: clouds the family passes on the way up
-      const cr = seeded(17);
-      for (let i=0;i<18;i++) cloud(mid, i*360 + cr()*200, -240 - cr()*820, .8 + cr()*.6, '#ffffff', .92, i);
-      // world: ground, fence, trees and a tent, then supports, the track, year plaques, the station and the unfinished end
-      R(world,-1800,0,lastX+4200,1200,'#93c96f'); R(world,-1800,0,lastX+4200,9,'#82b960');
-      for (let fx=-1800; fx<lastX+2400; fx+=60) R(world,fx,-34,6,34,'#c9a273');
-      R(world,-1800,-27,lastX+4200,6,'#d8b384');
-      for (let i=0, tx=-1500; tx<lastX+2200; tx+=520, i++) tree(world, tx + (i%2)*90, 0, .95 + (i%3)*.12, i);
-      P(world,'M-1120,0 L-1120,-150 L-980,-240 L-840,-150 L-840,0Z','#ffffff',{stroke:OUT,'stroke-width':2.5});
-      for (let k=0;k<4;k++) P(world,`M${-1120+k*70},-150 L-980,-240 L${-1085+k*70},-150Z`,'#d63b2a');
-      const posts = d3.timeMonth.every(6).range(t0, parseM(end));
-      posts.forEach((t,i) => {                                  // white supports with cross-bracing in tiers
-        const px = wx(t), top = wy(val(t)) + 12, n = posts[i+1];
-        if (n){ const nx = wx(n), ntop = wy(val(n)) + 12, roof = Math.max(top, ntop) + 26;
-          for (let yb = 0; yb - 110 > roof; yb -= 110){ L(world,px,yb,nx,yb-110,'#e3e3e3',2.5); L(world,nx,yb,px,yb-110,'#e3e3e3',2.5); } }
-        L(world,px,top,px,0,'#f4f4f4',7); L(world,px+2.5,top,px+2.5,0,'#c9ced3',2);
+    coaster(g,sc,fg){
+      // The Yield Coaster, up close. HEIGHT above the ground is the US 10-year yield: K units per percentage point,
+      // ground = 0%. The stops come from the scene's lines (4th item); each is a real month, drawn as a station with its
+      // date and yield. Between two stops the track is one smooth hill: up if the yield rose, down if it fell.
+      // Four layers move at different speeds for depth (far city, clouds, the fair, the track). Fixed on screen: a strip
+      // at the top with the real month-by-month line, so the bumps the smooth hills skip are never hidden.
+      // The track is a red tubular steel coaster: a running rail and a back rail joined by rungs, a bottom tube, a V-shaped
+      // truss between them, and tapered red columns with foot plates holding it up.
+      fg = fg || g;
+      const K = 56, SEG = 780, PH = 175;                  // units per point; distance between stops; half a station
+      const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      const ST = [...new Set(sc.lines.map(l => l[3]).filter(Boolean))].map((m, i) => ({i, m, t:parseM(m), v:M10.get(m), x:i*SEG}));
+      const N = ST.length, END = ST[N-1], XS = -900, XE = END.x + 430;
+      const hY = v => -v*K, smooth = u => u*u*(3 - 2*u);
+      const seg = x => { const i = clamp(Math.floor(x/SEG), 0, N-2); return {a:ST[i], b:ST[i+1], u:clamp((x - ST[i].x - PH)/(SEG - 2*PH), 0, 1)}; };
+      const tv = x => { if (x <= 0) return ST[0].v; if (x >= END.x) return END.v; const s = seg(x); return s.a.v + (s.b.v - s.a.v)*smooth(s.u); };
+      const ty = x => hY(tv(x)), slope = x => (ty(x + 3) - ty(x - 3))/6;
+      const tAt = x => { if (x <= 0) return ST[0].t; if (x >= END.x) return END.t; const s = seg(x); return new Date(+s.a.t + (s.b.t - s.a.t)*s.u); };
+      const pt = (x, off) => { const s = slope(x), n = Math.hypot(1, s); return [x - s*off/n, ty(x) + off/n]; };   // `off` units below the rail
+      const pl = d3.line(), cr = seeded(17);
+      const PAL = ['#d63b2a','#ffc23d','#3fbf8f','#3d6fb6','#a98bff'];
+      // patterns: red-and-white awning stripes, warning stripes
+      if (defs.select('#rideAwning').empty()){
+        const aw = defs.append('pattern').attr('id','rideAwning').attr('width',40).attr('height',10).attr('patternUnits','userSpaceOnUse');
+        aw.append('rect').attr('width',20).attr('height',10).attr('fill','#d63b2a'); aw.append('rect').attr('x',20).attr('width',20).attr('height',10).attr('fill','#fffaf0');
+        const wn = defs.append('pattern').attr('id','rideWarn').attr('width',18).attr('height',18).attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
+        wn.append('rect').attr('width',18).attr('height',18).attr('fill','#fffaf0'); wn.append('rect').attr('width',9).attr('height',18).attr('fill','#d63b2a');
+        const tr = defs.append('linearGradient').attr('id','tubeRed').attr('x1',0).attr('x2',1).attr('y1',0).attr('y2',0);
+        [[0,'#8a1b13'],[.3,'#d63b2a'],[.48,'#ff8f7f'],[.62,'#d63b2a'],[1,'#8a1b13']].forEach(([o,c]) => tr.append('stop').attr('offset',o).attr('stop-color',c));
+        const sk = defs.append('linearGradient').attr('id','rideSky').attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+        sk.append('stop').attr('offset',0); sk.append('stop').attr('offset',1);
+      }
+      const [skyT, skyB] = defs.selectAll('#rideSky stop').nodes().map(n => d3.select(n));
+
+      // the sky deepens as the cart climbs; the sun stays put
+      R(g,-1400,-800,W+2800,H+1600,'url(#rideSky)');
+      const sun = A(g,'g',{transform:'translate(1080,214)'});
+      Cc(sun,0,0,86,'#ffe08a',{opacity:.2,class:'a-pulse'});
+      const rays = A(sun,'g',{class:'a-spin'});
+      for (let k=0;k<12;k++) A(rays,'line',{x1:0,y1:-66,x2:0,y2:-86,stroke:'#ffc23d','stroke-width':6,'stroke-linecap':'round',transform:`rotate(${k*30})`});
+      Cc(sun,0,0,54,'#ffc23d'); Cc(sun,-16,-16,19,'#ffe39a',{opacity:.7});
+      const far = A(g,'g'), mid = A(g,'g'), fair = A(g,'g'), wd = A(g,'g');
+
+      // far (moves at 12% of the camera's speed): green hills and Toronto's skyline
+      [[-500,'#9cc77e'],[800,'#a8cf8a'],[2100,'#9cc77e']].forEach(([x,c]) => E(far,x,60,820,150,c));
+      for (let x=-900; x<2700; x += 50 + cr()*70) if (x < 380 || x > 1050){ const h = 50 + cr()*110, w = 34 + cr()*30; R(far,x,-h,w,h+40,cr() < .5 ? '#b4c6dc' : '#a9bdd6'); }
+      skyline(far,560,20,1.1,'#a9bdd6');
+      // mid (35%): clouds at every height and hot-air balloons, so you climb past them
+      for (let i=0, x=-900; x < END.x*.35 + 1300; x += 280 + cr()*260, i++) cloud(mid, x, -170 - cr()*820, .7 + cr()*.6, '#ffffff', .92, i);
+      for (let k=0; k<7; k++){
+        const b = A(A(mid,'g',{transform:`translate(${200 + k*640 + cr()*220},${-360 - cr()*520})`}),'g',{class:'drift',style:'animation-duration:16s'});
+        P(b,'M0,-60 C40,-60 46,-16 16,8 L8,22 L-8,22 L-16,8 C-46,-16 -40,-60 0,-60Z',PAL[k%5],{stroke:OUT,'stroke-width':2.5});
+        P(b,'M0,-60 C14,-52 14,-8 6,22 M0,-60 C-14,-52 -14,-8 -6,22','none',{stroke:'#fffaf0','stroke-width':3});
+        L(b,-7,22,-6,36,OUT,1.5); L(b,7,22,6,36,OUT,1.5); R(b,-9,36,18,13,'#8a5a3c',{stroke:OUT,'stroke-width':2});
+      }
+      // the fair in the middle distance (50%): Ferris wheels, drop towers, big-top tents and trees
+      R(fair,-1200,0,END.x*.5 + 3200,900,'#a8cf8a');
+      for (let k=0, x=-400; x < END.x*.5 + 1300; x += 560 + cr()*280, k++){
+        if (k % 3 === 0){
+          const fw = A(fair,'g',{transform:`translate(${x},0) scale(.6)`});
+          L(fw,-110,0,0,-260,'#c9ced3',10); L(fw,110,0,0,-260,'#c9ced3',10);
+          const wh = A(A(fw,'g',{transform:'translate(0,-260)'}),'g',{class:'a-spin',style:'animation-duration:60s'});
+          Cc(wh,0,0,220,'none',{stroke:'#e0a83a','stroke-width':8}); Cc(wh,0,0,196,'none',{stroke:'#f0c96a','stroke-width':3});
+          for (let s=0;s<12;s++){ const a = s*Math.PI/6; L(wh,0,0,220*Math.cos(a),220*Math.sin(a),'#e0a83a',3); Cc(wh,220*Math.cos(a),220*Math.sin(a),19,PAL[s%4],{stroke:OUT,'stroke-width':2}); }
+          Cc(fw,0,-260,20,'#7a5236');
+        } else if (k % 3 === 1){
+          const t = A(fair,'g',{transform:`translate(${x},0) scale(.62)`});
+          P(t,'M-150,0 L-150,-90 L0,-190 L150,-90 L150,0Z','#fffaf0',{stroke:OUT,'stroke-width':3});
+          for (let s=0;s<5;s++) P(t,`M${-150+s*60},-90 L0,-190 L${-120+s*60},-90Z`,'#d63b2a');
+          P(t,'M-30,0 L-30,-60 Q0,-80 30,-60 L30,0Z','#3d4560',{stroke:OUT,'stroke-width':2.5});
+          L(t,0,-190,0,-230,OUT,3); P(A(t,'g',{class:'a-flag'}),'M0,-230 L34,-222 L0,-212Z','#ffc23d',{stroke:OUT,'stroke-width':1.5});
+        } else {
+          const d = A(fair,'g',{transform:`translate(${x},0) scale(.62)`});
+          R(d,-12,-420,24,420,'#c9ced3',{stroke:OUT,'stroke-width':2.5});
+          R(d,-40,-300,80,24,'#ffc23d',{rx:6,stroke:OUT,'stroke-width':2.5}); Cc(d,0,-430,12,'#d63b2a',{stroke:OUT,'stroke-width':2});
+        }
+      }
+      for (let k=0, x=-900; x < END.x*.5 + 1300; x += 150 + cr()*180, k++) tree(fair, x, 0, .42 + cr()*.16, k);
+
+      // ---------- the world, moving with the camera ----------
+      R(wd,XS-2200,0,XE-XS+4400,1400,'#93c96f'); R(wd,XS-2200,0,XE-XS+4400,9,'#82b960');
+      R(wd,XS-2200,56,XE-XS+4400,30,'#e8d6a8');                                    // the footpath
+      // the park: a fence, trees, tents, food stands with balloons, lamps and benches
+      for (let fx=XS-1800; fx<XE+1800; fx+=60) R(wd,fx,-34,6,34,'#c9a273');
+      R(wd,XS-2200,-27,XE-XS+4400,6,'#d8b384');
+      for (let k=0, x=XS-1500; x<XE+1500; x += 230 + cr()*230, k++){
+        const r = cr();
+        if (r < .42) tree(wd, x, 0, .78 + cr()*.3, k);
+        else if (r < .56){
+          P(wd,`M${x-70},0 L${x-70},-90 L${x},-150 L${x+70},-90 L${x+70},0Z`,'#fffaf0',{stroke:OUT,'stroke-width':2.5});
+          for (let s=0;s<3;s++) P(wd,`M${x-70+s*47},-90 L${x},-150 L${x-47+s*47},-90Z`,'#d63b2a');
+          P(wd,`M${x-18},0 L${x-18},-44 Q${x},-58 ${x+18},-44 L${x+18},0Z`,'#3d4560',{stroke:OUT,'stroke-width':2});
+          L(wd,x,-150,x,-180,OUT,2.5); P(A(wd,'g',{class:'a-flag'}),`M${x},-180 L${x+26},-174 L${x},-166Z`,PAL[k%5],{stroke:OUT,'stroke-width':1.5});
+        } else if (r < .7){
+          R(wd,x-50,-74,100,74,'#fffaf0',{stroke:OUT,'stroke-width':2.5});
+          R(wd,x-60,-100,120,24,'url(#rideAwning)',{stroke:OUT,'stroke-width':2.5});
+          R(wd,x-36,-58,72,22,'#1d1b33',{rx:4}); Tt(wd,x,-42,['POPCORN','CANDY','TICKETS','PRIZES'][k%4],{'text-anchor':'middle','font-size':11,fill:'#ffc23d'});
+          const bb = A(wd,'g',{class:'a-flag'});
+          [[-14,-196],[4,-212],[20,-190],[-2,-180],[12,-226]].forEach(([dx,dy],j) => { L(bb,x+58,-90,x+58+dx,dy+16,OUT,1.2); E(bb,x+58+dx,dy,13,16,PAL[(j+k)%5],{stroke:OUT,'stroke-width':1.5}); });
+        } else if (r < .85){
+          L(wd,x,0,x,-150,'#2b2d31',6); glow(wd,x,-158,34,.7); Cc(wd,x,-158,10,'#fff3b0',{stroke:OUT,'stroke-width':2});
+        } else {
+          R(wd,x-44,-38,88,10,'#a8774f',{stroke:OUT,'stroke-width':2}); R(wd,x-44,-62,88,10,'#a8774f',{stroke:OUT,'stroke-width':2});
+          L(wd,x-36,-28,x-36,0,OUT,4); L(wd,x+36,-28,x+36,0,OUT,4);
+        }
+      }
+      // red steel columns under the track: tapered, with a foot plate; very tall ones get a leaning second leg
+      let col = 0;
+      for (let x = XS + 60; x <= XE - 20; x += 240){
+        if (ST.some(s => Math.abs(x - s.x) < PH + 70)) continue;
+        const top = pt(x, 34)[1] + 3;
+        if (top > -24) continue;
+        if (-top > 420){
+          const lean = col % 2 ? 90 : -90;
+          P(wd,`M${x-4},${top+60} L${x+4},${top+60} L${x+lean+9},0 L${x+lean-9},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2});
+          R(wd,x+lean-20,-7,40,7,'#8a1d14',{rx:2});
+        }
+        P(wd,`M${x-6},${top} L${x+6},${top} L${x+13},0 L${x-13},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2});
+        R(wd,x-24,-8,48,8,'#8a1d14',{rx:2});
+        col++;
+      }
+      // a station at every stop: deck, striped awning, bunting, a lamp, and a sign with the date and the yield
+      ST.forEach((s, i) => {
+        const y = hY(s.v), dir = i ? Math.sign(s.v - ST[i-1].v) : 0, sg = A(wd,'g');
+        if (y + 40 < 0) [-PH+10, 0, PH-10].forEach(dx => { P(sg,`M${s.x+dx-6},${y+40} L${s.x+dx+6},${y+40} L${s.x+dx+12},0 L${s.x+dx-12},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2}); R(sg,s.x+dx-22,-8,44,8,'#8a1d14',{rx:2}); });
+        R(sg,s.x-PH-24,y-10,2*PH+48,50,'#b07d52',{rx:4,stroke:OUT,'stroke-width':2.5});
+        for (let px = s.x-PH-2; px < s.x+PH+24; px += 22) L(sg,px,y-8,px,y+38,'#8a5a3c',1.5);
+        [-PH+16, PH-16].forEach(dx => R(sg,s.x+dx-7,y-292,14,284,'#3d6fb6',{stroke:OUT,'stroke-width':2.5}));
+        R(sg,s.x-PH-34,y-318,2*PH+68,34,'url(#rideAwning)',{stroke:OUT,'stroke-width':2.5});
+        let sd = `M${s.x-PH-34},${y-284}`;
+        const sw = (2*PH + 68)/12;
+        for (let k=0;k<12;k++) sd += ` a${sw/2},12 0 0 0 ${sw},0`;
+        P(sg,sd + 'Z','#d63b2a',{stroke:OUT,'stroke-width':2});
+        const b0 = s.x-PH+24, b1 = s.x+PH-24;
+        P(sg,`M${b0},${y-262} Q${s.x},${y-236} ${b1},${y-262}`,'none',{stroke:OUT,'stroke-width':1.5});
+        for (let k=1;k<12;k++){ const u = k/12, fx = b0 + (b1 - b0)*u, fy = y - 262 + 26*2*u*(1 - u);
+          P(sg,`M${fx-8},${fy} L${fx+8},${fy} L${fx},${fy+16}Z`,PAL[k%4],{stroke:OUT,'stroke-width':1}); }
+        R(sg,s.x-165,y-392,330,66,'#1d1b33',{rx:10,stroke:'#ffc23d','stroke-width':4});
+        L(sg,s.x-100,y-326,s.x-100,y-318,OUT,4); L(sg,s.x+100,y-326,s.x+100,y-318,OUT,4);
+        const top = i === 0 ? 'THE YIELD COASTER · ALL ABOARD' : i === N-1 ? 'SUMMER 2016 · YOU ARE HERE' : `STOP ${i+1} · RATES ${dir > 0 ? 'UP' : 'DOWN'}`;
+        Tt(sg,s.x,y-371,top,{'text-anchor':'middle','font-size':12,fill:'#ffffff'});
+        Tt(sg,s.x-148,y-340,`${MON[+s.m.slice(5) - 1]} ${s.m.slice(0,4)}`,{'font-size':23,fill:'#ffc23d'});
+        Tt(sg,s.x+148,y-340,s.v.toFixed(2) + '%',{'text-anchor':'end','font-size':23,fill: dir > 0 ? '#ff5a3c' : dir < 0 ? '#3fbf8f' : '#ffffff'});
+        L(sg,s.x+PH+14,y-10,s.x+PH+14,y-130,'#2b2d31',5); glow(sg,s.x+PH+14,y-136,30,.7); Cc(sg,s.x+PH+14,y-136,9,'#fff3b0',{stroke:OUT,'stroke-width':2});
       });
-      const line = d3.line().x(d => wx(d.t)).y(d => wy(d.v)).curve(d3.curveMonotoneX);
-      P(world,line(data),'none',{stroke:'#5a1f17','stroke-width':26,'stroke-linejoin':'round','stroke-linecap':'round'});
-      P(world,line(data),'none',{stroke:'#d63b2a','stroke-width':17,'stroke-linejoin':'round','stroke-linecap':'round'});
-      P(world,line(data),'none',{stroke:'#ff8f7f','stroke-width':3,'stroke-linejoin':'round',transform:'translate(0,-5)',opacity:.8});
-      data.forEach((d,i) => {                                   // one tie per month, across the rails
-        if (i === 0 || i === data.length - 1) return;
-        const a = data[i-1], b = data[i+1], dx = wx(b.t) - wx(a.t), dy = wy(b.v) - wy(a.v), len = Math.hypot(dx, dy), nx = -dy/len*15, ny = dx/len*15;
-        L(world, wx(d.t) - nx, wy(d.v) - ny, wx(d.t) + nx, wy(d.v) + ny, '#5a1f17', 4);
-      });
-      const done = P(world,'','none',{stroke:'#ffd166','stroke-width':6,'stroke-linecap':'round','stroke-linejoin':'round'});
-      d3.timeYear.range(t0, parseM(end)).forEach(t => {         // a year plaque under the track every January
-        const px = wx(t), py = wy(val(t));
-        R(world,px-30,py+26,60,24,'#1d1b33',{rx:5}); Tt(world,px,py+44,String(t.getFullYear()),{'text-anchor':'middle','font-size':14,fill:'#ffc23d'});
-      });
-      // the loading station at the start of the ride
-      const sy0 = wy(val(t0));
-      R(world,-480,sy0+14,500,18,'#8a6b52'); [-460,-260,-60].forEach(px => L(world,px,sy0+32,px,0,'#6b4f3a',8));
-      R(world,-500,sy0-170,540,22,'#3d6fb6',{stroke:OUT,'stroke-width':2.5}); [-480,0].forEach(px => L(world,px,sy0-148,px,sy0+14,'#3d6fb6',8));
-      R(world,-420,sy0-250,380,64,'#1d1b33',{rx:10,stroke:'#ffc23d','stroke-width':4});
-      Tt(world,-230,sy0-212,'YIELD COASTER',{'text-anchor':'middle','font-size':26,fill:'#ffc23d'}); Tt(world,-230,sy0-194,'1962 → TODAY',{'text-anchor':'middle','font-size':13,fill:'#ffffff'});
       // the end of the built track: a barrier, a sign, and dashed scaffolding where the future would go
-      const ey = wy(data[data.length-1].v);
-      L(world,lastX+44,ey,lastX+900,ey-40,'#9aa3aa',4,{'stroke-dasharray':'6 12'});
-      R(world,lastX+24,ey-48,26,64,'#ffd166',{stroke:OUT,'stroke-width':2.5}); L(world,lastX+24,ey-28,lastX+50,ey-48,OUT,4); L(world,lastX+24,ey-2,lastX+50,ey-22,OUT,4);
-      L(world,lastX+170,ey-120,lastX+170,0,'#6b4f3a',6);
-      R(world,lastX+80,ey-200,180,62,'#ffffff',{stroke:'#d63b2a','stroke-width':4,rx:6});
-      Tt(world,lastX+170,ey-174,'TRACK NOT',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'}); Tt(world,lastX+170,ey-150,'BUILT YET',{'text-anchor':'middle','font-size':18,fill:'#d63b2a'});
-      // fixed on screen: the rate gauge on the left and the ride's timeline at the top
-      const gx = SAFE.x + 56, gTop = SAFE.y + 92, gBot = SAFE.y + SAFE.h - 56;
-      const gy = d3.scaleLinear().domain([0, 16]).range([gBot, gTop]);
-      const gauge = A(g,'g');
-      R(gauge,SAFE.x+6,gTop-44,84,gBot-gTop+64,'#fdfbf4',{rx:10,opacity:.94,stroke:OUT,'stroke-width':2});
-      Tt(gauge,SAFE.x+48,gTop-20,'RATE',{'text-anchor':'middle','font-size':13,fill:OUT});
-      const gFill = R(gauge,gx-4,gBot,8,0,'#d63b2a',{rx:3});
-      L(gauge,gx,gTop,gx,gBot,OUT,2.5);
-      for (let v=0; v<=16; v+=2){ L(gauge,gx-6,gy(v),gx,gy(v),OUT,2); Tt(gauge,gx-10,gy(v)+4,v+'%',{'text-anchor':'end','font-size':10,fill:'#3a3f4a'}); }
-      const gm = A(gauge,'g'); P(gm,`M${gx+5},0 l16,-10 l0,20Z`,'#d63b2a',{stroke:OUT,'stroke-width':1.5});
-      const tx0 = SAFE.x + 170, tx1 = SAFE.x + SAFE.w - 40, ty = SAFE.y + 22;
-      const tsc = d3.scaleTime().domain([t0, parseM(end)]).range([tx0, tx1]);
-      R(g,tx0-60,ty-16,tx1-tx0+120,34,'#fdfbf4',{rx:10,opacity:.94,stroke:OUT,'stroke-width':2});
-      Tt(g,tx0-12,ty+5,'1962',{'text-anchor':'end','font-size':12,fill:OUT}); Tt(g,tx1+12,ty+5,'2016',{'font-size':12,fill:OUT});
-      L(g,tx0,ty,tx1,ty,'#c9c2b0',4);
-      const tDone = L(g,tx0,ty,tx0,ty,'#ffd166',4);
-      [1970,1980,1990,2000,2010].forEach(yr => { const px = tsc(new Date(yr,0,1)); L(g,px,ty-5,px,ty+5,OUT,1.5); });
-      const tm = Cc(g,tx0,ty,7,'#d63b2a',{stroke:OUT,'stroke-width':2});
-      // the camera: keep the cart near the middle of the screen, never lifting the ground above the bottom of the stage
-      const S = {x: SAFE.x + SAFE.w*.47, y: SAFE.y + SAFE.h*.64};
-      RIDE = {data, line, done, val, t: parseM((sc.lines[li] || sc.lines[0])[3] || '1962-01'),
-        pos: t => [wx(t), wy(val(t))],
-        camera: (px, py) => {
-          const ox = S.x - px, oy = Math.max(S.y - py, G);
-          world.attr('transform', `translate(${ox},${oy})`);
-          mid.attr('transform', `translate(${ox*.5},${G + (oy - G)*.55})`);
-          far.attr('transform', `translate(${ox*.12},${G + (oy - G)*.18})`);
-          return {ox, oy};
-        },
-        gauge: v => { gm.attr('transform', `translate(0,${gy(v)})`); gFill.attr('y', gy(v)).attr('height', gBot - gy(v)); },
-        timeline: t => { tm.attr('cx', tsc(t)); tDone.attr('x2', tsc(t)); }};
-      RIDE.ang = t => { const a = RIDE.pos(d3.timeMonth.offset(t, -2)), b = RIDE.pos(d3.timeMonth.offset(t, 2)); return Math.atan2(b[1]-a[1], b[0]-a[0]) * 180 / Math.PI; };
-      const [px0, py0] = RIDE.pos(RIDE.t); RIDE.camera(px0, py0); RIDE.gauge(val(RIDE.t)); RIDE.timeline(RIDE.t);
+      const ey = hY(END.v), bx = END.x + 330;
+      [2, 20].forEach(dy => L(wd,XE,ey + dy,XE + 520,ey + dy - 24,'#9aa3aa',4,{'stroke-dasharray':'8 12'}));
+      [50, 120, 190].forEach((dx, k) => hw(wd,XE + dx,ey - 40 - k*32,'?',{'font-size':46,fill:'#5a5f6b'}));
+      R(wd,bx-8,ey-96,12,96,OUT); R(wd,bx+100,ey-96,12,96,OUT);
+      R(wd,bx-24,ey-88,152,30,'url(#rideWarn)',{stroke:OUT,'stroke-width':2.5});
+      R(wd,bx-44,ey-176,196,66,'#ffffff',{rx:8,stroke:'#d63b2a','stroke-width':4});
+      Tt(wd,bx+54,ey-149,'TRACK NOT',{'text-anchor':'middle','font-size':17,fill:'#d63b2a'}); Tt(wd,bx+54,ey-124,'BUILT YET',{'text-anchor':'middle','font-size':17,fill:'#d63b2a'});
+      [-40, 150].forEach(dx => P(wd,`M${bx+dx-12},${ey} L${bx+dx},${ey-32} L${bx+dx+12},${ey}Z`,'#ff7a2c',{stroke:OUT,'stroke-width':2}));
+      // the track: back rail, rungs, the V-shaped truss, the bottom tube, then the running rail the wheels sit on
+      const xs = d3.range(XS, XE + 1, 4), path = off => pl(xs.map(x => pt(x, off)));
+      const tube = (off, w) => {                           // a round steel tube: dark edge, red body, a shine on top
+        const d = path(off);
+        P(wd,d,'none',{stroke:'#7a1a12','stroke-width':w + 3,'stroke-linejoin':'round'});
+        P(wd,d,'none',{stroke:'#d63b2a','stroke-width':w,'stroke-linejoin':'round'});
+        P(wd,path(off - w*.25),'none',{stroke:'#ff9384','stroke-width':Math.max(1.6, w*.28),'stroke-linejoin':'round',opacity:.85});
+      };
+      P(wd,path(-8),'none',{stroke:'#8f2219','stroke-width':8,'stroke-linejoin':'round'});       // the back rail, a little further away
+      const rungs = [], truss = [];
+      for (let x = XS; x <= XE; x += 16){ const [a1,b1] = pt(x, -8), [a2,b2] = pt(x, 0); rungs.push(`M${a1},${b1}L${a2},${b2}`); }
+      for (let x = XS; x <= XE; x += 26){ const [a1,b1] = pt(x, 2), [a2,b2] = pt(x + 13, 33), [a3,b3] = pt(x + 26, 2); truss.push(`M${a1},${b1}L${a2},${b2}L${a3},${b3}`); }
+      P(wd,rungs.join(''),'none',{stroke:'#9e2419','stroke-width':3.5});
+      P(wd,truss.join(''),'none',{stroke:'#7a1a12','stroke-width':7.5,'stroke-linejoin':'round'});
+      P(wd,truss.join(''),'none',{stroke:'#c9352a','stroke-width':4.5,'stroke-linejoin':'round'});
+      tube(34, 11);                                        // bottom tube
+      tube(0, 9);                                          // running rail
+      // the lift chain between the rails on every climb (it runs while the cart is pulled up)
+      const hills = ST.slice(0, -1).filter((s, i) => ST[i+1].v > s.v).map(s => ({x0:s.x + PH - 10, x1:s.x + SEG - PH + 10}));
+      const chains = A(wd,'g').selectAll('path').data(hills).join('path').attr('class','chain')
+        .attr('d', d => pl(d3.range(d.x0, d.x1, 4).map(x => pt(x, -4)))).attr('fill','none').attr('stroke','#2b2d31').attr('stroke-width',3).attr('stroke-dasharray','6 5');
+
+      // ---------- fixed on screen ----------
+      // the overview strip: the real monthly yield for the whole ride, the stops as dots, and where the cart is
+      const mx0 = SAFE.x + 70, mx1 = SAFE.x + SAFE.w - 70, my0 = SAFE.y + 2, mh = 58;
+      R(fg,mx0,my0,mx1 - mx0,mh,'#fdfbf4',{rx:12,opacity:.95,stroke:OUT,'stroke-width':2.5});
+      Tt(fg,mx0 + 16,my0 + 25,'HEIGHT = 10-YR YIELD',{'font-size':11,fill:OUT});
+      Tt(fg,mx0 + 16,my0 + 44,`${ST[0].m.slice(0,4)}–${END.m.slice(0,4)} · REAL DATA`,{'font-size':10,fill:'#5a5f6b'});
+      const data = DATA.us10Monthly.filter(d => d[0] >= ST[0].m && d[0] <= END.m).map(([m, v]) => ({t:parseM(m), v}));
+      const mxs = d3.scaleTime().domain([ST[0].t, END.t]).range([mx0 + 214, mx1 - 18]);
+      const mys = d3.scaleLinear().domain([0, 16]).range([my0 + mh - 9, my0 + 9]);
+      const mline = d3.line().x(d => mxs(d.t)).y(d => mys(d.v));
+      P(fg,mline(data),'none',{stroke:OUT,'stroke-width':1.6,opacity:.45});
+      const prog = P(fg,'','none',{stroke:'#d63b2a','stroke-width':3.2,'stroke-linejoin':'round'});
+      const dots = ST.map(s => Cc(fg,mxs(s.t),mys(s.v),4.5,'#fdfbf4',{stroke:OUT,'stroke-width':1.6}));
+      const mk = Cc(fg,0,0,6.5,'#d63b2a',{stroke:'#ffffff','stroke-width':2.5});
+
+      // the camera: the cart sits at S. It looks a little ahead (so the next hill comes into view) but never so far that
+      // the station sign leaves the screen, and it never lifts the ground above the bottom of the stage.
+      const S = {x: SAFE.x + SAFE.w*.3, y: SAFE.y + SAFE.h*.81};
+      const camera = x => {
+        const y = ty(x), cy = Math.min(S.y - G, clamp(.62*y + .38*ty(x + 380), y - 70, y + 10));
+        const ox = S.x - x, oy = S.y - cy;
+        wd.attr('transform', `translate(${ox},${oy})`);
+        const lay = (el, f, fy) => el.attr('transform', `translate(${S.x - x*f},${G + (oy - G)*fy})`);
+        lay(far, .12, .18); lay(mid, .35, .5); lay(fair, .5, .55);
+        const alt = clamp(-cy/850, 0, 1);
+        skyT.attr('stop-color', mix('#62b6ec', '#2f6fb8', alt)); skyB.attr('stop-color', mix('#d6eefb', '#8fc0e8', alt));
+        const t = tAt(x), v = trackVal(data, t);
+        prog.attr('d', mline(data.filter(d => d.t <= t).concat([{t, v}])));
+        mk.attr('cx', mxs(t)).attr('cy', mys(v));
+        dots.forEach((d, i) => d.attr('fill', Math.abs(ST[i].x - x) <= PH ? OUT : ST[i].x < x ? '#d63b2a' : '#fdfbf4'));
+        return {ox, oy};
+      };
+      const xOf = m => (ST.find(s => s.m === m) || ST[0]).x;
+      RIDE = {x: xOf((sc.lines[li] || sc.lines[0])[3]), xOf, tv, ty, slope, camera, chains, SEG};
+      camera(RIDE.x);
     },
     sketch(g,sc,fg){
       // Leo's desk in 2020, seen through his eyes: a graph-paper sketchbook with the real yield drawn in pencil
@@ -1168,7 +1324,8 @@ d3.json('prototype/data/leo.json').then(DATA => {
       const pl = d3.line().x(d => x(d.t)).y(d => y(d.v)).curve(d3.curveMonotoneX);
       P(g,pl(past),'none',{stroke:pencil,'stroke-width':3.4,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.9});
       Cc(g,x(low.t),y(low.v),7,'#2b3a55');
-      hw(g,x(low.t)-10,y(low.v)+36,`record low ${low.v.toFixed(2)}%`,{'text-anchor':'middle','font-size':20,fill:'#2b3a55'});
+      // label to the LEFT of the dot, in the empty strip between the pencil line and the x-axis (not on the year labels)
+      hw(g,x(low.t)-26,y(low.v)+17,`record low ${low.v.toFixed(2)}%`,{'text-anchor':'end','font-size':19,fill:'#2b3a55'});
       const guessPath = P(g,'','none',{stroke:'#2b3a55','stroke-width':4,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.85});
       const realPath = P(g,'','none',{stroke:'#d63b2a','stroke-width':6,'stroke-linecap':'round','stroke-linejoin':'round',opacity:0});
       const endLabel = A(g,'g').style('opacity',0);
@@ -1963,19 +2120,34 @@ d3.json('prototype/data/leo.json').then(DATA => {
   // extra width or height just shows more of the background.
   const SAFE = {x:110, y:40, w:1060, h:580};
   let lastFit = '';
+  // Room kept for the dialogue box: the height of the TALLEST line in the current scene, measured once per scene.
+  // (Using the box's live height made the picture zoom out and back in whenever one line wrapped onto more rows
+  // than the next, and even while a long line was typing.)
+  let boxReserve = 0;
+  function measureBox(){
+    const box = document.querySelector('.box'), sc = story[si], el = $('line');
+    if (!sc || sc.choice || $('talkbox').hidden){ boxReserve = box.offsetHeight; return; }
+    const keep = el.textContent;
+    boxReserve = 0;
+    sc.lines.forEach(l => { el.textContent = l[1]; boxReserve = Math.max(boxReserve, box.offsetHeight); });
+    el.textContent = keep;     // put back the text being typed; nothing is painted in between
+  }
   function fitScene(){
     const st = $('stage'), sw = st.clientWidth, sh = st.clientHeight;
     if (!sw || !sh) return;
-    const dh = document.querySelector('.box').offsetHeight + 34;
+    const dh = (boxReserve || document.querySelector('.box').offsetHeight) + 34;
     const avail = Math.max(sh*.5, sh - dh);
     const k = Math.min(sw / SAFE.w, avail / SAFE.h);
     const vw = sw/k, vh = sh/k, x = SAFE.x + SAFE.w/2 - vw/2, y = SAFE.y - (avail/k - SAFE.h)/2;
     const vb = `${x.toFixed(1)} ${y.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`;
     if (vb !== lastFit){ lastFit = vb; svg.attr('viewBox', vb); }
   }
-  let lastBox = 0;
-  new ResizeObserver(fitScene).observe($('stage'));
-  new ResizeObserver(() => { const hgt = document.querySelector('.box').offsetHeight; if (Math.abs(hgt - lastBox) > 24){ lastBox = hgt; fitScene(); } }).observe(document.querySelector('.box'));
+  const refit = () => { measureBox(); fitScene(); };
+  new ResizeObserver(refit).observe($('stage'));        // a new screen size re-wraps the text, so measure again
+  // Safety net: if the box still grows past the reserve (a late web font, the sketchbook verdict, the rate picker's hint),
+  // make room once. It never shrinks back within a scene, so the picture can't zoom in and out.
+  new ResizeObserver(() => { const hgt = document.querySelector('.box').offsetHeight; if (hgt > boxReserve + 2){ boxReserve = hgt; fitScene(); } }).observe(document.querySelector('.box'));
+  if (document.fonts) document.fonts.ready.then(refit);
 
   /* ================= rain + lightning ================= */
   const cv = $('rain'), ctx = cv.getContext('2d');
@@ -2066,20 +2238,20 @@ d3.json('prototype/data/leo.json').then(DATA => {
   // Scene change: slide the old scene out, build the new one, slide it in; dir -1 slides the other way (Back)
   function goScene(i, lineIdx=0, dir=1){
     const stage = $('stage'), sc = story[i], prevYear = story[si] && story[si].year;
-    clearTimeout(swapTimer);
+    clearTimeout(swapTimer); swapTimer = null;
     const swap = () => {
       si = i; li = lineIdx;
       castIntro = WALK_IN.has(sc.bg) ? 'walk' : 'hop';
       renderScene(sc, true);
       if (sc.choice){ enterChoice(); }
-      else { $('chooser').hidden = true; $('talkbox').hidden = false; showLine(); fitScene(); }
+      else { $('chooser').hidden = true; $('talkbox').hidden = false; showLine(); measureBox(); fitScene(); }
       stage.classList.remove('leaving');
       if (!REDUCED){ stage.classList.add('entering'); requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove('entering'))); }
       if (sc.year !== prevYear) showChapter(sc);
     };
     if (REDUCED){ swap(); return; }
     stage.style.setProperty('--dx', dir < 0 ? '-80px' : '80px');
-    stage.classList.add('leaving'); swapTimer = setTimeout(swap, 360);
+    stage.classList.add('leaving'); swapTimer = setTimeout(() => { swapTimer = null; swap(); }, 360);
   }
   function startStory(intro=true){
     $('titleCard').hidden = true; $('stage').classList.remove('carded');
@@ -2087,7 +2259,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   }
   function next(){
     if (!$('titleCard').hidden){ startStory(); next(); return; }
-    if (!$('endCard').hidden || story[si].choice) return;
+    if (!$('endCard').hidden || story[si].choice || swapTimer) return;   // fast clicks wait for the scene change to finish
     if (typing){ stopTyping(); $('line').textContent = story[si].lines[li][1]; return; }
     const scn = story[si];
     if (scn.draw && li === scn.drawAt && SK && !SK.revealed){     // the sketchbook waits for your drawing
@@ -2099,7 +2271,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     finish();
   }
   function back(){
-    if (story[si].choice) return;
+    if (story[si].choice || swapTimer) return;
     if (li > 0){ li--; showLine(); return; }
     if (si > 0){ const p = si-1; if (story[p].choice) return; goScene(p, story[p].lines.length-1, -1); }
   }
@@ -2107,7 +2279,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   /* ================= choice ================= */
   function enterChoice(){
     mode = 'choice';
-    $('talkbox').hidden = true; $('chooser').hidden = false; fitScene();
+    $('talkbox').hidden = true; $('chooser').hidden = false; measureBox(); fitScene();
     drawCast(story[si], ['LEO','','neutral']);
     updatePick();
     $('pick').focus({preventScroll:true});
@@ -2176,7 +2348,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   $('skipBtn').addEventListener('click', () => { startStory(false); goScene(PAST.length-1); });
 
   // first frame: 2007 behind the title card
-  fitScene(); renderScene(story[0]); showLine(); stopTyping(); $('line').textContent = story[0].lines[0][1];
+  fitScene(); renderScene(story[0]); showLine(); stopTyping(); $('line').textContent = story[0].lines[0][1]; measureBox(); fitScene();
 }, err => {   // only a failed download lands here
   console.error(err);
   document.body.insertAdjacentHTML('afterbegin', '<p style="position:fixed;left:16px;right:16px;top:16px;z-index:99;margin:0;padding:14px 18px;border-radius:10px;background:#fff3cd;color:#5c4400;border:2px solid #e0a800;font:600 15px/1.45 system-ui,sans-serif">Could not load prototype/data/leo.json. Run the project through a local web server (see README.md) instead of opening the file directly.</p>');
