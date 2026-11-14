@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "npm run lint:js && npm run lint:html",
     "lint:js": "eslint .",
-    "lint:html": "html-validate \"prototype/**/*.html\""
+    "lint:html": "html-validate index.html \"prototype/**/*.html\""
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

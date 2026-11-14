@@ -20,9 +20,21 @@ The U.S. 10-year Treasury yield is one of the most watched numbers in finance, b
 
 **Audience:** Canadian university students with little or no finance background. The story uses familiar chart types (line charts, bars, sliders) and focuses on consequences (jobs, rent, mortgages, budgets) rather than financial theory.
 
+## What's in the prototype (V1)
+
+The prototype has two pages, both built with D3 on real data:
+
+- **Leo's Forecast** ([`index.html`](index.html)): a story game. You follow Leo from 2007 to 2026 while a life bar at the top tracks the real 10-year yield. In 2020 you draw your own guess of where the yield goes next in Leo's sketchbook, and the real line is then drawn over it. The end card links to Rate Weather.
+- **Rate Weather** ([`prototype/rate-weather.html`](prototype/rate-weather.html)): the data side of the story, as a scrolling page:
+  - "Draw what happened next" and "Ride the rollercoaster": the yield's history;
+  - "The domino chain": how higher rates reach jobs;
+  - "The budget box": a rate slider for a household and a business budget;
+  - "Weather over the job market": which Canadian industries are more exposed or more sheltered;
+  - "Four years apart": the same graduate in two different rate worlds.
+
 ## The story
 
-The story has six frames, organized as hook → rising insights → main message → solution.
+The planned story (from the storyboard) has six frames, organized as hook → rising insights → main message → solution. The prototype pages above cover most of these frames. The process book explains how they map.
 
 | # | Stage | Frame | What you do |
 |---|-------|-------|-------------|
@@ -57,10 +69,10 @@ The raw Bloomberg Excel exports are not in the repo; the team keeps them in a sh
 ```bash
 pip install -r scripts/requirements.txt
 python scripts/build_db.py path/to/xlsx-folder   # Excel exports + Bank of Canada + FRED -> project.db
-python scripts/export_data.py                    # project.db -> data inlined in the prototype pages
+python scripts/export_data.py                    # project.db -> prototype/data/leo.json and weather.json
 ```
 
-`export_data.py` rewrites the block between `/* @data:begin */` and `/* @data:end */` in each prototype page. Don't edit that block by hand.
+The pages load these JSON files with `d3.json`. Don't edit them by hand: change the queries in `export_data.py` and rerun it.
 
 **Budget scenarios** in frame 4 are illustrative examples, not real households or companies:
 - the household has a $400k mortgage with a 25-year amortization and Canadian semi-annual compounding;
@@ -70,36 +82,45 @@ python scripts/export_data.py                    # project.db -> data inlined in
 
 ## Tech stack
 
-- [Svelte](https://svelte.dev/): components, state, and scroll-driven steps
-- [D3.js](https://d3js.org/): data loading, scales, shapes, and formatting
-- HTML, CSS, JavaScript
+- [D3.js](https://d3js.org/) v7 (loaded from a CDN): data loading (`d3.json`), scales, axes, shapes, and transitions
+- Plain HTML, CSS, and JavaScript, with no build step and no framework
+- Python 3 + SQLite for the data pipeline (`scripts/`)
+- ESLint and html-validate for linting (development only)
 
-## Getting started
+## Running the project
 
-Requires [Node.js](https://nodejs.org/) (LTS).
+The pages load their data files (`prototype/data/leo.json`, `prototype/data/weather.json`) with `d3.json`. Browsers block that when a page is opened by double-clicking it (`file://`), so serve the project folder with a local web server. Python 3 has one built in:
 
 ```bash
-git clone <repo-url>
-cd <repo-folder>
-npm install
-npm run dev      # start local dev server
-npm run build    # production build
+cd final_project
+python -m http.server 8000
 ```
+
+Then open **<http://localhost:8000>** in a browser:
+
+- `index.html` (opens by default): **Leo's Forecast**, the story game
+- <http://localhost:8000/prototype/rate-weather.html>: **Rate Weather**, our data prototype (the game's end card links to it)
+
+Stop the server with `Ctrl+C`. An internet connection is needed for D3 and the Google Fonts. VS Code's Live Server extension or WebStorm's built-in server work too.
+
+To run the linters (needs [Node.js](https://nodejs.org/)): `npm install`, then `npm run lint`.
 
 ## Project structure
 
 ```
-src/
-  lib/
-    frames/        # one Svelte component per story frame (Frame1Fork … Frame6Paths)
-    components/    # shared UI: axis, tooltip, slider, stage badge, scroll step
-    theme.js       # colours, fonts, stage colours
-    finance.js     # mortgage and loan calculations
-static/data/       # page data exported from prototype/data/project.db
-scripts/           # build_db.py (raw exports -> SQLite), export_data.py (SQLite -> pages)
-prototype/         # standalone HTML prototypes and data/project.db
-docs/              # process book and design documentation
-CLAUDE.md          # project context for the AI coding assistant
+index.html                  # Leo's Forecast: the story game (start here)
+prototype/
+  rate-weather.html         # Rate Weather: the data prototype
+  data/
+    project.db              # SQLite database with all project data
+    leo.json                # data for index.html (written by export_data.py)
+    weather.json            # data for rate-weather.html (written by export_data.py)
+scripts/
+  build_db.py               # raw exports + Bank of Canada + FRED -> project.db
+  export_data.py            # project.db -> leo.json and weather.json
+  requirements.txt          # Python packages for the scripts
+package.json                # lint scripts (ESLint, html-validate)
+CLAUDE.md                   # project context for the AI coding assistant
 ```
 
 ## Research
@@ -115,7 +136,9 @@ The story's explanations draw on the following research:
 
 ## Design process
 
-The full design process (audience analysis, sketches, sketch selection, data story and storyboard) is documented in the [process book](docs/process-book.pdf).
+The full design process (audience analysis, sketches, sketch selection, data story and storyboard) is documented in the team's process book, which is submitted separately.
+<!-- TODO: add the process book link here -->
+
 
 ---
 

@@ -75,7 +75,7 @@ WHERE a.series_id = 'USGG10YR' AND b.series_id = 'USGG2YR' ORDER BY a.month;
 
 **Pipeline** (Python 3.10+, `pip install -r scripts/requirements.txt`):
 1. `python scripts/build_db.py <folder with the .xlsx exports>`: rebuilds `project.db` from the exports, and downloads the Bank of Canada and FRED series.
-2. `python scripts/export_data.py`: queries the DB, writes `prototype/data/bundle.json`, and rewrites the inlined data block between `/* @data:begin */ … /* @data:end */` in each prototype page. Never edit that block by hand; change the query in `export_data.py` and rerun.
+2. `python scripts/export_data.py`: queries the DB and writes `prototype/data/leo.json` (loaded by `index.html`) and `prototype/data/weather.json` (loaded by `prototype/rate-weather.html`); the pages load them with `d3.json`, so they must be served (`python -m http.server`). Never edit that block by hand; change the query in `export_data.py` and rerun.
 
 **Scenario assumptions (frame 4):**
 - Household: $400k mortgage, 25-year amortization, **Canadian semi-annual compounding**.
