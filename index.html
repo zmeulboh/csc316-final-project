@@ -254,6 +254,16 @@ a.btn{text-decoration:none;display:inline-block}
 }
 /* Yield Coaster layers: positioned by JS with CSS transforms, so the graphics card can move them without repainting */
 #rideLayers{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+/* the café in 2024: its own layer above the scene, zoomed by the camera with a CSS transform (see BG.dominoes) */
+#cafeLayer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#cafeLayer .cafe-wrap,#cafeLayer .cafe-lamp{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#cafeLayer svg{display:block}
+#cafeLayer .cafe-dusk,#cafeLayer .cafe-veil{position:absolute;inset:0;opacity:0;will-change:opacity}
+#cafeLayer .cafe-dusk{background:#120f24}
+#cafeLayer .cafe-veil{background:#160f0b}
+#cafeLayer .cafe-lamp{opacity:0;border-radius:50%;background:radial-gradient(closest-side,rgba(255,244,200,.8),rgba(255,214,110,.28) 55%,rgba(255,214,110,0))}
+.stage.leaving #cafeLayer{transform:translateX(calc(-1 * var(--dx,80px) * var(--k,1)))}
+.stage.entering #cafeLayer{transform:translateX(calc(var(--dx,80px) * var(--k,1)))}
 #rideLayers svg{position:absolute;left:0;top:0;overflow:visible}
 #rideLayers .ride-sky{width:100%;height:100%}
 #rideLayers .ride-layer{transform-origin:0 0;will-change:transform}
@@ -286,14 +296,16 @@ a.btn{text-decoration:none;display:inline-block}
 #scene .district:hover .sign,#scene .district.on .sign,#scene .district:focus-visible .sign{fill:#fff3b0}
 #scene .chips.hint .chip-bg{animation:chiphint .7s ease-in-out infinite alternate}
 @keyframes chiphint{to{stroke:#ffc23d;stroke-width:4}}
-#scene .knock{animation:knock .4s ease-out;transform-box:fill-box;transform-origin:100% 100%}
-@keyframes knock{30%{transform:rotate(3deg)}65%{transform:rotate(-1deg)}}
+.a-flipout{animation:flipout .18s ease-in forwards;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes flipout{to{transform:scaleX(0)}}
+.a-nudge{animation:nudge .35s ease-out;transform-box:fill-box}
+@keyframes nudge{35%{transform:translate(3px,-2px)}70%{transform:translate(-1px,1px)}}
+.a-flipin{animation:flipin .24s ease-out .18s both;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes flipin{from{transform:scaleX(0)}to{transform:none}}
 .a-ticket{animation:ticket 1s cubic-bezier(.3,1.4,.5,1) both;transform-box:fill-box;transform-origin:50% 0}
 @keyframes ticket{0%{transform:rotate(-28deg) translateY(-24px);opacity:0}30%{opacity:1}55%{transform:rotate(8deg)}78%{transform:rotate(-3deg)}100%{transform:none;opacity:1}}
 .a-stamp{animation:stamp .45s cubic-bezier(.2,1.6,.4,1) both;transform-box:fill-box;transform-origin:50% 50%}
 @keyframes stamp{from{transform:scale(2.4) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
-.a-clack{animation:clack 1s ease-out both;transform-box:fill-box;transform-origin:50% 100%}
-@keyframes clack{0%{transform:scale(.3);opacity:0}18%{transform:scale(1.15);opacity:1}65%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
 .a-vibrate{animation:vibrate 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
 @keyframes vibrate{0%,78%,100%{transform:none}80%,84%,88%{transform:rotate(-2.5deg)}82%,86%,90%{transform:rotate(2.5deg)}}
 .a-hover{animation:hover 4s ease-in-out infinite alternate}
@@ -303,11 +315,11 @@ a.btn{text-decoration:none;display:inline-block}
 .lens-in{animation:lensin .45s cubic-bezier(.3,1.4,.5,1) both;transform-box:fill-box;transform-origin:50% 50%}
 @keyframes lensin{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){
-  .lens-in,#scene .knock,#scene .chips.hint .chip-bg,
+  .lens-in,#scene .chips.hint .chip-bg,
   .ride-bob,.whee,.chain.on,.drift,.talk,.rock,.breathe,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.chapter.show,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
   .stage .fadeable{transition:none}
   .mouth-open{display:none}
-  .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote,.a-glassdrop,.a-clack{display:none}
+  .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote,.a-glassdrop{display:none}
 }
 </style>
 
@@ -551,11 +563,11 @@ d3.json('prototype/data/leo.json').then(DATA => {
       ['MOM',`That leaves ${fmt$(LEFT(m22))}, and the trip needs ${fmt$(TRIP)} a month. We’re cancelling it.`,'worried'],
       ['WHATIF',`Try any rate. At 7%, the payment would be ${fmt$(PAY(7))}, and the month would end ${LEFT(7) < 0 ? fmt$(-LEFT(7)) + ' short' : 'with ' + fmt$(LEFT(7)) + ' left'}.`],
       ['LEO','It was the first time I heard my parents argue about money.','sad']]},
-    // 2024, the café after closing: a domino for each link from the 10-year yield to Leo's shifts. waitAt: push the first one.
-    {year:2024, age:17, y:US10[2024], bg:'dominoes', outfit:'apron', cast:[], mood:'neutral', waitAt:1,
-      nudge:'Click the first domino (the small one on the left) to push it, or press Next again to skip.', lines:[
+    // 2024, the café after closing, seen from above: a domino chain with Leo's notes on old receipts. waitAt: push the first one.
+    {year:2024, age:17, y:US10[2024], bg:'dominoes', pov:true, cast:[], mood:'neutral', waitAt:1,
+      nudge:'Click the first domino (by Leo’s finger, bottom left) to push it, or press Next again to skip.', lines:[
       ['LEO','I work part-time at a café on Bloor. A latte is $5.75 now, the regulars come in less often, and my shifts just got cut.','worried'],
-      ['LEO','After closing, I lined up dominoes to figure out why. Push the first one.'],
+      ['LEO','After closing, I borrowed the dominoes from the games shelf and wrote my notes on old receipts, one for each link. Push the first domino.'],
       ['FACT',`1 · Yields rise. The US 10-year yield averaged ${US10[2020].toFixed(2)}% in 2020 and ${US10[2024].toFixed(2)}% in 2024.`],
       ['FACT',`2 · Loans cost more. Canada’s 5-year bond yield followed, from ${CA5[2020].toFixed(2)}% to ${CA5[2024].toFixed(2)}%, and banks price 5-year mortgages off it.`],
       ['LEO',`3 · Budgets get squeezed. My parents’ mortgage went from ${fmt$(P17)} to ${fmt$(P22)} a month.`],
@@ -750,6 +762,9 @@ d3.json('prototype/data/leo.json').then(DATA => {
     const gi = pat('gingham', 48, 48); box(gi,0,0,48,48,'#fbf5ea'); box(gi,0,0,24,48,'#d9534f',.15); box(gi,0,0,48,24,'#d9534f',.15);
     const dh = pat('debtHatch', 10, 10, {patternTransform:'rotate(45)'}); box(dh,0,0,10,10,'#f7d3cc'); box(dh,0,0,4,10,'#d63b2a',.8);
     const br = pat('brick', 64, 32); box(br,0,0,64,32,'#874230'); box(br,1,1,62,14,'#b25e3e'); box(br,-31,17,62,14,'#a9573a'); box(br,33,17,62,14,'#b8653f');
+    const vg = defs.append('radialGradient').attr('id', 'vignette').attr('gradientUnits', 'userSpaceOnUse').attr('cx', 640).attr('cy', 330).attr('r', 900);   // darker toward the edges (the café table at night), with no outer edge
+    [[0,0],[.55,0],[1,.6]].forEach(([o, a]) => vg.append('stop').attr('offset', o).attr('stop-color', '#000').attr('stop-opacity', a));
+    const ct = pat('cafeTile', 44, 88); box(ct,0,0,40,40,'#c06a49',.6); box(ct,22,44,40,40,'#c06a49',.6); box(ct,-22,44,40,40,'#c06a49',.6);
     const lc = defs.append('clipPath').attr('id', 'lensClip'); [-70, 70].forEach(cx => lc.append('circle').attr('cx', cx).attr('cy', 0).attr('r', 124));
   })();
   const world = svg.append('g').attr('class','fadeable');
@@ -1870,241 +1885,347 @@ d3.json('prototype/data/leo.json').then(DATA => {
       };
     },
     dominoes(g,sc,fg){
-      // 2024, the café on Bloor after closing time. Six dominoes stand on the counter, one for each link in the chain from
-      // the 10-year yield to Leo's shifts. The reader pushes the first; each Next tips the next one, and its order ticket
-      // swings onto the rail above with that link's real data (or Leo's story, labelled as such). The dominoes fall with
-      // simple physics: each one tips until it rests on the next, and when the last one lies flat they all go down.
+      // 2024. It opens in the café on Bloor (Leo behind the counter). On "After closing..." the camera pushes in toward one
+      // of the tables while the light turns to evening, and cuts to a close-up of that table seen from above. Leo borrowed
+      // the domino set from the café's games shelf and laid a chain across the table, with his notes on old till receipts
+      // lying face down along it: three along the bottom, a U-turn, three along the top, the last one his shift schedule.
+      // Push the first domino: only the first stretch falls, up to receipt 1, which flips over. Each Next sends the next
+      // stretch down to the next receipt. The last stretch lands on the schedule.
       fg = fg || g;
-      // ---- the back wall: brick in the evening, wood panelling, a chalk menu, a shelf, a clock, the window onto Bloor
-      R(g,-1400,-800,W+2800,G+800,'url(#brick)');
-      R(g,-1400,-800,W+2800,G+800,'#1d1b33',{opacity:.34});
-      R(g,-1400,430,W+2800,G-430,'#5a3d2b'); for (let x=-1400; x<W+1400; x+=40) L(g,x,434,x,G,'#4a3123',2); R(g,-1400,426,W+2800,8,'#3a2a1f');
-      R(g,238,258,184,122,'#20211f',{stroke:'#7a5236','stroke-width':9,rx:3});
-      Tt(g,330,286,'MENU',{'text-anchor':'middle','font-size':18,fill:'#f4f2ff'});
-      [['LATTE','5.75'],['MUFFIN','4.25'],['SANDWICH','12.50']].forEach(([a,b],i) => {
-        hw(g,252,312+i*22,a,{'font-size':17,fill:'#e8e6dc'}); hw(g,408,312+i*22,b,{'text-anchor':'end','font-size':17,fill:'#ffc23d'}); });
-      shelf(g,430,300,210,'#5a3d2b');
-      [[446,'#3a2a1f'],[480,'#8a5a3c'],[514,'#3a2a1f']].forEach(([x,c]) => { R(g,x,260,28,40,c,{rx:3}); R(g,x+5,272,18,14,'#efe2c9'); });
-      [552,580,608].forEach((x,i) => { R(g,x,276,22,24,['#ffffff','#3fbf8f','#ffc23d'][i],{rx:3}); P(g,`M${x+22},282 q8,4 0,12`,'none',{stroke:'#ffffff','stroke-width':2}); });
-      clock(g,808,292,20);
-      windowView(g,980,268,270,156, v => {
-        R(v,970,300,290,124,'#2c2f45');
-        for (let i=0;i<6;i++) for (let j=0;j<3;j++) R(v,990+i*44,312+j*28,22,16,(i+j)%3 ? '#ffd98a' : '#3a3e58',{opacity:.9});
-        const car = A(v,'g',{class:'a-pass',style:'animation-delay:-4s'}); R(car,1000,362,220,50,'#d0312d',{rx:8});
-        for (let i=0;i<5;i++) R(car,1010+i*40,372,30,20,'#ffe9a8'); L(car,1110,362,1120,330,'#555',2);
-        R(v,970,410,290,20,'#3a3f4a');
-      }, {night:true, frame:'#3a2a1f', cols:2, rows:1});
-      const neon = A(g,'g',{class:'a-neon'}); R(neon,994,292,82,30,'#1d1b33',{rx:6,stroke:'#ff5a7a','stroke-width':2.5});
-      Tt(neon,1035,313,'CLOSED',{'text-anchor':'middle','font-size':13,fill:'#ff8aa0'});
-      // pendant lamps: warm light pooling on the counter
-      [330,700].forEach((x,i) => { const lp = A(g,'g',{class:'a-sway-sm',style:`animation-delay:-${i*1.4}s`});
-        L(lp,x,-300,x,26,'#2b2b2b',2); P(lp,`M${x-24},48 Q${x},14 ${x+24},48Z`,'#2f5d4a'); E(lp,x,48,24,4,'#24493a'); Cc(lp,x,52,6,'#ffe9a8');
-        glow(lp,x,58,90,.8); P(lp,`M${x-20},52 L${x+20},52 L${x+150},486 L${x-150},486Z`,'url(#cone)',{opacity:.2}); });
-      // the order rail the tickets hang from
-      R(g,128,50,10,28,'#7c858c',{rx:2}); R(g,1150,50,10,28,'#7c858c',{rx:2});
-      L(g,133,64,1155,64,'#aeb6bc',7); L(g,133,62,1155,62,'#eef1f3',2);
+      const table = A(g,'g'), top = A(fg,'g');               // the close-up of the table (shown once the camera arrives)
+      // The close-up uses a wider frame than other scenes (TABLE_SAFE, see fitScene), so the table fills wide screens.
 
-      // ---- the six order tickets (hidden until their domino falls)
-      const tixX = i => 148 + i*164, TW = 156, TT = 72, TH = 176;
-      const paper = x => { let d = `M${x},${TT} H${x+TW} V${TT+TH}`; for (let xx = x+TW, n = 0; xx > x; xx -= 6, n++) d += ` L${Math.max(x, xx-6)},${TT+TH-(n%2 ? 0 : 5)}`; return d + 'Z'; };
-      const tag = (gg, x, y, real, t) => { R(gg,x,y-11,t.length*6+12,15,real ? '#2e4d40' : '#4a3a86',{rx:4});
-        mono(gg,x+6,y,t,{'font-size':9,fill: real ? '#9ff0c8' : '#e2d8ff','letter-spacing':'.04em'}); };
-      // a small line chart; the last series is the main one (red), the others are grey context
-      function lineChart(cg, b, list, fromZero, mark){
+      // ================= the close-up of the table, seen from above =================
+      R(table,-1400,-800,W+2800,H+1600,'#3b281d');
+      const gr = seeded(17);
+      for (let i = 0; i < 64; i++){ const y = -60 + i*12 + gr()*6;
+        P(table,`M-1400,${y.toFixed(1)} C-200,${(y + gr()*16 - 8).toFixed(1)} 600,${(y + gr()*16 - 8).toFixed(1)} 2680,${(y + gr()*10 - 5).toFixed(1)}`,'none',
+          {stroke: i % 3 ? '#33231a' : '#4a3222','stroke-width':(1 + gr()*2).toFixed(1),opacity:.75}); }
+      glow(table,640,330,760,.2);
+      [[300,330,40],[1000,600,38],[520,40,36]].forEach(([x,y,r]) => Cc(table,x,y,r,'none',{stroke:'#5a3d2b','stroke-width':4,opacity:.45}));
+      // the open domino box (top left), its lid (in the middle), Leo's phone (bottom left), a latte inside the U-turn
+      const box = A(table,'g',{transform:'rotate(-7,105,140)'});
+      R(box,47,76,128,140,'#000',{opacity:.3,rx:8}); R(box,41,70,128,140,'#1f3f63',{rx:8,stroke:OUT,'stroke-width':3}); R(box,51,80,108,120,'#152c46',{rx:5});
+      [[61,88],[109,88],[61,144],[109,144]].forEach(([x,y],i) => { R(box,x,y,40,50,'#fbf7ec',{rx:5,stroke:OUT,'stroke-width':2});
+        L(box,x+6,y+25,x+34,y+25,OUT,1.5); Cc(box,x+20,y+12,3.5,OUT); if (i % 2) Cc(box,x+20,y+38,3.5,OUT); });
+      const lid = A(table,'g',{transform:'rotate(5,685,342)'});
+      R(lid,618,308,140,78,'#000',{opacity:.3,rx:8}); R(lid,612,302,140,78,'#2a5a86',{rx:8,stroke:OUT,'stroke-width':3});
+      Tt(lid,682,348,'DOMINOES',{'text-anchor':'middle','font-size':15,fill:'#ffffff'}); [[624,314],[740,368]].forEach(([x,y]) => Cc(lid,x,y,4.5,'#ffffff',{opacity:.8}));
+      const ph = A(table,'g',{transform:'rotate(-8,58,520)'});
+      R(ph,14,432,96,180,'#000',{opacity:.3,rx:14}); R(ph,8,426,96,180,'#1d1b33',{rx:14,stroke:OUT,'stroke-width':3});
+      R(ph,15,438,82,156,'#24365a',{rx:8}); Tt(ph,56,455,'9:47 PM',{'text-anchor':'middle','font-size':9,fill:'#ffffff'});
+      R(ph,19,466,74,62,'#f4f2ff',{rx:7}); Tt(ph,25,480,'SCHEDULE',{'font-size':7,fill:'#5a6b88'});
+      hw(ph,25,499,'Fri shift',{'font-size':14,fill:'#1d1b33'}); hw(ph,25,518,'cancelled',{'font-size':14,fill:'#d63b2a'});
+      E(table,1118,338,72,68,'#000',{opacity:.3}); Cc(table,1110,330,66,'#f4efe6',{stroke:OUT,'stroke-width':2.5}); Cc(table,1110,330,53,'#e6ddcc');
+      R(table,1138,276,34,17,'#ffffff',{rx:8,stroke:OUT,'stroke-width':2.5,transform:'rotate(-42,1155,284)'});
+      Cc(table,1110,330,44,'#ffffff',{stroke:OUT,'stroke-width':2.5}); Cc(table,1110,330,35,'#b98352');
+      P(table,'M1110,347 C1087,328 1091,309 1105,313 Q1110,315 1110,321 Q1110,315 1115,313 C1129,309 1133,328 1110,347Z','#f3dcc0');
+      [0,1.2].forEach(d => Cc(table,1106,314,9,'#ffffff',{opacity:.5,class:'a-steam',style:`animation-delay:${d}s`}));
+      [[900,330,-12,'#f4c7d3'],[934,356,9,'#fff3b0'],[952,318,20,'#f4c7d3']].forEach(([x,y,r,c]) => R(table,x,y,40,22,c,{rx:2,stroke:'#c9bfa8','stroke-width':1.5,transform:`rotate(${r},${x+20},${y+11})`}));
+      R(table,-1400,-800,W+2800,H+1600,'url(#vignette)');
+
+      // ---- Leo's notes: old till receipts lying face down along the chain (bottom row left to right, top row right to left)
+      const CW = 170, CH = 200, POS = [[250,500],[600,500],[950,500],[1060,150],[680,150],[300,150]];   // card centres
+      const zig = (x, y0) => { let d = `M${x},${y0}`;
+        for (let xx = x, n = 0; xx < x + CW; xx += 6, n++) d += ` L${Math.min(x + CW, xx + 6)},${y0 + (n % 2 ? 0 : 4)}`;
+        d += ` L${x + CW},${y0 + CH}`;
+        for (let xx = x + CW, n = 0; xx > x; xx -= 6, n++) d += ` L${Math.max(x, xx - 6)},${y0 + CH - (n % 2 ? 0 : 4)}`;
+        return d + 'Z'; };
+      // pencil charts: the main series in red pen, a comparison in grey pencil; only the first and last year are labelled
+      const yrs = (cg, b, a, z) => { mono(cg,b.x0,b.y1+14,a,{'font-size':10,fill:'#6b6a5e'}); mono(cg,b.x1,b.y1+14,z,{'font-size':10,fill:'#6b6a5e','text-anchor':'end'}); };
+      function lineChart(cg, b, list, fromZero, labels){
         const flat = list.flat(), x = d3.scaleTime().domain(d3.extent(flat, d => parseM(d[0]))).range([b.x0, b.x1]);
         const lo = fromZero ? 0 : d3.min(flat, d => d[1]), hi = d3.max(flat, d => d[1]), pad = fromZero ? 0 : (hi - lo)*.12;
         const y = d3.scaleLinear().domain([lo - pad, hi + pad]).range([b.y1, b.y0]);
-        L(cg,b.x0,b.y1,b.x1,b.y1,'#b9b2a0',1);
-        if (mark) L(cg,x(parseM(mark)),b.y0,x(parseM(mark)),b.y1,'#8a8478',1,{'stroke-dasharray':'2 3'});
+        L(cg,b.x0,b.y1,b.x1,b.y1,'#9a958a',1.2);
         const ln = d3.line().x(d => x(parseM(d[0]))).y(d => y(d[1]));
-        list.forEach((s, n) => { const main = n === list.length - 1;
-          P(cg,ln(s),'none',{stroke: main ? '#d63b2a' : '#6f6a5f','stroke-width': main ? 2.4 : 1.8,'stroke-dasharray': main ? null : '4 3','stroke-linejoin':'round'}); });
-        const e = list[list.length - 1].slice(-1)[0]; Cc(cg,x(parseM(e[0])),y(e[1]),3,'#d63b2a');
-        mono(cg,b.x0,b.y1+11,flat[0][0].slice(0,4),{'font-size':8}); mono(cg,b.x1,b.y1+11,e[0].slice(0,4),{'font-size':8,'text-anchor':'end'});
+        list.forEach((s, n) => { const main = n === list.length - 1, e = s[s.length - 1];
+          P(cg,ln(s),'none',{stroke: main ? '#d63b2a' : '#8a857a','stroke-width': main ? 2.8 : 2,'stroke-dasharray': main ? null : '5 3','stroke-linejoin':'round'});
+          if (labels) hw(cg,x(parseM(e[0])) - 2,y(e[1]) + (main ? 16 : -7),labels[n],{'text-anchor':'end','font-size':14,fill: main ? '#d63b2a' : '#6f6a5f'}); });
+        const e = list[list.length - 1].slice(-1)[0]; Cc(cg,x(parseM(e[0])),y(e[1]),3.5,'#d63b2a');
+        yrs(cg, b, flat[0][0].slice(0,4), e[0].slice(0,4));
       }
       function payBars(cg, b){
-        const y = d3.scaleLinear().domain([0, P22]).range([b.y1, b.y0 + 9]);
+        const y = d3.scaleLinear().domain([0, P22]).range([b.y1, b.y0]);
         [[P17,'2017','#cfcabd','#8a857a'],[P22,'2022','url(#debtHatch)','#a8261a']].forEach(([v, t, f, s], n) => {
-          const x = b.x0 + 20 + n*64;
-          R(cg,x,y(v),36,b.y1 - y(v),f,{stroke:s,'stroke-width':1.5});
-          mono(cg,x+18,b.y1+11,t,{'font-size':8,'text-anchor':'middle'}); mono(cg,x+18,y(v)-3,fmt$(v),{'font-size':8,'text-anchor':'middle',fill: n ? '#c0392b' : '#5a5a52'});
+          const x = b.x0 + 20 + n*66;
+          R(cg,x,y(v),40,b.y1 - y(v),f,{stroke:s,'stroke-width':1.5});
+          mono(cg,x+20,b.y1+14,t,{'font-size':10,'text-anchor':'middle',fill:'#6b6a5e'});
         });
-        L(cg,b.x0,b.y1,b.x1,b.y1,'#8a8478',1);
+        L(cg,b.x0,b.y1,b.x1,b.y1,'#8a8478',1.2);
       }
       const uq = UQ.filter(d => d[0] >= '2022-01' && d[0] <= '2024-12');
       function uBars(cg, b){
         const y = d3.scaleLinear().domain([0, 8]).range([b.y1, b.y0]), bw = (b.x1 - b.x0)/uq.length;
         uq.forEach(([m, v], n) => R(cg,b.x0 + n*bw + 1.5,y(v),bw - 3,b.y1 - y(v),n === uq.length - 1 ? '#d63b2a' : '#b9b2a0'));
-        L(cg,b.x0,b.y1,b.x1,b.y1,'#8a8478',1);
-        mono(cg,b.x0,b.y1+11,'2022',{'font-size':8}); mono(cg,b.x1,b.y1+11,'2024',{'font-size':8,'text-anchor':'end'});
-      }
-      function shifts(cg, b){
-        const bw = (b.x1 - b.x0)/7, on = [1,3,5,6], cut = [1,5];
-        ['M','T','W','T','F','S','S'].forEach((t, n) => {
-          const x = b.x0 + n*bw;
-          R(cg,x+2,b.y0+14,bw-4,b.y1-b.y0-14,'#f4f0e4',{stroke:'#b9b2a0','stroke-width':1,rx:2}); mono(cg,x+bw/2,b.y0+9,t,{'font-size':8,'text-anchor':'middle'});
-          if (on.includes(n)){ Cc(cg,x+bw/2,(b.y0+b.y1)/2+7,bw*.27,'#8a5a3c');
-            if (cut.includes(n)) P(cg,`M${x+4},${b.y0+18} L${x+bw-4},${b.y1-4} M${x+bw-4},${b.y0+18} L${x+4},${b.y1-4}`,'none',{stroke:'#d63b2a','stroke-width':2.4,'stroke-linecap':'round'}); }
-        });
+        L(cg,b.x0,b.y1,b.x1,b.y1,'#8a8478',1.2); yrs(cg, b, '2022', '2024');
       }
       const us = DATA.us10Monthly.filter(d => d[0] >= '2019-01' && d[0] <= '2024-12'), ca = CA5M.filter(d => d[0] <= '2024-12');
       const upTo24 = key => JOBS[key].series.filter(d => d[0] <= '2024-12').map(([m, v]) => [m, 100*v/jobsAt(key, '2022-02')]);
+      const one = v => v.toFixed(1) + '%';
       const SPEC = [
-        {kick:'Yields rise', sub:'US 10-yr Treasury yield', real:true, val:`${US10[2020].toFixed(2)}% → ${US10[2024].toFixed(2)}%`, foot:'2020 avg → 2024 avg', draw:(cg,b) => lineChart(cg,b,[us],true)},
-        {kick:'Loans cost more', sub:'Canada 5-yr bond yield', real:true, val:`${CA5[2020].toFixed(2)}% → ${CA5[2024].toFixed(2)}%`, foot:'2020 avg → 2024 avg', draw:(cg,b) => lineChart(cg,b,[ca],true)},
-        {kick:'Budgets squeezed', sub:'Mom & Dad’s mortgage', real:false, tagText:'STORY · REAL RATES', val:`+${fmt$(P22 - P17)} a month`, foot:`${fmt$(P17)} → ${fmt$(P22)} (2022)`, draw:payBars},
-        {kick:'Less spending', sub:'Shop jobs since Feb 2022', real:true, val:sg(D24.trade), foot:`all jobs ${sg(D24.all)} (grey)`, draw:(cg,b) => lineChart(cg,b,[upTo24('all'), upTo24('ret')],false,'2022-02')},
-        {kick:'Hiring slows', sub:'Unemployment, Canada', real:true, val:`${D24.uLow.toFixed(1)}% → ${D24.u24.toFixed(1)}%`, foot:'late 2022 → end of 2024', draw:uBars},
-        {kick:'You', sub:'Leo’s shifts a week', real:false, tagText:'LEO’S STORY', val:'4 → 2', foot:'hours cut in 2024', draw:shifts}
+        {kick:'Yields rise', val:`${one(US10[2020])} → ${one(US10[2024])}`, draw:(cg,b) => lineChart(cg,b,[us],true)},
+        {kick:'Loans cost more', val:`${one(CA5[2020])} → ${one(CA5[2024])}`, draw:(cg,b) => lineChart(cg,b,[ca],true)},
+        {kick:'Budgets squeezed', val:`+${fmt$(P22 - P17)}/mo`, draw:payBars},
+        {kick:'Less spending', val:`shops ${sg(D24.trade)}`, draw:(cg,b) => lineChart(cg,b,[upTo24('all'), upTo24('ret')],false,[`all ${sg(D24.all)}`, 'shops'])},
+        {kick:'Hiring slows', val:`${one(D24.uLow)} → ${one(D24.u24)}`, draw:uBars}
       ];
-      const TK = SPEC.map((s, i) => {
-        const x = tixX(i), tg = A(g,'g',{display:'none'}), inner = A(tg,'g');
-        P(inner,paper(x),'#000',{opacity:.2,transform:'translate(4,5)'}); P(inner,paper(x),'#fffdf6',{stroke:'#d8d0bd','stroke-width':1.2});
-        R(inner,x+TW/2-13,TT-14,26,16,'#2b2d31',{rx:3});                                   // the clip that holds it on the rail
-        Cc(inner,x+18,TT+20,11,i === 5 ? '#ff8a3d' : '#1d1b33'); Tt(inner,x+18,TT+24.5,String(i+1),{'text-anchor':'middle','font-size':11,fill:'#ffffff'});
-        const kt = hw(inner,x+35,TT+26,s.kick,{'font-size':17,fill: i === 5 ? '#d9662a' : '#1d1b33'});
-        if (s.kick.length > 15) kt.attr('textLength', 112).attr('lengthAdjust', 'spacingAndGlyphs');      // keep long ones on the ticket
-        mono(inner,x+10,TT+44,s.sub,{'font-size':9,fill:'#6b6a5e'});
-        s.draw(A(inner,'g'),{x0:x+12, x1:x+TW-12, y0:TT+52, y1:TT+104});
-        hw(inner,x+10,TT+136,s.val,{'font-size':21,fill:'#1d1b33'});
-        mono(inner,x+10,TT+151,s.foot,{'font-size':8.5,fill:'#6b6a5e'});
-        tag(inner,x+10,TT+168,s.real,s.tagText || 'REAL DATA');
-        return {g:tg, inner};
+      const TILL = [['LATTE','5.75'],['MUFFIN','4.25'],['ESPRESSO','3.50'],['CROISSANT','3.95'],['CHAI','5.25'],['COOKIE','2.75'],['OAT MILK','0.80']];
+      const cards = [];
+      const card = (j, build) => {
+        const [cx, cy] = POS[j], x = cx - CW/2, y0 = cy - CH/2;
+        const cg = A(table,'g',{transform:`rotate(${[-2.5,1.8,-1.4,2.2,-1.8,1.4][j]},${cx},${cy})`});
+        const sh = P(cg,zig(x, y0),'#000',{opacity:.35,transform:'translate(5,7)'}), lift = A(cg,'g');
+        const c = {j, g:cg, sh, lift, x, y0, cx}; build(c); cards.push(c); return c;
+      };
+      const head = (gg, c, kick, col) => {
+        Cc(gg,c.x+20,c.y0+25,13,col); Tt(gg,c.x+20,c.y0+30,String(c.j + 1),{'text-anchor':'middle','font-size':13,fill:'#ffffff'});
+        const kt = hw(gg,c.x+40,c.y0+32,kick,{'font-size':20,fill: c.j === 5 ? '#d9662a' : '#1d1b33'});
+        if (kick.length > 13) kt.attr('textLength', CW - 48).attr('lengthAdjust', 'spacingAndGlyphs');
+      };
+      SPEC.forEach((s, j) => card(j, c => {
+        const x = c.x, y0 = c.y0;
+        // the printed side, face up at first
+        c.back = A(c.lift,'g');
+        P(c.back,zig(x, y0),'#f1eee4',{stroke:'#cfc8b6','stroke-width':1});
+        mono(c.back,c.cx,y0+30,'BLOOR ST. CAFÉ',{'text-anchor':'middle','font-size':11.5,'font-weight':500,fill:'#8a8478'});
+        mono(c.back,c.cx,y0+46,`#04${21 + j*7} · NOV ${2 + j}`,{'text-anchor':'middle','font-size':9,fill:'#a39d90'});
+        let total = 0;
+        [0,1,2].forEach(n => { const it = TILL[(j*2 + n*3) % TILL.length]; total += +it[1];
+          mono(c.back,x+16,y0+74+n*18,it[0],{'font-size':10,fill:'#8a8478'}); mono(c.back,x+CW-16,y0+74+n*18,it[1],{'font-size':10,fill:'#8a8478','text-anchor':'end'}); });
+        L(c.back,x+16,y0+126,x+CW-16,y0+126,'#b9b2a0',1,{'stroke-dasharray':'3 3'});
+        mono(c.back,x+16,y0+144,'TOTAL',{'font-size':10.5,'font-weight':500,fill:'#8a8478'}); mono(c.back,x+CW-16,y0+144,total.toFixed(2),{'font-size':10.5,'font-weight':500,fill:'#8a8478','text-anchor':'end'});
+        mono(c.back,c.cx,y0+164,'THANK YOU!',{'text-anchor':'middle','font-size':9,fill:'#a39d90'});
+        let bars = ''; for (let n = 0, xx = x + 30; xx < x + CW - 30; n++, xx += 2 + (n*7) % 4) bars += `M${xx},${y0+172}v16`;
+        P(c.back,bars,'none',{stroke:'#a39d90','stroke-width':1.3});
+        // Leo's side: only the link, a pencil chart and one number
+        c.front = A(c.lift,'g',{display:'none'});
+        P(c.front,zig(x, y0),'#fffdf6',{stroke:'#d8d0bd','stroke-width':1.2});
+        head(c.front, c, s.kick, '#1d1b33');
+        s.draw(A(c.front,'g'),{x0:x+16, x1:x+CW-16, y0:y0+52, y1:y0+136});
+        hw(c.front,c.cx,y0+184,s.val,{'text-anchor':'middle','font-size':26,fill:'#1d1b33'});
+      }));
+      // the 6th note is Leo's printed shift schedule, face up; two of his shifts get crossed out in red marker
+      let cross = null;
+      card(5, c => {
+        const x = c.x, y0 = c.y0, cw = 20, x0 = x + 15;
+        c.front = A(c.lift,'g');
+        P(c.front,zig(x, y0),'#ffffff',{stroke:'#d8d0bd','stroke-width':1.2});
+        head(c.front, c, 'You', '#ff8a3d');
+        mono(c.front,c.cx,y0+64,'LEO · SHIFTS THIS WEEK',{'text-anchor':'middle','font-size':9.5,fill:'#6b6a5e'});
+        ['M','T','W','T','F','S','S'].forEach((t, n) => mono(c.front,x0 + n*cw + cw/2,y0+86,t,{'font-size':11,'text-anchor':'middle',fill:'#6b6a5e'}));
+        for (let n = 0; n < 7; n++) R(c.front,x0 + n*cw + 1,y0+94,cw - 2,30,'none',{stroke:'#d8d0bd','stroke-width':1.2});
+        [1,3,4,5].forEach(n => R(c.front,x0 + n*cw + 4,y0+98,cw - 8,22,'#ff8a3d',{rx:3}));
+        cross = A(c.front,'g',{display:'none'});
+        [3,4].forEach(n => { const xx = x0 + n*cw, y = y0 + 94;
+          P(cross,`M${xx},${y} L${xx+cw},${y+30} M${xx+cw},${y} L${xx},${y+30}`,'none',{stroke:'#d63b2a','stroke-width':3.5,'stroke-linecap':'round',pathLength:1,class:'a-draw'}); });
+        hw(cross,c.cx,y0+172,'4 → 2',{'text-anchor':'middle','font-size':34,fill:'#d63b2a'});
+        c.flipped = true;
       });
-
-      // ---- the counter Leo stands behind (in front of him), with a rag and a sugar jar
-      R(fg,-1400,472,W+2800,14,'#a8754a'); R(fg,-1400,484,W+2800,8,'#7a5236');
-      R(fg,-1400,492,W+2800,H,'#5a3d2b');
-      for (let x = 564 - 170*11; x < W + 1400; x += 170){ R(fg,x,506,152,70,'#4e3324',{rx:4}); R(fg,x+6,512,140,58,'#61422e',{rx:3}); L(fg,x+8,514,x+144,514,'#7a5236',2,{opacity:.6}); }
-      L(fg,-1400,G-22,W+1400,G-22,'#c9a227',4); for (let x = 564 - 170*11; x < W + 1400; x += 170) R(fg,x+72,G-26,8,26,'#a8862a');
-      // the café's painted logo on the middle panel
-      P(fg,'M622,522 h36 l-4,22 q-14,8 -28,0Z','#e9d8b0',{stroke:'#1d1b33','stroke-width':2}); P(fg,'M658,527 q10,0 8,9 q-2,6 -10,5','none',{stroke:'#e9d8b0','stroke-width':3});
-      [628,640,652].forEach((x,i) => P(fg,`M${x},516 q-4,-6 0,-11`,'none',{stroke:'#e9d8b0','stroke-width':2,'stroke-linecap':'round',class:'a-steam',style:`animation-delay:${i*.8}s`}));
-      Tt(fg,640,564,'BLOOR ST. CAFÉ',{'text-anchor':'middle','font-size':11,fill:'#e9c46a'});
-      mono(fg,640,598,'Sources: Bloomberg (US 10-yr; Canadian jobs & unemployment, StatCan Labour Force Survey), Bank of Canada (5-yr bond). Leo’s shifts and budget are fictional.',
-        {'text-anchor':'middle','font-size':9.5,fill:'#e9d8b0',opacity:.85});
-      P(fg,'M40,476 Q70,464 110,474 L116,482 L36,484Z','#e8e2d4',{stroke:'#c9c2b0','stroke-width':1.5});
-      R(fg,1216,436,34,44,'#dff1f7',{rx:6,opacity:.8,stroke:'#9aa3aa','stroke-width':2}); R(fg,1216,452,34,28,'#ffffff',{opacity:.7}); R(fg,1220,428,26,10,'#c9ced3',{rx:3});
-
-      // ---- the dominoes: each grows 15% over the one before; the last one is YOU (dark, with Leo's colour)
-      const Y = 482, deg = Math.PI/180;
-      const DOM = d3.range(6).map(i => ({i, h:100*Math.pow(1.15, i)}));
-      let px = 190;
-      DOM.forEach(d => { d.w = d.h*.44; d.px = px + d.w; px = d.px + d.h*.55; });     // px: the bottom-right corner it tips over
-      const PIPS = {1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
-      const ICON = [
-        ic => { Tt(ic,0,-6,'10Y',{'text-anchor':'middle','font-size':17,fill:OUT}); P(ic,'M-22,18 L-8,6 L2,12 L18,-4','none',{stroke:'#d63b2a','stroke-width':4,'stroke-linecap':'round','stroke-linejoin':'round'}); P(ic,'M22,-8 l-12,1 l9,9Z','#d63b2a'); },
-        ic => P(ic,'M0,-22 L5,-12 L12,-15 L9,-3 L19,-6 L15,2 L22,6 L8,9 L10,16 L1,12 L1,22 L-1,22 L-1,12 L-10,16 L-8,9 L-22,6 L-15,2 L-19,-6 L-9,-3 L-12,-15 L-5,-12Z','#d63b2a'),
-        ic => { P(ic,'M-20,2 L0,-18 L20,2 L20,22 L-20,22Z','#3d6fb6',{stroke:OUT,'stroke-width':2.5,'stroke-linejoin':'round'}); R(ic,-5,8,10,14,'#ffc23d',{stroke:OUT,'stroke-width':1.5}); },
-        ic => { P(ic,'M-9,-6 Q-9,-20 0,-20 Q9,-20 9,-6','none',{stroke:OUT,'stroke-width':3}); R(ic,-16,-6,32,28,'#ff8a3d',{rx:3,stroke:OUT,'stroke-width':2.5}); },
-        ic => { R(ic,-25,-11,50,22,'#ffffff',{stroke:OUT,'stroke-width':2.5,rx:3}); P(ic,'M-21,-9 L21,9 M21,-9 L-21,9','none',{stroke:'#d63b2a','stroke-width':2.5,'stroke-linecap':'round',opacity:.85});
-          Tt(ic,0,4,'HIRING',{'text-anchor':'middle','font-size':8,fill:OUT,'paint-order':'stroke',stroke:'#ffffff','stroke-width':3}); },
-        ic => Tt(ic,0,7,'YOU',{'text-anchor':'middle','font-size':19,fill:'#ff8a3d'})
-      ];
-      DOM.forEach(d => {
-        const you = d.i === 5, face = you ? '#1d1b33' : '#fbf7ec', ink = you ? '#ffffff' : OUT;
-        d.sh = E(fg,d.px - d.w/2,Y+1,d.w*.6,5,'#000',{opacity:.3});                       // its shadow on the counter
-        d.g = A(fg,'g',{class: d.i === 0 ? 'ui' : null});
-        d.body = A(d.g,'g');
-        P(d.body,`M${-d.w+3},${-d.h+3} l7,-7 h${d.w-6} l-7,7Z M-3,${-d.h+3} l7,-7 v${d.h-8} l-7,7Z`, you ? '#3a3660' : '#e2d9c3', {stroke:OUT,'stroke-width':2.2,'stroke-linejoin':'round'});
-        R(d.body,-d.w,-d.h,d.w,d.h,face,{rx:d.w*.13,stroke:OUT,'stroke-width':3});
-        R(d.body,-d.w+4,-d.h+4,d.w*.3,d.h-8,'#ffffff',{opacity: you ? .05 : .35,rx:d.w*.1});   // a sheen down its left side
-        L(d.body,-d.w+8,-d.h/2,-8,-d.h/2,ink,2.5);
-        PIPS[d.i+1].forEach(([a, b]) => Cc(d.body,-d.w/2 + a*d.w*.26,-d.h/4 + b*d.w*.27,d.w*.075,you ? '#ff8a3d' : OUT));
-        ICON[d.i](A(d.body,'g',{transform:`translate(${-d.w/2},${-d.h*.75}) scale(${(d.w/62).toFixed(3)})`}));
-      });
-      const push = A(fg,'g',{display:'none'}), pushIn = A(push,'g',{class:'a-bob'});
-      hw(pushIn,114,404,'push!',{'font-size':28,fill:'#ffc23d','paint-order':'stroke',stroke:'#1d1b33','stroke-width':5});
-      P(pushIn,'M134,414 Q150,440 176,440','none',{stroke:'#1d1b33','stroke-width':8,'stroke-linecap':'round'}); P(pushIn,'M134,414 Q150,440 176,440','none',{stroke:'#ffc23d','stroke-width':4,'stroke-linecap':'round'});
-      P(pushIn,'M186,440 l-13,-7 l0,14Z','#ffc23d',{stroke:'#1d1b33','stroke-width':1.5});
-
-      // ---- physics: a point given in a domino's own frame (pivot at its bottom-right corner), after tipping a degrees
-      const pt = (d, a, x, y) => [d.px + x*Math.cos(a*deg) - y*Math.sin(a*deg), Y + x*Math.sin(a*deg) + y*Math.cos(a*deg)];
-      // how far domino d tips before it rests on domino e (itself tipped b degrees); 90 = it falls flat on the counter
-      function rest(d, e, b){
-        if (!e) return 90;
-        const BL = pt(e, b, -e.w, 0), TL = pt(e, b, -e.w, -e.h), fx = TL[0] - BL[0], fy = TL[1] - BL[1];
-        let best = 90;
-        // (1) d's top corner lands on e's left face
-        const side = a => { const T = pt(d, a, 0, -d.h); return fx*(T[1] - BL[1]) - fy*(T[0] - BL[0]); };
-        const s0 = Math.sign(side(0));
-        for (let a = 1; a <= 90; a++){
-          if (Math.sign(side(a)) === s0) continue;
-          let lo = a - 1, hi = a;
-          for (let n = 0; n < 16; n++){ const m = (lo + hi)/2; if (Math.sign(side(m)) === s0) lo = m; else hi = m; }
-          const T = pt(d, hi, 0, -d.h), u = ((T[0] - BL[0])*fx + (T[1] - BL[1])*fy)/(fx*fx + fy*fy);
-          if (u >= 0 && u <= 1) best = hi;
-          break;
+      function setFlip(c, on, anim){
+        if (!c.back) return;
+        c.flipped = on;
+        c.back.attr('display', on ? 'none' : null).classed('a-flipout', false);
+        c.front.attr('display', on ? null : 'none').classed('a-flipin', false);
+        if (on && anim && !REDUCED){            // turn the receipt over: the printed side folds away, Leo's side opens up
+          c.back.attr('display', null).classed('a-flipout', true); c.front.classed('a-flipin', true);
+          setTimeout(() => { if (c.flipped) c.back.attr('display', 'none'); }, 200);
         }
-        // (2) one of e's left corners (lifted as e tips) catches d's right face
-        [BL, TL].forEach(([cx, cy]) => { const dx = cx - d.px, dy = Y - cy;
-          if (dy > .5 && dx > 0 && Math.hypot(dx, dy) <= d.h){ const a = Math.atan2(dx, dy)/deg; if (a < best) best = a; } });
-        return best;
       }
-      const ang = DOM.map(() => 0);
-      let fallen = 0, raf = 0;
-      function place(){
-        DOM.forEach((d, i) => {
-          d.g.attr('transform', `translate(${d.px.toFixed(1)},${Y}) rotate(${ang[i].toFixed(2)})`);
-          const s = Math.sin(ang[i]*deg), c = Math.cos(ang[i]*deg);
-          d.sh.attr('cx', d.px - d.w*c/2 + d.h*s/2).attr('rx', (d.w*c + d.h*s)*.55);
+      // the receipt being read is lifted; the others step back a little
+      function focus(j){
+        cards.forEach(c => {
+          const up = j != null && c.j === j;
+          c.g.interrupt().transition().duration(REDUCED ? 0 : 300).attr('opacity', j == null || up ? 1 : .62);
+          c.lift.attr('transform', up ? 'translate(0,-7)' : null);
+          c.sh.attr('transform', up ? 'translate(10,15)' : 'translate(5,7)').attr('opacity', up ? .45 : .35);
         });
       }
-      // the resting tilt of every domino once the first n have fallen
-      function restState(n){
-        const a = DOM.map(() => 0);
-        if (n > 0){ a[n-1] = rest(DOM[n-1], DOM[n], 0); for (let j = n - 2; j >= 0; j--) a[j] = rest(DOM[j], DOM[j+1], a[j+1]); }
-        return a;
+
+      // ---- the chain: six stretches of real dominoes seen from above, each ending at the edge of a receipt. A standing
+      // domino shows only its top edge; as it tips forward, its face (with the pips) comes into view, foreshortened.
+      const TK = 10, WD = 30, HD = 58, SP = 35;               // thickness, width, height, spacing
+      // each stretch leaves a receipt and enters the next one flat, at mid-height, so the dominoes never cover a receipt
+      const arch = (xa, xb, y, dy) => { const xm = (xa + xb)/2, dir = Math.sign(xb - xa);
+        return [[xa,y],[xa + 24*dir,y],[xa + 56*dir,y + dy*.55],[xm,y + dy],[xb - 56*dir,y + dy*.55],[xb - 24*dir,y],[xb,y]]; };
+      const SEGS = [
+        [[60,318],[100,330],[128,372],[134,430],[128,478],[140,500],[165,500]],                                   // start -> receipt 1
+        arch(335, 515, 500, -96),                                                                              // 1 -> 2 (over the top)
+        arch(685, 865, 500, -96),                                                                              // 2 -> 3
+        [[1035,500],[1060,500],[1110,496],[1162,470],[1208,412],[1230,334],[1224,256],[1200,184],[1172,152],[1145,150]],   // 3 -> U-turn -> 4
+        arch(975, 765, 150, 96),                                                                               // 4 -> 5 (dipping under)
+        arch(595, 385, 150, 96)                                                                                // 5 -> the schedule
+      ];
+      const sL = A(table,'g'), dL = A(table,'g'), pr = seeded(9), DOM = [], segOf = [];
+      const PIPS = {0:[],1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
+      SEGS.forEach((way, si) => {
+        const guide = P(table,d3.line().curve(d3.curveCatmullRom.alpha(.5))(way),'none'), gn = guide.node(), len = gn.getTotalLength();
+        const first = si === 0 ? 0 : 18, last = len - 42;      // the last one stands far enough out to land on the receipt's margin
+        const n = Math.floor((last - first)/SP) + 1, step = n > 1 ? (last - first)/(n - 1) : 0;
+        const list = [];
+        for (let k = 0; k < n; k++){
+          const at = first + k*step, p = gn.getPointAtLength(at), q = gn.getPointAtLength(Math.min(len, at + 2)), q0 = gn.getPointAtLength(Math.max(0, at - 2));
+          const ang = Math.atan2(q.y - q0.y, q.x - q0.x), T = [Math.cos(ang), Math.sin(ang)], N = [-Math.sin(ang), Math.cos(ang)];
+          const d = {p, T, N, a:0, seg:si, last:k === n - 1, sh:P(sL,'','#000',{opacity:.38})};
+          d.g = A(dL,'g',{transform:`translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) rotate(${(ang*180/Math.PI).toFixed(1)})`});
+          d.face = R(d.g,0,-WD/2,0,WD,'#fbf7ec',{stroke:OUT,'stroke-width':1.8,rx:2.5});
+          d.edge = R(d.g,-TK,-WD/2,TK,WD,'#e6dcc4',{stroke:OUT,'stroke-width':1.8,rx:2.5});
+          d.mid = L(d.g,0,-WD/2+4,0,WD/2-4,OUT,1.4);
+          d.pips = [];
+          [Math.floor(pr()*7), Math.floor(pr()*7)].forEach((m, half) => PIPS[m].forEach(([a, b]) => d.pips.push({half, a, b, el:E(d.g,0,b*WD*.28,0,2.7,OUT)})));
+          list.push(d); DOM.push(d);
+        }
+        segOf.push(list);
+        guide.remove();
+      });
+      // draw one domino tipped forward by d.a degrees (it pivots on its front bottom edge; the pips face backwards)
+      function drawDom(d){
+        const t = d.a*Math.PI/180, c = Math.cos(t), s = Math.sin(t), a0 = -TK*c, fl = HD*s;
+        d.face.attr('x', a0).attr('width', Math.max(.01, fl)).attr('display', fl > .5 ? null : 'none');
+        d.edge.attr('x', a0 + fl).attr('width', Math.max(.01, TK*c)).attr('display', TK*c > .3 ? null : 'none');
+        d.mid.attr('x1', a0 + fl/2).attr('x2', a0 + fl/2).attr('display', fl > 8 ? null : 'none');
+        d.pips.forEach(pp => pp.el.attr('cx', a0 + (pp.half*.5 + (.5 + pp.a*.28)*.5)*fl).attr('rx', 2.7*s).attr('display', s > .2 ? null : 'none'));
+        // its shadow on the table: the footprint, stretched away from the lamp by how tall the domino still stands
+        const u0 = a0, u1 = HD*s, lift = (HD*c + TK*s)*.55, D = [.55*lift + 2, .4*lift + 2];
+        const corners = [[u0,-WD/2],[u1,-WD/2],[u1,WD/2],[u0,WD/2]].map(([u, v]) => [d.p.x + u*d.T[0] + v*d.N[0], d.p.y + u*d.T[1] + v*d.N[1]]);
+        const hull = d3.polygonHull(corners.concat(corners.map(([x, y]) => [x + D[0], y + D[1]])));
+        d.sh.attr('d', 'M' + hull.map(pt => pt.map(v => v.toFixed(1)).join(',')).join('L') + 'Z');
       }
-      function showTickets(n){ TK.forEach((t, i) => { t.g.attr('display', i < n ? null : 'none'); t.inner.classed('a-ticket', false); }); }
-      function setFallen(n){ cancelAnimationFrame(raf); fallen = n; restState(n).forEach((v, i) => { ang[i] = v; }); place(); showTickets(n); }
-      const pop = (x, y, t, big) => { if (REDUCED) return;
-        const el = hw(fg,x,y,t,{'text-anchor':'middle','font-size': big ? 34 : 22,fill:'#ffffff','paint-order':'stroke',stroke:'#1d1b33','stroke-width':5,class:'a-clack'});
-        setTimeout(() => el.remove(), 1000); };
-      // tip domino n-1 (the dominoes before it follow it down); its ticket swings in when it hits
-      function tipNext(n){
-        setFallen(n - 1); fallen = n;
-        const a = n - 1, d = DOM[a], e = DOM[n], to = rest(d, e, 0), dur = 360 + a*50;
-        let t0 = null, last = 0, hitAt = null;
+
+      // ---- Leo's hand reaching in from the left, finger ready behind the first domino
+      const d0 = DOM[0], tipAt = off => [d0.p.x - d0.T[0]*(TK + off), d0.p.y - d0.T[1]*(TK + off)], handAng = Math.atan2(d0.T[1], d0.T[0])*180/Math.PI;
+      const hand = A(top,'g',{class:'ui'}), hin = A(hand,'g',{transform:'scale(1.2)'});
+      const placeHand = off => { const [x, y] = tipAt(off); hand.attr('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${handAng.toFixed(1)})`); };
+      E(hin,-36,16,48,32,'#000',{opacity:.3});
+      P(hin,'M-70,-26 L-900,-130 L-900,150 L-70,32Z','#f4efe6',{stroke:OUT,'stroke-width':3});
+      R(hin,-84,-31,17,64,'#e2dccb',{rx:5,stroke:OUT,'stroke-width':2.5});
+      E(hin,-44,4,32,27,LEO.skin,{stroke:OUT,'stroke-width':3});
+      [[-24,19,10,8],[-31,28,9,7],[-41,32,8,6]].forEach(([x,y,rx,ry]) => E(hin,x,y,rx,ry,LEO.skin,{stroke:OUT,'stroke-width':2.2}));
+      E(hin,-42,-22,14,8,LEO.skin,{stroke:OUT,'stroke-width':2.2,transform:'rotate(-22,-42,-22)'});
+      R(hin,-36,-7,36,14,LEO.skin,{rx:7,stroke:OUT,'stroke-width':2.5}); E(hin,-6,0,4.5,4.5,'#f7dcc2');
+      placeHand(4);
+      const push = A(top,'g',{display:'none'}), pushIn = A(push,'g',{class:'a-bob'});
+      hw(pushIn,58,262,'push!',{'font-size':28,fill:'#ffc23d','paint-order':'stroke',stroke:'#1d1b33','stroke-width':5});
+      P(pushIn,'M100,268 Q108,282 96,296','none',{stroke:'#1d1b33','stroke-width':8,'stroke-linecap':'round'});
+      P(pushIn,'M100,268 Q108,282 96,296','none',{stroke:'#ffc23d','stroke-width':4,'stroke-linecap':'round'});
+      P(pushIn,'M90,302 l1,-14 l11,8Z','#ffc23d',{stroke:'#1d1b33','stroke-width':1.5});
+
+      // ---- the fall, one stretch at a time: the stretch's dominoes go down one after another; the last one lands on the
+      // edge of the next receipt, which flips over. Stretch 1 is started by Leo's finger, the others by the receipt before.
+      const DT = 70, FALL = 240, REST = 50, LAND = 80;
+      const restOf = d => d.last ? LAND : REST;              // they lean on each other; the last of a stretch lies on the receipt
+      let done = 0, raf = 0, landTimer = 0;
+      // the resting state once the first n stretches have fallen
+      function setDone(n){
+        cancelAnimationFrame(raf); clearTimeout(landTimer); done = n;
+        DOM.forEach(d => { d.a = d.seg < n ? restOf(d) : 0; drawDom(d); });
+        cards.forEach(c => setFlip(c, c.j < n, false));
+        cross.attr('display', n >= 6 ? null : 'none');
+        placeHand(4);
+      }
+      function tipStretch(k){
+        setDone(k); done = k + 1;
+        const list = segOf[k], c = cards[k];
+        let start = 0;
+        if (k === 0){                                          // Leo's finger taps the first domino
+          start = 110;
+          hand.interrupt().transition().duration(130).ease(d3.easeQuadIn).attrTween('transform', () => t => { const [x, y] = tipAt(4 - 6*t); return `translate(${x},${y}) rotate(${handAng})`; })
+            .transition().duration(260).ease(d3.easeCubicOut).attrTween('transform', () => t => { const [x, y] = tipAt(-2 + 14*t); return `translate(${x},${y}) rotate(${handAng})`; });
+        } else {                                               // the receipt before gives the next domino a nudge
+          start = 160;
+          const prev = cards[k - 1].lift; prev.classed('a-nudge', false); prev.node().getBoundingClientRect(); prev.classed('a-nudge', true);
+        }
+        let t0 = null;
         const frame = now => {
-          if (t0 === null){ t0 = now; last = now; }
-          const dt = Math.min(.05, (now - last)/1000); last = now;
-          const t = Math.min(1, (now - t0)/dur);
-          ang[a] = to*t*t;                                                     // like gravity: slow at first, then faster
-          if (t === 1){
-            if (hitAt === null){
-              hitAt = now;
-              const tk = TK[a]; tk.g.attr('display', null); tk.inner.classed('a-ticket', true);
-              if (e){ const [cx, cy] = pt(d, to, 0, -d.h); pop(cx + 6, cy - 10, 'clack!'); e.body.classed('knock', false); e.body.node().getBoundingClientRect(); e.body.classed('knock', true); }
-              else pop(d.px + d.h*.55, Y - d.w - 18, 'THUD!', true);
-            }
-            const bt = (now - hitAt)/170; ang[a] = to - (bt < 1 ? 3*Math.sin(Math.PI*bt) : 0);    // a little bounce
-          }
-          let moving = t < 1 || now - hitAt < 170;
-          for (let j = a - 1; j >= 0; j--){                                     // the ones already down lean on it
-            const want = rest(DOM[j], DOM[j+1], ang[j+1]), nv = ang[j] + (want - ang[j])*Math.min(1, dt*16);
-            if (Math.abs(want - nv) > .05) moving = true;
-            ang[j] = Math.abs(want - nv) > .05 ? nv : want;
-          }
-          place();
-          if (moving) raf = requestAnimationFrame(frame);
+          if (t0 === null) t0 = now + start;
+          const el = now - t0; let busy = el < 0;
+          list.forEach((d, n) => {
+            const tk = (el - n*DT)/FALL, r = restOf(d);
+            const a = tk <= 0 ? 0 : tk < 1 ? r*tk*tk : tk < 1.5 ? r - 3*Math.sin(Math.PI*(tk - 1)/.5) : r;   // like gravity, then a small bounce
+            if (tk < 1.5) busy = true;
+            if (Math.abs(a - d.a) > .01){ d.a = a; drawDom(d); }
+          });
+          if (!c.flipped && el >= (list.length - 1)*DT + FALL*.9) setFlip(c, true, true);
+          if (busy) raf = requestAnimationFrame(frame);
         };
         raf = requestAnimationFrame(frame);
+        if (k === 5) landTimer = setTimeout(() => cross.attr('display', null), start + (list.length - 1)*DT + FALL + 250);   // then the red marker
       }
-      // the first domino is the button: on the "push" line it starts the chain, on the line before it moves the story on
-      const go = ev => { ev.stopPropagation(); if (fallen) return; if (li === sc.waitAt) sc.pushed = true; stopTyping(); next(); };
-      DOM[0].g.attr('tabindex',0).attr('role','button').attr('aria-label','Push the first domino')
-        .on('click', go).on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); go(ev); } });
+      // the first domino (and Leo's finger) is the button: on the "push" line it starts the chain
+      const go = ev => { ev.stopPropagation(); if (done) return; if (li === sc.waitAt) sc.pushed = true; stopTyping(); next(); };
+      const hit = Cc(top,d0.p.x,d0.p.y,38,'transparent',{class:'ui','pointer-events':'all',tabindex:0,role:'button','aria-label':'Push the first domino'});
+      [hit, hand].forEach(el => el.on('click', go));
+      hit.on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); go(ev); } });
+
+      // ================= the café (first line), and the camera move from it to the table =================
+      // Performance: the café lives in its own layer above the scene (#cafeLayer), drawn once at RS times the screen's
+      // resolution. The camera move then only slides and scales that finished picture on the graphics card (a CSS
+      // transform) instead of redrawing the whole café every frame, and it stays sharp up to RS times zoom. The evening
+      // light, the lamp and the dark cut are plain overlays whose opacity is cheap to change.
+      d3.select('#cafeLayer').remove();
+      const RS = 2;
+      const layer = d3.select('#stage').insert('div', () => grainSvg.node()).attr('id', 'cafeLayer').attr('class', 'fadeable');   // under the film grain
+      const wrap = layer.append('div').attr('class', 'cafe-wrap');
+      const csvg = wrap.append('svg').attr('preserveAspectRatio', 'xMidYMid meet').attr('aria-hidden', 'true');
+      const duskDiv = layer.append('div').attr('class', 'cafe-dusk');
+      const lampDiv = layer.append('div').attr('class', 'cafe-lamp');
+      const veilDiv = layer.append('div').attr('class', 'cafe-veil');
+      const cafe = A(csvg,'g'), cBg = A(cafe,'g'), cLeo = A(cafe,'g'), cFg = A(cafe,'g');
+      BG.cafe(cBg, sc, cFg);
+      person(cLeo, Object.assign({}, LEO, {x:800, cm:HEIGHT[17], age:17, outfit:'apron', top:'#f4efe6', bottom:'#2a3046', mood:'worried', talking:true, intro:'hop'}));
+      // after closing: a few dominoes appear on the right-hand table
+      const minis = A(cBg,'g',{opacity:0});
+      for (let n = 0; n < 9; n++){ const x = 334 + n*11, y = 509 - (n % 3); R(minis,x,y - 11,4.5,11,'#fbf7ec',{stroke:OUT,'stroke-width':.8}); }
+      // the camera: from the whole café (centre 640,330, 1060 wide) into that table (centre 380,500, 190 wide)
+      const zoom = d3.interpolateZoom([640, 330, 1060], [380, 500, 190]);
+      const ease = (a, b, t) => { const u = clamp((t - a)/(b - a), 0, 1); return u*u*(3 - 2*u); };
+      let view = -1, wide = false, VB = '', K = 1, V0 = [0, 0], SW = 0, SH = 0;
+      // match the layer to the scene's current viewBox and the stage size (they change when the window or the dialogue box does)
+      function sync(){
+        const vb = svg.attr('viewBox'), w = $('stage').clientWidth, h = $('stage').clientHeight;
+        if (vb === VB && w === SW && h === SH) return;
+        VB = vb; SW = w; SH = h;
+        const [x0, y0, vw] = vb.split(' ').map(Number); K = w/vw; V0 = [x0, y0];
+        csvg.attr('viewBox', vb).attr('width', w*RS).attr('height', h*RS);
+        layer.style('--k', K);
+        const r = 150*K*RS;                                     // the lamp's warm pool over the table (380, 470)
+        lampDiv.style('left', `${(380 - x0)*K*RS - r}px`).style('top', `${(470 - y0)*K*RS - r}px`).style('width', `${2*r}px`).style('height', `${2*r}px`);
+        if (view >= 0) setView(view);
+      }
+      function setView(t){
+        view = t;
+        const [vx, vy, vw] = zoom(Math.min(1, t/.8)), kz = 1060/vw, onTable = t >= .8;
+        const tf = `translate(${(K*((640 - V0[0]) - kz*(vx - V0[0]))).toFixed(1)}px,${(K*((330 - V0[1]) - kz*(vy - V0[1]))).toFixed(1)}px) scale(${(kz/RS).toFixed(4)})`;
+        wrap.style('transform', tf).style('display', onTable ? 'none' : null);
+        lampDiv.style('transform', tf).style('opacity', onTable ? 0 : .9*ease(.15, .55, t));
+        duskDiv.style('opacity', onTable ? 0 : .5*ease(0, .55, t));
+        minis.attr('opacity', ease(.12, .4, t));
+        [table, top].forEach(el => el.attr('display', onTable ? null : 'none'));
+        if (onTable !== wide){ wide = onTable; if (CTRL) fitScene(); }   // the cut: switch to the table's wider frame while the screen is dark
+        veilDiv.style('opacity', onTable ? 1 - ease(.8, 1, t) : ease(.5, .8, t)).style('display', t > 0 && t < 1 ? null : 'none');
+      }
+      const mo = new MutationObserver(() => { if (!layer.node().isConnected) mo.disconnect(); else sync(); });
+      mo.observe(svg.node(), {attributes:true, attributeFilter:['viewBox']});
+      sync();
+      function moveTo(t1, ms){
+        const sel = d3.select(cafe.node()).interrupt('cam');
+        if (REDUCED || !ms || view < 0){ setView(t1); return; }
+        const t0 = view;
+        sel.transition('cam').duration(ms).ease(d3.easeCubicInOut).tween('cam', () => u => setView(t0 + (t1 - t0)*u));
+      }
       CTRL = {
+        get safe(){ return wide ? TABLE_SAFE : null; },        // the close-up of the table is framed wider (see fitScene)
         ready: () => !!sc.pushed,
         auto: () => { sc.pushed = true; },
         line: (i, step) => {
-          const n = clamp(i - sc.waitAt, 0, 6);
-          push.attr('display', i === sc.waitAt && n === 0 ? null : 'none');
-          if (step && n === fallen + 1 && !REDUCED) tipNext(n); else setFallen(n);
+          const w = sc.waitAt, n = clamp(i - w, 0, 6);         // line w+1 sends stretch 1, line w+2 stretch 2, ... w+6 the last
+          moveTo(i === 0 ? 0 : 1, step && i <= 1 ? (i === 0 ? 1200 : 2200) : 0);   // line 0 is the café, the rest is the table
+          if (step && n === done + 1 && !REDUCED) tipStretch(n - 1); else if (n !== done) setDone(n);
+          push.attr('display', i === w && done === 0 ? null : 'none');
+          focus(n > 0 && i <= w + 6 ? n - 1 : null);
         }
       };
-      setFallen(0);
+      setDone(0);
     },
     tower(g,sc,fg){
       // Thanksgiving weekend 2026 on the CN Tower's LookOut level, 346 m up. Through the glass: Toronto far below, with
@@ -2648,7 +2769,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     cafe(g,sc,fg){
       fg = fg || g;
       // brick wall with a wood-panelled lower wall
-      R(g,-1400,-800,W+2800,G+800,'#b9603f'); for (let i=-30;i<60;i++) for (let j=0;j<14;j++) R(g,i*44+(j%2)*22,j*44,40,40,'#c06a49',{opacity:.6});
+      R(g,-1400,-800,W+2800,G+800,'#b9603f'); R(g,-1320,0,3960,616,'url(#cafeTile)');     // one patterned shape (cheap to redraw when the camera zooms)
       R(g,-1400,440,W+2800,G-440,'#6b4a33'); for (let x=-1400; x<W+1400; x+=36) L(g,x,440,x,G,'#5a3d2b',2); R(g,-1400,436,W+2800,8,'#4a3123');
       // chalk menu board
       R(g,90,80,420,260,'#20211f',{stroke:'#7a5236','stroke-width':12});
@@ -3154,7 +3275,6 @@ d3.json('prototype/data/leo.json').then(DATA => {
     streetMove:{mom:430, leo:545, dad:660},
     bedroom:{leo:560},
     cafe:{leo:800},
-    dominoes:{leo:1110},                       // behind the counter, next to the last domino
     tower:{mom:330, leo:560, dad:790},         // the binoculars stand on the right
     fair:{leo:640},
     convocation:{mom:400, leo:900, dad:1030},   // the round centre bay stays visible
@@ -3185,6 +3305,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   // The important part of every scene (SAFE, in scene units) always fits above the dialogue box;
   // extra width or height just shows more of the background.
   const SAFE = {x:110, y:40, w:1060, h:580};
+  const TABLE_SAFE = {x:-20, y:40, w:1320, h:580};      // the 2024 café table close-up: wider, so it fills wide screens
   let lastFit = '';
   // Room kept for the dialogue box: the height of the TALLEST line in the current scene, measured once per scene.
   // (Using the box's live height made the picture zoom out and back in whenever one line wrapped onto more rows
@@ -3203,8 +3324,9 @@ d3.json('prototype/data/leo.json').then(DATA => {
     if (!sw || !sh) return;
     const dh = (boxReserve || document.querySelector('.box').offsetHeight) + 34;
     const avail = Math.max(sh*.5, sh - dh);
-    const k = Math.min(sw / SAFE.w, avail / SAFE.h);
-    const vw = sw/k, vh = sh/k, x = SAFE.x + SAFE.w/2 - vw/2, y = SAFE.y - (avail/k - SAFE.h)/2;
+    const S = (CTRL && CTRL.safe) || SAFE;              // a scene can ask for a different frame (the café table close-up)
+    const k = Math.min(sw / S.w, avail / S.h);
+    const vw = sw/k, vh = sh/k, x = S.x + S.w/2 - vw/2, y = S.y - (avail/k - S.h)/2;
     const vb = `${x.toFixed(1)} ${y.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`;
     if (vb !== lastFit){ lastFit = vb; svg.attr('viewBox', vb); grainSvg.attr('viewBox', vb); }
   }
@@ -3267,7 +3389,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     setSky(sc.y, anim);
     WIND = OUTDOOR.has(sc.bg) ? storm(sc.y) : 0;
     gBg.selectAll('*').remove(); gFg.selectAll('*').remove();
-    d3.select('#rideLayers').remove();             // the Yield Coaster's own layers (if we are leaving it)
+    d3.selectAll('#rideLayers, #cafeLayer').remove();   // the Yield Coaster's and the café's own layers (if we are leaving them)
     CTRL = null;                                   // an interactive scene sets its own
     BG[sc.bg](gBg, sc, gFg);
     $('stage').classList.toggle('drawing', !!sc.draw);
