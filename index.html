@@ -47,6 +47,7 @@ button{cursor:pointer}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 #rain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#grain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;will-change:transform}
 /* scene changes: the old scene slides out and the new one slides in (direction set by --dx) */
 .stage .fadeable{transition:opacity .36s ease, transform .5s cubic-bezier(.3,.7,.3,1)}
 .stage.leaving .fadeable{opacity:0;transform:translateX(calc(-1 * var(--dx,80px)))}
@@ -251,18 +252,34 @@ a.btn{text-decoration:none;display:inline-block}
   .hud .trackwrap{grid-column:1/-1;order:3}
   .controls .hint{display:none}
 }
+/* Yield Coaster layers: positioned by JS with CSS transforms, so the graphics card can move them without repainting */
+#rideLayers{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#rideLayers svg{position:absolute;left:0;top:0;overflow:visible}
+#rideLayers .ride-sky{width:100%;height:100%}
+#rideLayers .ride-layer{transform-origin:0 0;will-change:transform}
+.stage.leaving #rideLayers{transform:translateX(calc(-1 * var(--dx,80px) * var(--k,1)))}
+.stage.entering #rideLayers{transform:translateX(calc(var(--dx,80px) * var(--k,1)))}
+/* Performance: nothing animates inside a hidden group (the coaster hides what is far from the camera) */
+#scene [display="none"] *,#rideLayers [display="none"] *{animation:none!important}
 /* Yield Coaster: the family's mood follows the ride (classes set on the cart), the lift chain runs on a climb */
 .cart .whee,.cart .speed{display:none}
 .cart.st-down .whee,.cart.st-down .speed{display:inline}
 .cart.st-up .ride-bob{animation:rattle .14s linear infinite}
 .cart.arrive .ride-bob{animation:arrive .5s ease-out}
-.cart.st-up .whl,.cart.st-down .whl,.cart.st-roll .whl{animation:spin .45s linear infinite;transform-box:fill-box;transform-origin:50% 50%}
+.cart.st-down .whee{animation:whee .4s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 50%}
+.a-droptower{animation:droptower 7s linear infinite}
+.a-swingride{animation:swingride 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+.a-rise{animation:rise 9s ease-in infinite}
+@keyframes whee{to{transform:scale(1.12) rotate(-3deg)}}
+@keyframes droptower{0%{transform:translateY(300px)}40%,55%{transform:translateY(0)}61%,100%{transform:translateY(300px)}}
+@keyframes swingride{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+@keyframes rise{0%,30%{transform:translate(0,0);opacity:0}34%{opacity:1}100%{transform:translate(70px,-760px);opacity:0}}
 .chain.on{animation:chain .3s linear infinite}
 @keyframes rattle{50%{transform:translateY(-1.5px)}}
 @keyframes arrive{35%{transform:translateY(-8px)}70%{transform:translateY(3px)}}
 @keyframes chain{to{stroke-dashoffset:-14}}
 @media (prefers-reduced-motion:reduce){
-  .ride-bob,.whl,.chain.on,.drift,.talk,.rock,.breathe,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.chapter.show,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
+  .ride-bob,.whee,.chain.on,.drift,.talk,.rock,.breathe,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.chapter.show,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
   .stage .fadeable{transition:none}
   .mouth-open{display:none}
   .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote{display:none}
@@ -632,7 +649,10 @@ d3.json('prototype/data/leo.json').then(DATA => {
   const world = svg.append('g').attr('class','fadeable');
   const gBg = world.append('g'), gCast = world.append('g'), gFg = world.append('g');
   const shade = svg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('fill','#1a2030').attr('opacity',0).attr('pointer-events','none');
-  svg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('filter','url(#grain)').attr('pointer-events','none');
+  // Film grain over the scene, in its own <svg> layer on top: it never changes, so the browser paints it once instead of
+  // recomputing the noise filter for every bit of the scene that moves underneath it (same filter, same size, same look).
+  const grainSvg = d3.select('#stage').insert('svg', '#rain').attr('id','grain').attr('aria-hidden','true');
+  grainSvg.append('rect').attr('x',-1400).attr('y',-800).attr('width',W+2800).attr('height',H+1600).attr('filter','url(#grain)');
 
   const A = (sel, tag, at={}) => { const e = sel.append(tag); for (const k in at) e.attr(k, at[k]); return e; };
   const R = (g,x,y,w,h,fill,at={}) => A(g,'rect',Object.assign({x,y,width:w,height:h,fill},at));
@@ -699,7 +719,9 @@ d3.json('prototype/data/leo.json').then(DATA => {
     [[-46,70,40],[0,90,46],[50,140,40],[96,110,52],[156,170,44],[206,120,40],[252,80,36]].forEach(([dx,h,w]) => {
       const x = x0+dx*scale, y = base-h*scale;
       R(g,x,y,w*scale,h*scale,col,{opacity:.85});
-      for (let yy=y+8*scale; yy<base-8*scale; yy+=12*scale) for (let xx=x+5*scale; xx<x+(w-8)*scale; xx+=10*scale) R(g,xx,yy,4*scale,5*scale,wc,{opacity:.35});
+      let win = '';
+      for (let yy=y+8*scale; yy<base-8*scale; yy+=12*scale) for (let xx=x+5*scale; xx<x+(w-8)*scale; xx+=10*scale) win += `M${xx},${yy}h${4*scale}v${5*scale}h${-4*scale}Z`;
+      if (win) P(g,win,wc,{opacity:.35});   // all the windows as one shape (cheaper to draw, looks the same)
     });
     const cx = x0 + 140*scale;   // CN Tower
     P(g,`M${cx-5*scale},${base} L${cx-2*scale},${base-300*scale} L${cx+2*scale},${base-300*scale} L${cx+5*scale},${base}Z`, col);
@@ -1018,61 +1040,73 @@ d3.json('prototype/data/leo.json').then(DATA => {
       Cc(g, hx, hy, aw*.6, o.skin, {stroke:OUT, 'stroke-width':2.5});
     });
   }
-  // The family's cart, seen up close. When a line names a new stop, the cart rides there: it climbs a hill if the yield
-  // rose (slowly, pulled up by the chain, everyone nervous) and drops if it fell (fast, arms in the air). Back rolls it
-  // back. The camera follows the cart, so only the stop and the start of the next hill are on screen.
+  // The family's cart, seen up close. A line only names the stop the cart should go to (its TARGET); the ride itself runs
+  // frame by frame in the coaster's loop (see BG.coaster, me.step): the chain pulls the cart up a climb, gravity speeds it
+  // up on a drop, the brakes stop it at the station. The family reacts to the motion: calm at a stop (whoever speaks
+  // talks), nervous on a climb, arms up and lifted out of their seats on a fast drop.
   function drawRide(sc, line){
     if (!RIDE) return;
-    const target = RIDE.xOf(line && line[3]), speaker = line ? line[0] : null;
-    const cart = A(gCast,'g',{class:'cart st-stop'}), bob = A(cart,'g',{class:'ride-bob'});
-    const speed = A(bob,'g',{class:'speed'});                                     // speed lines, shown on the way down
-    [[-60,-70],[-90,-124],[-40,-176],[-120,-210]].forEach(([x,y]) => L(speed, x-100, y, x-260, y, '#ffffff', 7, {opacity:.85}));
-    RIDERS.forEach(r => R(bob, r.x-70, -176, 24, 160, '#2c5aa0', {rx:10, stroke:OUT, 'stroke-width':2.5}));   // seat backs
-    const riders = A(bob,'g');
-    // the car: body with a curled nose, a yellow stripe, the lap bar, a headlight and two wheel trucks
-    P(bob,'M-196,-16 L-196,-84 Q-196,-96 -182,-96 L118,-96 Q146,-96 162,-116 L182,-140 Q194,-150 198,-134 L184,-56 Q176,-16 144,-16Z','#3d6fb6',{stroke:OUT,'stroke-width':3});
-    P(bob,'M-196,-76 L188,-76 L186,-60 L-196,-60Z','#ffc23d');
-    Tt(bob,-178,-38,'YIELD COASTER',{'font-size':14,fill:'#ffffff'});
-    R(bob,-180,-114,318,11,'#c9ced3',{rx:5,stroke:OUT,'stroke-width':2});
-    glow(bob,186,-122,30,.7); Cc(bob,186,-122,8,'#fff3b0',{stroke:OUT,'stroke-width':2});
-    [-118,110].forEach(wx => {
-      R(bob,wx-40,-32,80,14,'#2b2d31',{rx:4,stroke:OUT,'stroke-width':2});
-      [-21,21].forEach(dx => { const w = A(bob,'g',{class:'whl'}); Cc(w,wx+dx,-9,11,'#2b2d31',{stroke:OUT,'stroke-width':2}); L(w,wx+dx-7,-9,wx+dx+7,-9,'#c9ced3',3); });
-    });
-    hw(bob,-60,-300,'WHEEEE!',{'font-size':48,fill:'#d63b2a',class:'whee','paint-order':'stroke',stroke:'#ffffff','stroke-width':8});
-    // the family: calm at a stop (whoever speaks talks), nervous on a climb, arms up on a drop
-    const seat = mode => {
-      riders.selectAll('*').remove();
-      cart.attr('class', 'cart st-' + mode);
+    const me = RIDE, speaker = line ? line[0] : null, lineMood = line ? line[2] : null;
+    // Performance: the cart is built once per visit to the scene and kept between lines (drawCast clears the cast layer,
+    // so it is simply put back). Each pose of the family is built the first time it is needed and then reused.
+    if (!me.cartEl) me.cartEl = buildCart(me);
+    gCast.node().appendChild(me.cartEl.node());
+    // the family's poses: 'calm' (at a stop or rolling), 'up' (nervous) or 'down' (arms up); whoever speaks talks
+    const key = name => `${name}|${speaker}|${name === 'calm' ? lineMood : ''}`;
+    const pose = name => {
+      const k = key(name);
+      if (me.poses[k]) return me.poses[k];
+      const pg = A(me.riders,'g',{display:'none'});
       RIDERS.forEach(r => {
-        const drop = mode === 'down';
-        const mood = mode === 'up' ? 'worried' : drop ? (r.who === 'DAD' ? 'shocked' : 'happy') : (speaker === r.who && line[2]) || 'happy';
+        const drop = name === 'down';
+        const mood = name === 'up' ? 'worried' : drop ? (r.who === 'DAD' ? 'shocked' : 'happy') : (speaker === r.who && lineMood) || 'happy';
         const o = Object.assign({}, r.base, {x:640, mood, talking: speaker === r.who});
-        const g = A(riders,'g',{transform:`translate(${r.x},${r.feet}) scale(.66) translate(-640,${2 - G})`});
+        const g = A(pg,'g',{transform:`translate(${r.x},${r.feet}) scale(.66) translate(-640,${2 - G})`});
         if (drop) armsUp(g, o);
         const p = person(g, o);
         if (drop) p.selectAll('.arm').attr('display', 'none');
       });
+      if (name === 'up') P(pg,'M128,-234 q7,10 0,14 q-7,-4 0,-14Z','#7ec8f0',{stroke:OUT,'stroke-width':1.5});   // Dad sweats on the climb
+      return (me.poses[k] = pg);
     };
-    const place = x => {
-      RIDE.x = x;
-      const {ox, oy} = RIDE.camera(x);
-      cart.attr('transform', `translate(${x + ox},${RIDE.ty(x) + oy}) rotate(${Math.atan(RIDE.slope(x)) * 180 / Math.PI})`);
+    pose('calm');
+    // the other two poses are prepared just after this frame (once per speaker), never in the middle of a drop
+    if (!REDUCED) setTimeout(() => { if (RIDE === me) { pose('up'); pose('down'); } }, 60);
+    me.seat = mode => {
+      me.cartEl.attr('class', 'cart st-' + mode);
+      const show = pose(mode === 'up' || mode === 'down' ? mode : 'calm');
+      Object.values(me.poses).forEach(pg => pg.attr('display', pg === show ? null : 'none'));
     };
-    place(RIDE.x);
-    const from = RIDE.x, dist = Math.abs(target - from);
-    if (dist < .5 || REDUCED){ place(target); seat('stop'); return; }
-    const dv = RIDE.tv(target) - RIDE.tv(from);
-    const mode = target < from || dist > RIDE.SEG*2.5 ? 'roll' : dv > .005 ? 'up' : dv < -.005 ? 'down' : 'roll';
-    seat(mode);
-    const chain = mode === 'up' ? RIDE.chains.filter(d => d.x0 < target && d.x1 > from).classed('on', true) : null;
-    const stopChain = () => { if (chain) chain.classed('on', false); };
-    // climbs are slow (the chain pulls the cart up), drops are fast
-    const dur = mode === 'up' ? Math.min(3400, 1500 + dv*300) : mode === 'down' ? Math.min(2200, 1100 - dv*90) : clamp(dist*1.2, 700, 2200);
-    gCast.transition('ride').duration(dur).ease(mode === 'up' ? d3.easeSinInOut : mode === 'down' ? d3.easeQuadInOut : d3.easeCubicInOut)
-      .tween('ride', () => k => place(from + (target - from) * k))
-      .on('interrupt', stopChain)
-      .on('end', () => { stopChain(); seat('stop'); requestAnimationFrame(() => cart.classed('arrive', true)); });
+    me.cart = me.cartEl; me.mode = null; me.drawn = '';
+    me.target = me.xOf(line && line[3]);
+    if (REDUCED){ me.x = me.target; me.v = 0; me.cam.x = me.x; me.cam.y = me.camFor(me.x, 1); me.cam.z = 1; }   // no motion: go straight to the stop
+    me.step(0);            // seat the family and draw this frame right away
+  }
+  // The cart itself (without the family): body with a curled nose, a stripe, the lap bar, a headlight, wheel trucks,
+  // speed lines and the "WHEEEE!" shown on drops. me.riders is where the family's poses go; me.wheels turn with speed.
+  function buildCart(me){
+    const cart = gCast.append('g').attr('class','cart st-stop'), bob = A(cart,'g',{class:'ride-bob'});
+    const speed = A(bob,'g',{class:'speed'});                                     // speed lines, shown on the way down
+    [[-60,-70],[-90,-124],[-40,-176],[-120,-210]].forEach(([x,y]) => L(speed, x-100, y, x-260, y, '#ffffff', 7, {opacity:.85}));
+    RIDERS.forEach(r => R(bob, r.x-70, -176, 24, 160, '#2c5aa0', {rx:10, stroke:OUT, 'stroke-width':2.5}));   // seat backs
+    me.riders = A(bob,'g'); me.poses = {};
+    P(bob,'M-196,-16 L-196,-84 Q-196,-96 -182,-96 L118,-96 Q146,-96 162,-116 L182,-140 Q194,-150 198,-134 L184,-56 Q176,-16 144,-16Z','#3d6fb6',{stroke:OUT,'stroke-width':3});
+    P(bob,'M-190,-90 L116,-90','none',{stroke:'#8fb6ea','stroke-width':3,'stroke-linecap':'round',opacity:.8});   // a shine along the top edge
+    P(bob,'M-196,-76 L188,-76 L186,-60 L-196,-60Z','#ffc23d');
+    Tt(bob,-178,-38,'YIELD COASTER',{'font-size':14,fill:'#ffffff'});
+    R(bob,-180,-114,318,11,'#c9ced3',{rx:5,stroke:OUT,'stroke-width':2});
+    glow(bob,186,-122,30,.7); Cc(bob,186,-122,8,'#fff3b0',{stroke:OUT,'stroke-width':2});
+    me.wheels = [];
+    [-118,110].forEach(wx => {
+      R(bob,wx-40,-32,80,14,'#2b2d31',{rx:4,stroke:OUT,'stroke-width':2});
+      [-21,21].forEach(dx => {
+        const w = A(bob,'g'); Cc(w,wx+dx,-9,11,'#2b2d31',{stroke:OUT,'stroke-width':2});
+        L(w,wx+dx-7,-9,wx+dx+7,-9,'#c9ced3',3); L(w,wx+dx,-16,wx+dx,-2,'#c9ced3',3);
+        me.wheels.push({g:w, cx:wx+dx, cy:-9});
+      });
+    });
+    hw(bob,-60,-300,'WHEEEE!',{'font-size':48,fill:'#d63b2a',class:'whee','paint-order':'stroke',stroke:'#ffffff','stroke-width':8});
+    return cart;
   }
 
   const BG = {
@@ -1111,95 +1145,148 @@ d3.json('prototype/data/leo.json').then(DATA => {
       const [skyT, skyB] = defs.selectAll('#rideSky stop').nodes().map(n => d3.select(n));
 
       // the sky deepens as the cart climbs; the sun stays put
-      R(g,-1400,-800,W+2800,H+1600,'url(#rideSky)');
-      const sun = A(g,'g',{transform:'translate(1080,214)'});
+      // Performance: everything that moves with the camera is drawn in its own <svg> layer behind the scene
+      // (inside #rideLayers), and the camera slides those layers with CSS transforms. The browser paints each layer once,
+      // then only moves the finished pictures on the graphics card, instead of repainting the whole scene every frame.
+      // The cart, the strip at the top and the foreground stay in the scene itself, above the layers.
+      d3.select('#rideLayers').remove();
+      const box = d3.select('#stage').insert('div', '#scene').attr('id', 'rideLayers').attr('class', 'fadeable');
+      const skyL = box.append('svg').attr('class', 'ride-sky');                   // the sky and the sun do not move
+      const layer = (x0, y0, x1, y1) => {                                         // a layer covering x0..x1, y0..y1 (layer units)
+        const el = box.append('svg').attr('class', 'ride-layer').attr('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`).attr('preserveAspectRatio', 'none');
+        return {el, b:[x0, y0, x1 - x0, y1 - y0], g:el.append('g'), q:1};
+      };
+      R(skyL,-1400,-800,W+2800,H+1600,'url(#rideSky)');
+      const sun = A(skyL,'g',{transform:'translate(1080,214)'});
       Cc(sun,0,0,86,'#ffe08a',{opacity:.2,class:'a-pulse'});
       const rays = A(sun,'g',{class:'a-spin'});
       for (let k=0;k<12;k++) A(rays,'line',{x1:0,y1:-66,x2:0,y2:-86,stroke:'#ffc23d','stroke-width':6,'stroke-linecap':'round',transform:`rotate(${k*30})`});
       Cc(sun,0,0,54,'#ffc23d'); Cc(sun,-16,-16,19,'#ffe39a',{opacity:.7});
-      const far = A(g,'g'), mid = A(g,'g'), fair = A(g,'g'), wd = A(g,'g');
+      const LFar = layer(-1500, -650, 3100, 950), LMid = layer(-1400, -1450, END.x*.35 + 1900, 250);
+      const LFair = layer(-1400, -650, END.x*.5 + 2300, 950), LWd = layer(XS - 2300, -1500, XE + 2300, 1450);
+      const far = LFar.g, mid = LMid.g, fair = LFair.g, wd = LWd.g;
+      // Performance: the ride is ~13,000 units long, but only a small stretch is on screen. Everything else gets
+      // display:none, which skips drawing it and pauses its CSS animations (bulbs, trees, walkers, flags); each item comes
+      // back just before it scrolls into view. keep() registers an item with its layer's speed f and its x range.
+      const CULL = [];
+      const keep = (el, f, x0, x1) => { CULL.push({el, f, x0, x1, on:true}); return el; };
 
       // far (moves at 12% of the camera's speed): green hills and Toronto's skyline
       [[-500,'#9cc77e'],[800,'#a8cf8a'],[2100,'#9cc77e']].forEach(([x,c]) => E(far,x,60,820,150,c));
       for (let x=-900; x<2700; x += 50 + cr()*70) if (x < 380 || x > 1050){ const h = 50 + cr()*110, w = 34 + cr()*30; R(far,x,-h,w,h+40,cr() < .5 ? '#b4c6dc' : '#a9bdd6'); }
       skyline(far,560,20,1.1,'#a9bdd6');
       // mid (35%): clouds at every height and hot-air balloons, so you climb past them
-      for (let i=0, x=-900; x < END.x*.35 + 1300; x += 280 + cr()*260, i++) cloud(mid, x, -170 - cr()*820, .7 + cr()*.6, '#ffffff', .92, i);
+      for (let i=0, x=-900; x < END.x*.35 + 1300; x += 280 + cr()*260, i++) cloud(keep(A(mid,'g'), .35, x - 170, x + 170), x, -170 - cr()*820, .7 + cr()*.6, '#ffffff', .92, i);
       for (let k=0; k<7; k++){
-        const b = A(A(mid,'g',{transform:`translate(${200 + k*640 + cr()*220},${-360 - cr()*520})`}),'g',{class:'drift',style:'animation-duration:16s'});
+        const bx = 200 + k*640 + cr()*220, by = -360 - cr()*520;
+        const b = A(keep(A(mid,'g',{transform:`translate(${bx},${by})`}), .35, bx - 90, bx + 90),'g',{class:'drift',style:'animation-duration:16s'});
         P(b,'M0,-60 C40,-60 46,-16 16,8 L8,22 L-8,22 L-16,8 C-46,-16 -40,-60 0,-60Z',PAL[k%5],{stroke:OUT,'stroke-width':2.5});
         P(b,'M0,-60 C14,-52 14,-8 6,22 M0,-60 C-14,-52 -14,-8 -6,22','none',{stroke:'#fffaf0','stroke-width':3});
         L(b,-7,22,-6,36,OUT,1.5); L(b,7,22,6,36,OUT,1.5); R(b,-9,36,18,13,'#8a5a3c',{stroke:OUT,'stroke-width':2});
       }
+      for (let f=0; f<3; f++){
+        const fl = A(mid,'g',{class:'a-drive',style:`--from:${-900 + f*700}px;--to:${END.x*.35 + 1600}px;--dur:${46 + f*14}s;animation-delay:-${f*17}s`});
+        [[0,0],[36,-12],[66,6],[-28,14]].forEach(([dx,dy],i) => { const b = A(fl,'g',{class:'a-flap',style:`animation-delay:-${i*.13}s`}), by = -420 - f*190 + dy;
+          P(b,`M${dx-10},${by-4} Q${dx-5},${by-9} ${dx},${by} Q${dx+5},${by-9} ${dx+10},${by-4}`,'none',{stroke:'#3a3f4a','stroke-width':2.4,'stroke-linecap':'round'}); });
+      }
       // the fair in the middle distance (50%): Ferris wheels, drop towers, big-top tents and trees
       R(fair,-1200,0,END.x*.5 + 3200,900,'#a8cf8a');
       for (let k=0, x=-400; x < END.x*.5 + 1300; x += 560 + cr()*280, k++){
-        if (k % 3 === 0){
-          const fw = A(fair,'g',{transform:`translate(${x},0) scale(.6)`});
+        if (k % 5 === 0){
+          const fw = keep(A(fair,'g',{transform:`translate(${x},0) scale(.6)`}), .5, x - 290, x + 290);
           L(fw,-110,0,0,-260,'#c9ced3',10); L(fw,110,0,0,-260,'#c9ced3',10);
           const wh = A(A(fw,'g',{transform:'translate(0,-260)'}),'g',{class:'a-spin',style:'animation-duration:60s'});
           Cc(wh,0,0,220,'none',{stroke:'#e0a83a','stroke-width':8}); Cc(wh,0,0,196,'none',{stroke:'#f0c96a','stroke-width':3});
           for (let s=0;s<12;s++){ const a = s*Math.PI/6; L(wh,0,0,220*Math.cos(a),220*Math.sin(a),'#e0a83a',3); Cc(wh,220*Math.cos(a),220*Math.sin(a),19,PAL[s%4],{stroke:OUT,'stroke-width':2}); }
           Cc(fw,0,-260,20,'#7a5236');
-        } else if (k % 3 === 1){
-          const t = A(fair,'g',{transform:`translate(${x},0) scale(.62)`});
+        } else if (k % 5 === 1){
+          const t = keep(A(fair,'g',{transform:`translate(${x},0) scale(.62)`}), .5, x - 290, x + 290);
           P(t,'M-150,0 L-150,-90 L0,-190 L150,-90 L150,0Z','#fffaf0',{stroke:OUT,'stroke-width':3});
           for (let s=0;s<5;s++) P(t,`M${-150+s*60},-90 L0,-190 L${-120+s*60},-90Z`,'#d63b2a');
           P(t,'M-30,0 L-30,-60 Q0,-80 30,-60 L30,0Z','#3d4560',{stroke:OUT,'stroke-width':2.5});
           L(t,0,-190,0,-230,OUT,3); P(A(t,'g',{class:'a-flag'}),'M0,-230 L34,-222 L0,-212Z','#ffc23d',{stroke:OUT,'stroke-width':1.5});
-        } else {
-          const d = A(fair,'g',{transform:`translate(${x},0) scale(.62)`});
-          R(d,-12,-420,24,420,'#c9ced3',{stroke:OUT,'stroke-width':2.5});
-          R(d,-40,-300,80,24,'#ffc23d',{rx:6,stroke:OUT,'stroke-width':2.5}); Cc(d,0,-430,12,'#d63b2a',{stroke:OUT,'stroke-width':2});
+        } else if (k % 5 === 2){                                      // drop tower: slow lift, sudden drop
+          const d = keep(A(fair,'g',{transform:`translate(${x},0) scale(.62)`}), .5, x - 290, x + 290);
+          R(d,-12,-420,24,420,'#c9ced3',{stroke:OUT,'stroke-width':2.5}); Cc(d,0,-430,12,'#d63b2a',{stroke:OUT,'stroke-width':2});
+          const car = A(d,'g',{class:'a-droptower',style:`animation-delay:-${(k*1.7)%7}s`});
+          [-30,-10,10,30].forEach(px => { Cc(car,px,-414,7,'#f1c8a0',{stroke:OUT,'stroke-width':1.5}); L(car,px-5,-420,px-9,-440,OUT,2.5); L(car,px+5,-420,px+9,-440,OUT,2.5); });
+          R(car,-46,-404,92,26,'#ffc23d',{rx:6,stroke:OUT,'stroke-width':2.5});
+        } else if (k % 5 === 3){                                      // a small coaster with a train going round
+          const mc = keep(A(fair,'g',{transform:`translate(${x - 200},0) scale(.62)`}), .5, x - 290, x + 290);
+          const d = 'M-30,-40 L120,-40 C170,-40 180,-260 230,-260 C280,-260 290,-60 340,-70 C380,-80 400,-160 450,-160 C500,-160 510,-40 560,-40 L680,-40';
+          [[200,-210],[230,-252],[262,-210],[420,-142],[450,-156],[482,-142]].forEach(([px,py]) => L(mc,px,py,px,0,'#c9ced3',5));
+          P(mc,d,'none',{stroke:'#7a1a12','stroke-width':10}); P(mc,d,'none',{stroke:'#e0574a','stroke-width':5});
+          const train = A(mc,'g');
+          [0,-28,-56].forEach((dx,j) => R(train,dx-12,-18,24,15,PAL[(j+k)%5],{rx:4,stroke:OUT,'stroke-width':1.5}));
+          if (!REDUCED) train.append('animateMotion').attr('dur','7s').attr('repeatCount','indefinite').attr('rotate','auto').attr('path', d).attr('begin', `-${k%7}s`);
+          [-90, 590].forEach(px => { R(mc,px,-120,120,120,'#3d6fb6',{stroke:OUT,'stroke-width':2.5}); P(mc,`M${px-10},-120 L${px+60},-160 L${px+130},-120Z`,'#d63b2a',{stroke:OUT,'stroke-width':2.5}); });
+        } else {                                                      // swing ride: the chairs fly round the pole
+          const sw = keep(A(fair,'g',{transform:`translate(${x},0) scale(.62)`}), .5, x - 290, x + 290);
+          R(sw,-10,-330,20,330,'#c9ced3',{stroke:OUT,'stroke-width':2.5});
+          const top = A(sw,'g',{class:'a-swingride',style:`animation-delay:-${k%4}s`});
+          [-1,1].forEach(sd => [1,2,3].forEach(n => { const cx = sd*(60 + n*38), cy = -210 + n*8;
+            L(top,sd*n*26,-330,cx,cy,OUT,2); R(top,cx-11,cy,22,14,PAL[(n+k)%5],{rx:3,stroke:OUT,'stroke-width':1.5}); }));
+          P(top,'M-110,-330 L0,-376 L110,-330Z','#a98bff',{stroke:OUT,'stroke-width':2.5});
         }
       }
-      for (let k=0, x=-900; x < END.x*.5 + 1300; x += 150 + cr()*180, k++) tree(fair, x, 0, .42 + cr()*.16, k);
+      for (let k=0, x=-900; x < END.x*.5 + 1300; x += 150 + cr()*180, k++) tree(keep(A(fair,'g'), .5, x - 70, x + 70), x, 0, .42 + cr()*.16, k);
 
       // ---------- the world, moving with the camera ----------
       R(wd,XS-2200,0,XE-XS+4400,1400,'#93c96f'); R(wd,XS-2200,0,XE-XS+4400,9,'#82b960');
       R(wd,XS-2200,56,XE-XS+4400,30,'#e8d6a8');                                    // the footpath
+      const shadow = E(wd,0,6,190,13,'#000',{opacity:0});                          // the cart's shadow on the grass
       // the park: a fence, trees, tents, food stands with balloons, lamps and benches
-      for (let fx=XS-1800; fx<XE+1800; fx+=60) R(wd,fx,-34,6,34,'#c9a273');
+      P(wd, d3.range(XS-1800, XE+1800, 60).map(fx => `M${fx},-34h6v34h-6Z`).join(''), '#c9a273');
       R(wd,XS-2200,-27,XE-XS+4400,6,'#d8b384');
       for (let k=0, x=XS-1500; x<XE+1500; x += 230 + cr()*230, k++){
-        const r = cr();
-        if (r < .42) tree(wd, x, 0, .78 + cr()*.3, k);
+        const r = cr(), it = keep(A(wd,'g'), 1, x - 180, x + 180);
+        if (r < .42) tree(it, x, 0, .78 + cr()*.3, k);
         else if (r < .56){
-          P(wd,`M${x-70},0 L${x-70},-90 L${x},-150 L${x+70},-90 L${x+70},0Z`,'#fffaf0',{stroke:OUT,'stroke-width':2.5});
-          for (let s=0;s<3;s++) P(wd,`M${x-70+s*47},-90 L${x},-150 L${x-47+s*47},-90Z`,'#d63b2a');
-          P(wd,`M${x-18},0 L${x-18},-44 Q${x},-58 ${x+18},-44 L${x+18},0Z`,'#3d4560',{stroke:OUT,'stroke-width':2});
-          L(wd,x,-150,x,-180,OUT,2.5); P(A(wd,'g',{class:'a-flag'}),`M${x},-180 L${x+26},-174 L${x},-166Z`,PAL[k%5],{stroke:OUT,'stroke-width':1.5});
+          P(it,`M${x-70},0 L${x-70},-90 L${x},-150 L${x+70},-90 L${x+70},0Z`,'#fffaf0',{stroke:OUT,'stroke-width':2.5});
+          for (let s=0;s<3;s++) P(it,`M${x-70+s*47},-90 L${x},-150 L${x-47+s*47},-90Z`,'#d63b2a');
+          P(it,`M${x-18},0 L${x-18},-44 Q${x},-58 ${x+18},-44 L${x+18},0Z`,'#3d4560',{stroke:OUT,'stroke-width':2});
+          L(it,x,-150,x,-180,OUT,2.5); P(A(it,'g',{class:'a-flag'}),`M${x},-180 L${x+26},-174 L${x},-166Z`,PAL[k%5],{stroke:OUT,'stroke-width':1.5});
         } else if (r < .7){
-          R(wd,x-50,-74,100,74,'#fffaf0',{stroke:OUT,'stroke-width':2.5});
-          R(wd,x-60,-100,120,24,'url(#rideAwning)',{stroke:OUT,'stroke-width':2.5});
-          R(wd,x-36,-58,72,22,'#1d1b33',{rx:4}); Tt(wd,x,-42,['POPCORN','CANDY','TICKETS','PRIZES'][k%4],{'text-anchor':'middle','font-size':11,fill:'#ffc23d'});
-          const bb = A(wd,'g',{class:'a-flag'});
+          R(it,x-50,-74,100,74,'#fffaf0',{stroke:OUT,'stroke-width':2.5});
+          R(it,x-60,-100,120,24,'url(#rideAwning)',{stroke:OUT,'stroke-width':2.5});
+          R(it,x-36,-58,72,22,'#1d1b33',{rx:4}); Tt(it,x,-42,['POPCORN','CANDY','TICKETS','PRIZES'][k%4],{'text-anchor':'middle','font-size':11,fill:'#ffc23d'});
+          const bb = A(it,'g',{class:'a-flag'});
           [[-14,-196],[4,-212],[20,-190],[-2,-180],[12,-226]].forEach(([dx,dy],j) => { L(bb,x+58,-90,x+58+dx,dy+16,OUT,1.2); E(bb,x+58+dx,dy,13,16,PAL[(j+k)%5],{stroke:OUT,'stroke-width':1.5}); });
+          const rb = A(it,'g',{class:'a-rise',style:`animation-delay:-${(k*2.3)%9}s`});
+          L(rb,x+64,-196,x+62,-160,OUT,1.2); E(rb,x+64,-212,13,16,PAL[(k+2)%5],{stroke:OUT,'stroke-width':1.5});
         } else if (r < .85){
-          L(wd,x,0,x,-150,'#2b2d31',6); glow(wd,x,-158,34,.7); Cc(wd,x,-158,10,'#fff3b0',{stroke:OUT,'stroke-width':2});
+          L(it,x,0,x,-150,'#2b2d31',6); glow(it,x,-158,34,.7); Cc(it,x,-158,10,'#fff3b0',{stroke:OUT,'stroke-width':2});
         } else {
-          R(wd,x-44,-38,88,10,'#a8774f',{stroke:OUT,'stroke-width':2}); R(wd,x-44,-62,88,10,'#a8774f',{stroke:OUT,'stroke-width':2});
-          L(wd,x-36,-28,x-36,0,OUT,4); L(wd,x+36,-28,x+36,0,OUT,4);
+          R(it,x-44,-38,88,10,'#a8774f',{stroke:OUT,'stroke-width':2}); R(it,x-44,-62,88,10,'#a8774f',{stroke:OUT,'stroke-width':2});
+          L(it,x-36,-28,x-36,0,OUT,4); L(it,x+36,-28,x+36,0,OUT,4);
         }
       }
+      // park visitors strolling past each other along the fence
+      ST.forEach((st, k) => {
+        if (k % 2) return;
+        const dir = k % 4 ? -1 : 1;
+        walker(keep(A(wd,'g',{transform:`translate(${st.x},0)`}), 1, st.x - 1400, st.x + 1400), 6, 1.15, {dir, from: dir > 0 ? -1200 : 1200, to: dir > 0 ? 1200 : -1200,
+          dur: 30 + k, delay: k*3, col: PAL[k%5], item: k % 3 === 0 ? 'backpack' : null, dog: k === 4});
+      });
       // red steel columns under the track: tapered, with a foot plate; very tall ones get a leaning second leg
       let col = 0;
       for (let x = XS + 60; x <= XE - 20; x += 240){
         if (ST.some(s => Math.abs(x - s.x) < PH + 70)) continue;
         const top = pt(x, 34)[1] + 3;
         if (top > -24) continue;
+        const cg = keep(A(wd,'g'), 1, x - 130, x + 130);
         if (-top > 420){
           const lean = col % 2 ? 90 : -90;
-          P(wd,`M${x-4},${top+60} L${x+4},${top+60} L${x+lean+9},0 L${x+lean-9},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2});
-          R(wd,x+lean-20,-7,40,7,'#8a1d14',{rx:2});
+          P(cg,`M${x-4},${top+60} L${x+4},${top+60} L${x+lean+9},0 L${x+lean-9},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2});
+          R(cg,x+lean-20,-7,40,7,'#8a1d14',{rx:2});
         }
-        P(wd,`M${x-6},${top} L${x+6},${top} L${x+13},0 L${x-13},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2});
-        R(wd,x-24,-8,48,8,'#8a1d14',{rx:2});
+        P(cg,`M${x-6},${top} L${x+6},${top} L${x+13},0 L${x-13},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2});
+        R(cg,x-24,-8,48,8,'#8a1d14',{rx:2});
         col++;
       }
       // a station at every stop: deck, striped awning, bunting, a lamp, and a sign with the date and the yield
       ST.forEach((s, i) => {
-        const y = hY(s.v), dir = i ? Math.sign(s.v - ST[i-1].v) : 0, sg = A(wd,'g');
+        const y = hY(s.v), dir = i ? Math.sign(s.v - ST[i-1].v) : 0, sg = keep(A(wd,'g'), 1, s.x - 290, s.x + 290);
         if (y + 40 < 0) [-PH+10, 0, PH-10].forEach(dx => { P(sg,`M${s.x+dx-6},${y+40} L${s.x+dx+6},${y+40} L${s.x+dx+12},0 L${s.x+dx-12},0Z`,'url(#tubeRed)',{stroke:'#7a1a12','stroke-width':2}); R(sg,s.x+dx-22,-8,44,8,'#8a1d14',{rx:2}); });
         R(sg,s.x-PH-24,y-10,2*PH+48,50,'#b07d52',{rx:4,stroke:OUT,'stroke-width':2.5});
         for (let px = s.x-PH-2; px < s.x+PH+24; px += 22) L(sg,px,y-8,px,y+38,'#8a5a3c',1.5);
@@ -1214,6 +1301,9 @@ d3.json('prototype/data/leo.json').then(DATA => {
         for (let k=1;k<12;k++){ const u = k/12, fx = b0 + (b1 - b0)*u, fy = y - 262 + 26*2*u*(1 - u);
           P(sg,`M${fx-8},${fy} L${fx+8},${fy} L${fx},${fy+16}Z`,PAL[k%4],{stroke:OUT,'stroke-width':1}); }
         R(sg,s.x-165,y-392,330,66,'#1d1b33',{rx:10,stroke:'#ffc23d','stroke-width':4});
+        const bulbs = [A(sg,'g',{class:'a-blink'}), A(sg,'g',{class:'a-blink',style:'animation-delay:-.7s'})];   // odd and even bulbs blink in turn
+        for (let k=0, bxp=s.x-150; bxp <= s.x+150; bxp += 20, k++) [y-392, y-326].forEach(by => Cc(bulbs[k%2],bxp,by,3.6,'#fff3b0'));
+        [-PH-22, PH+22].forEach((dx, k) => { L(sg,s.x+dx,y-318,s.x+dx,y-372,OUT,3); P(A(sg,'g',{class:'a-flag'}),`M${s.x+dx},${y-372} L${s.x+dx+30},${y-364} L${s.x+dx},${y-354}Z`,PAL[(i+k)%5],{stroke:OUT,'stroke-width':1.5}); });
         L(sg,s.x-100,y-326,s.x-100,y-318,OUT,4); L(sg,s.x+100,y-326,s.x+100,y-318,OUT,4);
         const top = i === 0 ? 'THE YIELD COASTER · ALL ABOARD' : i === N-1 ? 'SUMMER 2016 · YOU ARE HERE' : `STOP ${i+1} · RATES ${dir > 0 ? 'UP' : 'DOWN'}`;
         Tt(sg,s.x,y-371,top,{'text-anchor':'middle','font-size':12,fill:'#ffffff'});
@@ -1222,37 +1312,52 @@ d3.json('prototype/data/leo.json').then(DATA => {
         L(sg,s.x+PH+14,y-10,s.x+PH+14,y-130,'#2b2d31',5); glow(sg,s.x+PH+14,y-136,30,.7); Cc(sg,s.x+PH+14,y-136,9,'#fff3b0',{stroke:OUT,'stroke-width':2});
       });
       // the end of the built track: a barrier, a sign, and dashed scaffolding where the future would go
-      const ey = hY(END.v), bx = END.x + 330;
-      [2, 20].forEach(dy => L(wd,XE,ey + dy,XE + 520,ey + dy - 24,'#9aa3aa',4,{'stroke-dasharray':'8 12'}));
-      [50, 120, 190].forEach((dx, k) => hw(wd,XE + dx,ey - 40 - k*32,'?',{'font-size':46,fill:'#5a5f6b'}));
-      R(wd,bx-8,ey-96,12,96,OUT); R(wd,bx+100,ey-96,12,96,OUT);
-      R(wd,bx-24,ey-88,152,30,'url(#rideWarn)',{stroke:OUT,'stroke-width':2.5});
-      R(wd,bx-44,ey-176,196,66,'#ffffff',{rx:8,stroke:'#d63b2a','stroke-width':4});
-      Tt(wd,bx+54,ey-149,'TRACK NOT',{'text-anchor':'middle','font-size':17,fill:'#d63b2a'}); Tt(wd,bx+54,ey-124,'BUILT YET',{'text-anchor':'middle','font-size':17,fill:'#d63b2a'});
-      [-40, 150].forEach(dx => P(wd,`M${bx+dx-12},${ey} L${bx+dx},${ey-32} L${bx+dx+12},${ey}Z`,'#ff7a2c',{stroke:OUT,'stroke-width':2}));
-      // the track: back rail, rungs, the V-shaped truss, the bottom tube, then the running rail the wheels sit on
-      const xs = d3.range(XS, XE + 1, 4), path = off => pl(xs.map(x => pt(x, off)));
+      const ey = hY(END.v), bx = END.x + 330, eg = keep(A(wd,'g'), 1, END.x + 200, XE + 800);
+      [2, 20].forEach(dy => L(eg,XE,ey + dy,XE + 520,ey + dy - 24,'#9aa3aa',4,{'stroke-dasharray':'8 12'}));
+      [50, 120, 190].forEach((dx, k) => hw(eg,XE + dx,ey - 40 - k*32,'?',{'font-size':46,fill:'#5a5f6b'}));
+      R(eg,bx-8,ey-96,12,96,OUT); R(eg,bx+100,ey-96,12,96,OUT);
+      R(eg,bx-24,ey-88,152,30,'url(#rideWarn)',{stroke:OUT,'stroke-width':2.5});
+      R(eg,bx-44,ey-176,196,66,'#ffffff',{rx:8,stroke:'#d63b2a','stroke-width':4});
+      Tt(eg,bx+54,ey-149,'TRACK NOT',{'text-anchor':'middle','font-size':17,fill:'#d63b2a'}); Tt(eg,bx+54,ey-124,'BUILT YET',{'text-anchor':'middle','font-size':17,fill:'#d63b2a'});
+      [-40, 150].forEach(dx => P(eg,`M${bx+dx-12},${ey} L${bx+dx},${ey-32} L${bx+dx+12},${ey}Z`,'#ff7a2c',{stroke:OUT,'stroke-width':2}));
+      // the track: back rail, rungs, the V-shaped truss, the bottom tube, then the running rail the wheels sit on.
+      // Each part is cut into chunks along the ride, so the browser only draws the chunks near the camera.
+      const CH = 640, chunks = d3.range(XS, XE, CH).map(x0 => [x0, Math.min(XE, x0 + CH)]);
+      const path = (off, x0, x1) => pl(d3.range(x0, x1, 4).concat([x1]).map(x => pt(x, off)));
+      const strokes = (off, at) => { const gp = A(wd,'g'); chunks.forEach(([x0, x1]) => keep(P(gp, path(off, Math.max(XS, x0 - 4), Math.min(XE, x1 + 4)), 'none', at), 1, x0 - 40, x1 + 40)); };
+      const segs = (step, make) => { const by = chunks.map(() => []); for (let x = XS; x <= XE; x += step) by[Math.min(chunks.length - 1, Math.floor((x - XS)/CH))].push(make(x)); return by; };
+      const lines = (by, at) => { const gp = A(wd,'g'); by.forEach((list, i) => { if (list.length) keep(P(gp, list.join(''), 'none', at), 1, chunks[i][0] - 60, chunks[i][1] + 60); }); };
       const tube = (off, w) => {                           // a round steel tube: dark edge, red body, a shine on top
-        const d = path(off);
-        P(wd,d,'none',{stroke:'#7a1a12','stroke-width':w + 3,'stroke-linejoin':'round'});
-        P(wd,d,'none',{stroke:'#d63b2a','stroke-width':w,'stroke-linejoin':'round'});
-        P(wd,path(off - w*.25),'none',{stroke:'#ff9384','stroke-width':Math.max(1.6, w*.28),'stroke-linejoin':'round',opacity:.85});
+        strokes(off, {stroke:'#7a1a12','stroke-width':w + 3,'stroke-linejoin':'round'});
+        strokes(off, {stroke:'#d63b2a','stroke-width':w,'stroke-linejoin':'round'});
+        strokes(off - w*.25, {stroke:'#f98677','stroke-width':Math.max(1.6, w*.28),'stroke-linejoin':'round'});   // = #ff9384 at 85% over the red
       };
-      P(wd,path(-8),'none',{stroke:'#8f2219','stroke-width':8,'stroke-linejoin':'round'});       // the back rail, a little further away
-      const rungs = [], truss = [];
-      for (let x = XS; x <= XE; x += 16){ const [a1,b1] = pt(x, -8), [a2,b2] = pt(x, 0); rungs.push(`M${a1},${b1}L${a2},${b2}`); }
-      for (let x = XS; x <= XE; x += 26){ const [a1,b1] = pt(x, 2), [a2,b2] = pt(x + 13, 33), [a3,b3] = pt(x + 26, 2); truss.push(`M${a1},${b1}L${a2},${b2}L${a3},${b3}`); }
-      P(wd,rungs.join(''),'none',{stroke:'#9e2419','stroke-width':3.5});
-      P(wd,truss.join(''),'none',{stroke:'#7a1a12','stroke-width':7.5,'stroke-linejoin':'round'});
-      P(wd,truss.join(''),'none',{stroke:'#c9352a','stroke-width':4.5,'stroke-linejoin':'round'});
+      strokes(-8, {stroke:'#8f2219','stroke-width':8,'stroke-linejoin':'round'});            // the back rail, a little further away
+      const rungs = segs(16, x => { const [a1,b1] = pt(x, -8), [a2,b2] = pt(x, 0); return `M${a1},${b1}L${a2},${b2}`; });
+      const truss = segs(26, x => { const [a1,b1] = pt(x, 2), [a2,b2] = pt(x + 13, 33), [a3,b3] = pt(x + 26, 2); return `M${a1},${b1}L${a2},${b2}L${a3},${b3}`; });
+      lines(rungs, {stroke:'#9e2419','stroke-width':3.5});
+      lines(truss, {stroke:'#7a1a12','stroke-width':7.5,'stroke-linejoin':'round'});
+      lines(truss, {stroke:'#c9352a','stroke-width':4.5,'stroke-linejoin':'round'});
       tube(34, 11);                                        // bottom tube
       tube(0, 9);                                          // running rail
       // the lift chain between the rails on every climb (it runs while the cart is pulled up)
       const hills = ST.slice(0, -1).filter((s, i) => ST[i+1].v > s.v).map(s => ({x0:s.x + PH - 10, x1:s.x + SEG - PH + 10}));
-      const chains = A(wd,'g').selectAll('path').data(hills).join('path').attr('class','chain')
+      const LChain = layer(XS - 2300, -1500, XE + 2300, 1450);    // same size as the world layer, in front of it
+      const chains = LChain.g.selectAll('path').data(hills).join('path').attr('class','chain')
         .attr('d', d => pl(d3.range(d.x0, d.x1, 4).map(x => pt(x, -4)))).attr('fill','none').attr('stroke','#2b2d31').attr('stroke-width',3).attr('stroke-dasharray','6 5');
+      chains.each(function(h){ keep(d3.select(this), 1, h.x0, h.x1); });
 
       // ---------- fixed on screen ----------
+      const S = {x: SAFE.x + SAFE.w*.3, y: SAFE.y + SAFE.h*.81};                // where the camera keeps the cart
+      // a foreground layer (moves faster than the track): high up, the cart flies past clouds close to the camera
+      const front = A(fg,'g'), pw = A(fg,'g'), streaks = A(fg,'g');
+      ST.slice(0, -1).forEach((st, i) => {
+        const hm = -ty(st.x + SEG/2);                                       // height of the track halfway to the next stop
+        if (hm < 520) return;                                             // only on the highest stretches
+        const ground = G + (S.y + hm - G)*1.3;                              // where the front layer's ground is at that moment
+        const cx = (st.x + SEG/2)*1.45 + (cr() - .5)*160;
+        cloud(keep(A(front,'g'), 1.45, cx - 200, cx + 200), cx, S.y - 480 - ground, 1.15, '#ffffff', .55, i);  // well above the family's heads
+      });
       // the overview strip: the real monthly yield for the whole ride, the stops as dots, and where the cart is
       const mx0 = SAFE.x + 70, mx1 = SAFE.x + SAFE.w - 70, my0 = SAFE.y + 2, mh = 58;
       R(fg,mx0,my0,mx1 - mx0,mh,'#fdfbf4',{rx:12,opacity:.95,stroke:OUT,'stroke-width':2.5});
@@ -1267,26 +1372,150 @@ d3.json('prototype/data/leo.json').then(DATA => {
       const dots = ST.map(s => Cc(fg,mxs(s.t),mys(s.v),4.5,'#fdfbf4',{stroke:OUT,'stroke-width':1.6}));
       const mk = Cc(fg,0,0,6.5,'#d63b2a',{stroke:'#ffffff','stroke-width':2.5});
 
-      // the camera: the cart sits at S. It looks a little ahead (so the next hill comes into view) but never so far that
-      // the station sign leaves the screen, and it never lifts the ground above the bottom of the stage.
-      const S = {x: SAFE.x + SAFE.w*.3, y: SAFE.y + SAFE.h*.81};
-      const camera = x => {
-        const y = ty(x), cy = Math.min(S.y - G, clamp(.62*y + .38*ty(x + 380), y - 70, y + 10));
-        const ox = S.x - x, oy = S.y - cy;
-        wd.attr('transform', `translate(${ox},${oy})`);
-        const lay = (el, f, fy) => el.attr('transform', `translate(${S.x - x*f},${G + (oy - G)*fy})`);
-        lay(far, .12, .18); lay(mid, .35, .5); lay(fair, .5, .55);
-        const alt = clamp(-cy/850, 0, 1);
-        skyT.attr('stop-color', mix('#62b6ec', '#2f6fb8', alt)); skyB.attr('stop-color', mix('#d6eefb', '#8fc0e8', alt));
-        const t = tAt(x), v = trackVal(data, t);
-        prog.attr('d', mline(data.filter(d => d.t <= t).concat([{t, v}])));
-        mk.attr('cx', mxs(t)).attr('cy', mys(v));
-        dots.forEach((d, i) => d.attr('fill', Math.abs(ST[i].x - x) <= PH ? OUT : ST[i].x < x ? '#d63b2a' : '#fdfbf4'));
-        return {ox, oy};
-      };
+      // ---------- the ride, frame by frame ----------
+      // Simple physics: the lift chain pulls the cart up a climb at a steady speed; on a drop gravity speeds it up and a
+      // little friction slows it; the brakes make sure it can always stop exactly at the next station. The family, the
+      // camera (it lags, looks ahead, pulls back on fast drops and shakes), the wheels, sparks and wind all follow the speed.
+      const CHAIN = 230, GRAV = 850, FRICTION = 40, CRUISE = 130, BRAKE = 1500, BACK = 520;   // units/s and units/s²
       const xOf = m => (ST.find(s => s.m === m) || ST[0]).x;
-      RIDE = {x: xOf((sc.lines[li] || sc.lines[0])[3]), xOf, tv, ty, slope, camera, chains, SEG};
-      camera(RIDE.x);
+      const camFor = (x, z) => { const y = ty(x); return Math.min((S.y - G)/z, clamp(.62*y + .38*ty(x + 380), y - 70, y + 10)); };
+      const me = {xOf, camFor, v:0, mode:null, cart:null, riders:null, seat:null, wheels:[], spin:0, shake:0, hard:0};
+      me.target = xOf((sc.lines[li] || sc.lines[0])[3]);
+      if (li === 0 && !REDUCED){ me.x = -640; me.v = 430; }      // the first line: the cart rolls in to the station
+      else me.x = me.target;
+      me.cam = {x:me.x, y:camFor(me.x, 1), z:1};
+      const sparks = [], wind = d3.range(16).map(() => ({x:Math.random()*W, y:SAFE.y + 90 + Math.random()*SAFE.h*.7, l:70 + Math.random()*110}));
+      const windLines = wind.map(() => L(streaks,0,0,0,0,'#ffffff',3,{opacity:0}));
+      let stripX = null;
+      me.step = dt => {
+        // 1. move the cart toward its target
+        const d = me.target - me.x, s0 = slope(me.x), wasMoving = Math.abs(d) >= .5;
+        let braking = false;
+        if (!wasMoving){ me.x = me.target; me.v = 0; }
+        else if (d > 0){
+          const boost = clamp(d/SEG, 1, 3.5);                                          // more than a stop behind (fast clicks): catch up
+          if (s0 < -.02) me.v += (CHAIN*boost - me.v)*Math.min(1, dt*2.5);           // the lift chain: a steady climb
+          else me.v += (GRAV*s0/Math.hypot(1, s0) - FRICTION)*dt;                     // gravity on a drop, friction on the flat
+          me.v = Math.max(me.v, CRUISE*boost);                                         // station tyres keep it rolling
+          const cap = Math.sqrt(2*BRAKE*d) + 4;                                        // the brakes: it can always stop in time
+          if (me.v > cap){ braking = me.v > 260; me.hard = Math.max(me.hard, me.v); me.v = cap; }
+          me.x = Math.min(me.target, me.x + me.v*dt);
+        } else {
+          me.v = -Math.min(BACK, Math.sqrt(2*BRAKE*-d) + 4);                           // Back: roll backwards into the station
+          me.x = Math.max(me.target, me.x + me.v*dt);
+        }
+        const moving = Math.abs(me.target - me.x) >= .5;
+        if (wasMoving && !moving){ me.shake = Math.max(me.shake, Math.min(7, me.hard/140)); me.hard = 0; me.v = 0; }   // arrived: a jolt
+        // 2. how the family feels
+        const s = slope(me.x);
+        const mode = !moving ? 'stop' : me.v < 0 ? 'roll' : s < -.03 ? 'up' : (s > .03 && me.v > 220) || (me.mode === 'down' && me.v > 120) ? 'down' : 'roll';
+        if (mode !== me.mode){
+          me.mode = mode;
+          if (me.seat) me.seat(mode);
+          if (mode === 'stop' && me.cart && dt > 0) requestAnimationFrame(() => { if (me.cart) me.cart.classed('arrive', true); });
+        }
+        const chainOn = mode === 'up' ? hills.findIndex(h => me.x > h.x0 && me.x < h.x1) : -1;
+        if (chainOn !== me.chainOn){ me.chainOn = chainOn; chains.classed('on', (h, i) => i === chainOn); }
+        // 3. the camera: follows with a little lag, looks ahead, pulls back on fast drops, shakes with speed
+        const c = me.cam, look = clamp(me.v*.2, -110, 190);
+        const zT = mode === 'down' ? 1 - Math.min(.17, me.v/5000) : mode === 'up' ? 1.05 : 1;
+        c.z += (zT - c.z)*Math.min(1, dt*2);
+        c.x += (me.x + look - c.x)*Math.min(1, dt*4.5);
+        c.y += (camFor(me.x, c.z) - c.y)*Math.min(1, dt*4);
+        me.shake = Math.max(me.shake*Math.exp(-dt*5), mode === 'down' ? Math.min(3, me.v/350) : mode === 'up' ? .5 : 0);
+        me.spin += me.v*dt/11*180/Math.PI;                                              // wheel rotation, in degrees
+        // 4. sparks fly from the wheels while the brakes bite hard
+        if (braking) [-120, 112].forEach(wx => { for (let k=0;k<2;k++) sparks.push({x:me.x + wx, y:ty(me.x + wx) + 4, vx:-me.v*.25 + (Math.random() - .5)*260, vy:-80 - Math.random()*260, life:.3 + Math.random()*.25}); });
+        for (const p of sparks){ p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 1400*dt; p.life -= dt; }
+        while (sparks.length && sparks[0].life <= 0) sparks.shift();
+        me.render(dt);
+      };
+      // show what is near the camera and hide the rest (re-checked when the camera has moved ~40 units or the stage resized)
+      let cullKey = '';
+      const cullNow = (c, z) => {
+        const vb = VB;                                                          // the part of the scene on screen
+        const key = `${Math.round(c.x/40)}|${z.toFixed(2)}|${Math.round(vb[0])}|${Math.round(vb[2])}`;
+        if (key === cullKey) return;
+        cullKey = key;
+        CULL.forEach(it => {
+          const zl = 1 + (z - 1)*it.f, base = S.x - c.x*it.f*zl;               // screen x of the layer's x = 0
+          // a short margin behind, a long one ahead (the ride mostly goes right): what is coming next is already shown,
+          // so the browser can paint it while the cart waits at a station, not in the middle of a fast drop
+          const on = it.x1 > (vb[0] - 360 - base)/zl && it.x0 < (vb[0] + vb[2] + 1100 - base)/zl;
+          if (on !== it.on){ it.on = on; it.el.attr('display', on ? null : 'none'); }
+        });
+      };
+      let skyAlt = -1, windOn = false, sparksOn = false, vbStr = '', PX = 1, VB = [0, 0, W, H];
+      me.drawn = '';
+      // Put a layer where the old SVG transform "translate(ox,oy) scale(zz)" (in scene units) would have put it:
+      // scene x = ox + layer x * zz, and stage pixels = (scene x - viewBox x) * PX.
+      const place = (L, ox, oy, zz) => L.el.style('transform',
+        `translate(${((ox - VB[0])*PX + zz*PX*L.b[0]).toFixed(2)}px,${((oy - VB[1])*PX + zz*PX*L.b[1]).toFixed(2)}px) scale(${(zz*PX/L.q).toFixed(5)})`);
+      me.render = dt => {
+        const c = me.cam, z = c.z;
+        // Nothing moved since the last frame (the cart waits at a station and the camera has settled): change nothing,
+        // so the browser has nothing to repaint. Only the small CSS animations near the camera keep running.
+        const vbNow = svg.attr('viewBox');
+        const key = `${c.x.toFixed(2)}|${c.y.toFixed(2)}|${z.toFixed(4)}|${me.x.toFixed(2)}|${me.mode}|${vbNow}`;
+        if (key === me.drawn && me.shake < .05 && !sparks.length && !sparksOn && !windOn) return;
+        me.drawn = key;
+        if (vbNow !== vbStr){                       // the stage was resized: size the layers for the new scale
+          vbStr = vbNow; VB = vbNow.split(' ').map(Number); PX = $('stage').clientWidth / VB[2];
+          skyL.attr('viewBox', vbNow); box.style('--k', PX);
+          // painted 6% sharper than needed, so even the closest camera zoom (1.05) never looks blurry
+          [LFar, LMid, LFair, LWd, LChain].forEach(L => { L.q = PX*1.06; L.el.attr('width', L.b[2]*L.q).attr('height', L.b[3]*L.q); });
+        }
+        const jx = (Math.random() - .5)*2*me.shake, jy = (Math.random() - .5)*2*me.shake;
+        const ox = S.x - c.x*z + jx, oy = S.y - c.y*z + jy;                         // world → screen
+        place(LWd, ox, oy, z); place(LChain, ox, oy, z);
+        [[LFar, .12, .18], [LMid, .35, .5], [LFair, .5, .55]].forEach(([L, f, fy]) => { const zl = 1 + (z - 1)*f; place(L, S.x - c.x*f*zl + jx*f, G + (oy - G)*fy, zl); });
+        pw.attr('transform', `translate(${ox},${oy}) scale(${z})`);                    // sparks and the front clouds stay in the scene
+        const zf = 1 + (z - 1)*1.45; front.attr('transform', `translate(${S.x - c.x*1.45*zf + jx*1.45},${G + (oy - G)*1.3}) scale(${zf})`);
+        cullNow(c, z);
+        const alt = clamp(-c.y/850, 0, 1);                                              // the sky deepens as the cart climbs
+        if (Math.abs(alt - skyAlt) > .015){ skyAlt = alt; skyT.attr('stop-color', mix('#62b6ec', '#2f6fb8', alt)); skyB.attr('stop-color', mix('#d6eefb', '#8fc0e8', alt)); }   // steps too small to see are skipped
+        const y = ty(me.x), ang = Math.atan(slope(me.x))*180/Math.PI;
+        if (me.cart){
+          me.cart.attr('transform', `translate(${ox + me.x*z},${oy + y*z}) rotate(${ang}) scale(${z})`);
+          me.riders.attr('transform', me.mode === 'down' ? `translate(0,${-Math.min(10, me.v/90)})` : null);   // airtime
+          me.wheels.forEach(w => w.g.attr('transform', `rotate(${me.spin % 360},${w.cx},${w.cy})`));
+        }
+        const sop = .22*clamp(1 + y/650, 0, 1);
+        if (sop > .003 || shadow.attr('opacity') !== '0') shadow.attr('cx', me.x).attr('rx', 190 - y*.06).attr('opacity', sop > .003 ? sop : 0);
+        if (sparks.length || sparksOn){
+          pw.selectAll('circle').data(sparks).join('circle').attr('cx', p => p.x).attr('cy', p => p.y)
+            .attr('r', p => 2 + p.life*6).attr('fill', p => p.life > .25 ? '#fff3b0' : '#ff9f3c').attr('opacity', p => Math.min(1, p.life*4));
+          sparksOn = sparks.length > 0;
+        }
+        // wind streaks rush past on fast drops
+        const wop = clamp((Math.abs(me.v) - 380)/600, 0, .55);
+        if (wop > 0 || windOn){
+          const a = Math.atan(slope(me.x));
+          wind.forEach((w, i) => {
+            w.x -= Math.cos(a)*me.v*(dt || 0)*1.7; w.y -= Math.sin(a)*me.v*(dt || 0)*1.7;
+            if (w.x < -260 || w.y < SAFE.y - 60){ w.x = W + 60 + Math.random()*400; w.y = SAFE.y + 90 + Math.random()*SAFE.h*.75; }
+            windLines[i].attr('x1', w.x).attr('y1', w.y).attr('x2', w.x + Math.cos(a)*w.l).attr('y2', w.y + Math.sin(a)*w.l).attr('opacity', wop);
+          });
+          windOn = wop > 0;
+        }
+        // the overview strip (only redrawn when the cart has moved)
+        if (stripX === null || Math.abs(me.x - stripX) > 10 || (me.x === me.target && me.x !== stripX)){   // ~0.5 px steps on the strip
+          stripX = me.x;
+          const t = tAt(me.x), v = trackVal(data, t);
+          prog.attr('d', mline(data.filter(dd => dd.t <= t).concat([{t, v}])));
+          mk.attr('cx', mxs(t)).attr('cy', mys(v));
+          dots.forEach((dd, i) => dd.attr('fill', Math.abs(ST[i].x - me.x) <= PH ? OUT : ST[i].x < me.x ? '#d63b2a' : '#fdfbf4'));
+        }
+      };
+      RIDE = me;
+      let last = performance.now();
+      const tick = now => {
+        if (RIDE !== me || !wd.node().isConnected) return;                  // the story has moved on to another scene
+        me.step(Math.min(.05, (now - last)/1000)); last = now;
+        requestAnimationFrame(tick);
+      };
+      me.step(0);
+      if (!REDUCED) requestAnimationFrame(tick);
     },
     sketch(g,sc,fg){
       // Leo's desk in 2020, seen through his eyes: a graph-paper sketchbook with the real yield drawn in pencil
@@ -2096,7 +2325,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   const CAST_SCALE = {robarts:.78};    // scenes where the cast is drawn smaller to match the people around them
   function drawCast(sc, line){
     gCast.interrupt('ride');
-    gCast.selectAll('*').remove();
+    gCast.selectAll(':scope > *').remove();   // only the direct children: the coaster's cart is kept whole and put back
     const ck = CAST_SCALE[sc.bg] || 1;
     gCast.attr('transform', ck === 1 ? null : `translate(640,${G}) scale(${ck}) translate(-640,${-G})`);
     const intro = castIntro; castIntro = null;
@@ -2140,7 +2369,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     const k = Math.min(sw / SAFE.w, avail / SAFE.h);
     const vw = sw/k, vh = sh/k, x = SAFE.x + SAFE.w/2 - vw/2, y = SAFE.y - (avail/k - SAFE.h)/2;
     const vb = `${x.toFixed(1)} ${y.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`;
-    if (vb !== lastFit){ lastFit = vb; svg.attr('viewBox', vb); }
+    if (vb !== lastFit){ lastFit = vb; svg.attr('viewBox', vb); grainSvg.attr('viewBox', vb); }
   }
   const refit = () => { measureBox(); fitScene(); };
   new ResizeObserver(refit).observe($('stage'));        // a new screen size re-wraps the text, so measure again
@@ -2152,15 +2381,18 @@ d3.json('prototype/data/leo.json').then(DATA => {
   /* ================= rain + lightning ================= */
   const cv = $('rain'), ctx = cv.getContext('2d');
   let drops = Array.from({length:260}, () => ({x:Math.random(), y:Math.random(), l:.5+Math.random()*.5}));
-  let rainAmt = 0, rainShown = 0, lightning = false, nextFlash = 0;
+  let rainAmt = 0, rainShown = 0, rainDrawn = false, lightning = false, nextFlash = 0;
   function sizeCanvas(){ const d = devicePixelRatio||1; cv.width = cv.clientWidth*d; cv.height = cv.clientHeight*d; }
   new ResizeObserver(sizeCanvas).observe($('stage')); sizeCanvas();
   let lastT = performance.now();
   function loop(now){
     const dt = Math.min(.05,(now-lastT)/1000); lastT = now;
-    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
     rainShown = REDUCED ? rainAmt : rainShown + (rainAmt - rainShown) * Math.min(1, dt*1.8);
     const n = Math.round(rainShown*drops.length);
+    // Performance: clearing a full-screen canvas every frame is costly on older laptops, so the canvas is only touched
+    // while it has rain on it (or one last time to wipe the rain away).
+    if (n || rainDrawn){ ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height); }
+    rainDrawn = n > 0;
     if (n){
       const w = cv.width, h = cv.height, d = devicePixelRatio||1;
       ctx.strokeStyle = `rgba(200,215,235,${.35+.35*rainShown})`; ctx.lineWidth = 1.2*d; ctx.beginPath();
@@ -2198,6 +2430,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     setSky(sc.y, anim);
     WIND = OUTDOOR.has(sc.bg) ? storm(sc.y) : 0;
     gBg.selectAll('*').remove(); gFg.selectAll('*').remove();
+    d3.select('#rideLayers').remove();             // the Yield Coaster's own layers (if we are leaving it)
     BG[sc.bg](gBg, sc, gFg);
     $('stage').classList.toggle('drawing', !!sc.draw);
     const t = storm(sc.y);
