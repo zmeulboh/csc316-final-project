@@ -24,7 +24,14 @@ The U.S. 10-year Treasury yield is one of the most watched numbers in finance, b
 
 The prototype has two pages, both built with D3 on real data:
 
-- **Leo's Forecast** ([`index.html`](index.html)): a story game. You follow Leo from 2007 to 2026 while a life bar at the top tracks the real 10-year yield. In 2020 you draw your own guess of where the yield goes next in Leo's sketchbook, and the real line is then drawn over it. The end card links to Rate Weather.
+- **Leo's Forecast** ([`index.html`](index.html)): a story game. You follow Leo from 2007 to 2026 while a life bar at the top tracks the real 10-year yield. Five interactive moments are built into his life:
+  - 2016: ride the Yield Coaster through the yield since 1962.
+  - 2020: draw your guess of where the yield goes next in Leo's sketchbook.
+  - 2022: drag the renewal rate on his parents' budget pad. The blocks are drawn to scale, and the summer trip gets cancelled.
+  - 2024: push a chain of dominoes from the 10-year yield to Leo's café shifts. Each domino's ticket shows its real data.
+  - 2026: look at Canadian industries through the CN Tower's binoculars (rain clouds = more exposed, umbrellas = more sheltered).
+
+  The end card links to Rate Weather.
 - **Rate Weather** ([`prototype/rate-weather.html`](prototype/rate-weather.html)): the data side of the story, as a scrolling page:
   - "Draw what happened next" and "Ride the rollercoaster": the yield's history;
   - "The domino chain": how higher rates reach jobs;
