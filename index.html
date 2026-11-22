@@ -470,6 +470,26 @@ a.btn{text-decoration:none;display:inline-block}
 #rideLayers svg{position:absolute;left:0;top:0;overflow:visible}
 #rideLayers .ride-sky{width:100%;height:100%}
 #rideLayers .ride-layer{transform-origin:0 0;will-change:transform}
+#rideLayers .ride-fx{position:absolute;inset:0;display:none;pointer-events:none}
+#rideLayers .ride-fx.on{display:block}
+#rideLayers .ride-fx .fw{position:absolute;width:14%;height:auto;aspect-ratio:1;opacity:0;transform:translate(-50%,-50%) scale(.15);animation:fw 3.3s ease-out infinite}
+@keyframes fw{0%{transform:translate(-50%,-50%) scale(.15);opacity:0}8%{opacity:1}70%{opacity:.9}100%{transform:translate(-50%,-42%) scale(1);opacity:0}}
+#rideNear{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#rideNear svg{position:absolute;left:0;top:0;overflow:visible}
+#rideNear .ride-layer{transform-origin:0 0;will-change:transform}
+.stage.leaving #rideNear{transform:translateX(calc(-1 * var(--dx,80px)))}
+.stage.entering #rideNear{transform:translateX(var(--dx,80px))}
+#rideInsert{position:absolute;inset:-6px;overflow:hidden;pointer-events:none;display:none;background:#161b29}  /* a little larger than the stage, so its shake never shows the edges */
+#rideInsert.on{display:block}
+#rideInsert svg{position:absolute;inset:0;width:100%;height:100%}
+#rideInsert .ins{display:none}
+#rideInsert.pov .ins-pov,#rideInsert.drop .ins-drop{display:block}
+#rideInsert.pov .ins-pov{animation:povbob 2.6s ease-in-out infinite alternate}
+@keyframes povbob{from{transform:translateY(0) rotate(-.5deg) scale(1.02)}to{transform:translateY(-8px) rotate(.5deg) scale(1.02)}}
+#rideInsert.drop{animation:insshake .11s linear infinite}
+@keyframes insshake{25%{transform:translate(2px,-2px)}50%{transform:translate(-2px,1px)}75%{transform:translate(1px,2px)}}
+#rideInsert .ins-cart{will-change:transform}
+#rideLayers .ride-dark{position:absolute;inset:0;background:linear-gradient(180deg,#0e1322,#1f2638);opacity:0;will-change:opacity;pointer-events:none}
 .stage.leaving #rideLayers{transform:translateX(calc(-1 * var(--dx,80px) * var(--k,1)))}
 .stage.entering #rideLayers{transform:translateX(calc(var(--dx,80px) * var(--k,1)))}
 /* Performance: nothing animates inside a hidden group (the coaster hides what is far from the camera) */
@@ -522,6 +542,7 @@ a.btn{text-decoration:none;display:inline-block}
   .ride-bob,.whee,.chain.on,.drift,.talk,.rock,.breathe,.idle,.head-idle,.eyes,.hop-in,.walk-in,.walk-in .leg,.walk-in .arm,.name.pop,.overlay .card,[class^="a-"],[class*=" a-"]{animation:none!important}
   .stage .fadeable{transition:none}
   #line .num{animation:none;background-size:100% 100%}
+  #rideLayers .ride-fx .fw,#rideInsert,#rideInsert .ins-pov{animation:none!important}
   .mouth-open{display:none}
   .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote,.a-glassdrop,.a-landing,.a-gull{display:none}
 }
@@ -713,7 +734,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   // The 4th item of a line is the stop (year-month) the cart rides to when that line shows: up a hill if the yield
   // rose since the last stop, down if it fell. Every number in these lines comes from the data.
   const COASTER =
-    {year:2016, age:9, y:US10[2016], bg:'coaster', ride:true, cast:[], mood:'happy', lines:[
+    {year:2016, age:9, y:US10[2016], bg:'coaster', grade:'ride', ride:true, cast:[], mood:'happy', lines:[
     ['LEO','Summer 2016. Mom and Dad take me to the amusement park, and I’m finally tall enough for the big coaster!','happy','1962-01'],
     ['DAD',`This is the Yield Coaster. The height of the track is the US 10-year yield, starting in ${MONTH('1962-01')} at ${pctM('1962-01')}. Every stop is a real month: if rates went up, we climb. If they went down, we drop.`,'happy','1962-01'],
     ['FACT',`${MONTH('1970-05')}: up to ${pctM('1970-05')}. Prices are rising faster every year, so lenders want more interest.`,null,'1970-05'],
@@ -722,7 +743,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     ['FACT',`${MONTH('1979-12')}: still climbing, to ${pctM('1979-12')}. A second oil shock, and prices now rise more than 10% a year.`,null,'1979-12'],
     ['LEO','Up AGAIN? Dad, do we ever go down?','worried','1979-12'],
     ['FACT',`${MONTH(TOP[0])}: the top of the ride, ${pctM(TOP[0])}, the highest the 10-year yield has ever been. To stop runaway inflation, rates soared, US mortgages reached ${DATA.mortPeak.v.toFixed(1)}%, and two recessions came back to back.`,null,TOP[0]],
-    ['LEO','We’re SO high up! I can’t even see the ground!','shocked',TOP[0]],
+    ['LEO','We’re SO high up! I can’t even see the ground!','shocked',TOP[0],{cine:true}],
     ['LEO','WHEEEEE!','happy','1986-08'],
     ['FACT',`${MONTH('1986-08')}: inflation is beaten, and the yield drops all the way to ${pctM('1986-08')}.`,null,'1986-08'],
     ['FACT',`${MONTH('1993-10')}: still rolling down, to ${pctM('1993-10')}, ${sinceM('1993-10')}.`,null,'1993-10'],
@@ -736,6 +757,12 @@ d3.json('prototype/data/leo.json').then(DATA => {
     ['FACT',`Summer 2016, right now: ${pctM('2016-07')}, ${sinceM('2016-07')}. Money is cheap, so house prices climb.`,null,'2016-07'],
     ['LEO','Wait, the track just ends!','shocked','2016-07'],
     ['DAD','That part isn’t built yet. Nobody knows which way rates go next.','neutral','2016-07']]};
+  // The coaster's camera, line by line (see SHOTS in BG.coaster): wide shots of the big climbs, a chase camera on the
+  // drops, a look back at the hill just ridden, and close-ups and a low angle on the family. A DATA line only uses a shot
+  // that keeps the station's sign (the month and the yield) in the picture. 'pov' and 'drop' cut to other angles: the
+  // view from the front seat at the record high, and the cart plunging toward the camera on the big drop.
+  ['side','close','wide','chase','back','side','close','wide','pov','drop','back','chase','wide','side','chase','close','back','low','side','wide','close','wide']
+    .forEach((cam, i) => { const l = COASTER.lines[i]; if (l) l[4] = Object.assign({}, l[4], {cam}); });
 
   const PAST = [
     {year:2007, age:0, y:US10[2007], bg:'nursery', grade:'peach', stage:'nursery', outfit:'baby', cast:['mom','dad'], lines:[
@@ -1077,6 +1104,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     summer:     {mul:[1.02,1,.95],   sat:1.08, lift:[0,0,.02],     vig:.18},                   // 2016: bright summer
     lateSummer: {mul:[1.05,.97,.87], sat:1.0,  lift:[.04,.01,0],   vig:.25},                   // 2017: late summer, moving day
     lilac:      {mul:[.84,.77,.96],  sat:.82,  lift:[.06,.03,.1],  vig:.45},                   // 2020: lockdown dusk
+    ride:       {mul:[1.05,.96,.86], sat:1.04, lift:[.05,.02,.03], vig:.26},                  // 2016: late afternoon at the fair, sinking into sunset
     harsh:      {mul:[.56,.64,.63],  sat:.5,   lift:[.02,.05,.08], con:1.15, vig:.7},          // 2022: a hard kitchen light at night
     teal:       {mul:[.86,.95,.98],  sat:.8,   lift:[0,.03,.05],   vig:.4},                    // 2026: a storm-teal campus
     tower:      {mul:[.9,.92,1],     sat:.88,  lift:[.02,.02,.06], vig:.35},                   // 2026: grey light high above the city
@@ -1699,26 +1727,46 @@ d3.json('prototype/data/leo.json').then(DATA => {
     if (!RIDE) return;
     const me = RIDE, speaker = line ? line[0] : null, lineMood = line ? line[2] : null;
     // Performance: the cart is built once per visit to the scene and kept between lines (drawCast clears the cast layer,
-    // so it is simply put back). Each pose of the family is built the first time it is needed and then reused.
-    if (!me.cartEl) me.cartEl = buildCart(me);
+    // so it is simply put back). Each pose of the family is built the first time it is needed and then reused. Both are
+    // drawn in the scene's light (the cast's softer version of the grade).
+    const graded = f => { const g0 = GRADE; GRADE = CAST_GRADE; try { return f(); } finally { GRADE = g0; } };
+    if (!me.cartEl) me.cartEl = graded(() => buildCart(me));
     gCast.node().appendChild(me.cartEl.node());
-    // the family's poses: 'calm' (at a stop or rolling), 'up' (nervous) or 'down' (arms up); whoever speaks talks
-    const key = name => `${name}|${speaker}|${name === 'calm' ? lineMood : ''}`;
+    // The family's poses. 'calm' (at a stop or rolling): whoever speaks talks and acts (Dad points along the track, Leo
+    // cheers, points or holds on) and the others turn to them. 'up' (a climb): everyone grips the lap bar, worried.
+    // 'down' (a fast drop): arms up, hair streaming, lifted out of their seats, and Dad's glasses fly off.
+    const stormy = !!me.tv && me.tv(me.xOf(line && line[3])) >= 9;                  // high up in the storm
+    const key = name => `${name}|${speaker}|${name === 'calm' ? lineMood + (stormy ? '!' : '') : ''}`;
+    const seatX = {MOM:-112, LEO:-6, DAD:100};
+    const act = (who, mood) => who === 'DAD' ? 'point' : who === 'LEO' ? ({happy:'cheer', shocked:'point', worried:'table'}[mood] || 'stand') : 'stand';
     const pose = name => {
       const k = key(name);
       if (me.poses[k]) return me.poses[k];
-      const pg = A(me.riders,'g',{display:'none'});
-      RIDERS.forEach(r => {
-        const drop = name === 'down';
-        const mood = name === 'up' ? 'worried' : drop ? (r.who === 'DAD' ? 'shocked' : 'happy') : (speaker === r.who && lineMood) || 'happy';
-        const o = Object.assign({}, r.base, {x:640, mood, talking: speaker === r.who});
-        const g = A(pg,'g',{transform:`translate(${r.x},${r.feet}) scale(.66) translate(-640,${2 - G})`});
-        if (drop) armsUp(g, o);
-        const p = person(g, o);
-        if (drop) p.selectAll('.arm').attr('display', 'none');
+      return graded(() => {
+        const pg = A(me.riders,'g',{display:'none'}), drop = name === 'down', up = name === 'up';
+        RIDERS.forEach(r => {
+          const talks = speaker === r.who, mood = up ? 'worried' : drop ? (r.who === 'DAD' ? 'shocked' : 'happy') : (talks && lineMood) || (stormy ? 'worried' : 'happy');
+          const look = up || drop ? 0 : talks ? (r.who === 'LEO' ? 0 : r.who === 'MOM' ? 1 : -1) : seatX[speaker] != null ? Math.sign(seatX[speaker] - r.x) : 0;
+          const o = Object.assign({}, r.base, {x:640, mood, look, talking: talks, idle:false, shadow:false, side:1,
+            pose: up ? 'table' : drop ? 'stand' : talks ? act(r.who, mood) : 'stand',
+            table: (-118 - r.feet)/.66 + G - 2,                      // the lap bar's height, in the person's own units
+            glasses: r.base.glasses && !drop});
+          const g = A(pg,'g',{transform:`translate(${r.x},${r.feet}) scale(.66) translate(-640,${2 - G})`});
+          if (drop) armsUp(g, o);
+          const p = person(g, o), m = p.metrics;
+          if (drop){
+            p.selectAll('.arm').attr('display', 'none');
+            [-.55, -.05, .45].forEach(dy => L(g, 640 - m.hr*1.15, m.cy + dy*m.hr, 640 - m.hr*2.3, m.cy + dy*m.hr - m.hr*.12, '#ffffff', 3.5, {opacity:.75}));   // hair streaming back
+          }
+        });
+        if (up) P(pg,'M128,-234 q7,10 0,14 q-7,-4 0,-14Z','#7ec8f0',{stroke:OUT,'stroke-width':1.5});   // Dad sweats on the climb
+        if (drop){                                                                                       // Dad's glasses, flying off
+          const gl = A(A(pg,'g',{transform:'translate(64,-262) rotate(-28)'}),'g',{class:'a-bob'});
+          [-13, 2].forEach(gx => R(gl,gx,-5,11,8,'#ffffff',{rx:2,'fill-opacity':.25,stroke:OUT,'stroke-width':1.8}));
+          L(gl,-2,-2,2,-2,OUT,1.6);
+        }
+        return (me.poses[k] = pg);
       });
-      if (name === 'up') P(pg,'M128,-234 q7,10 0,14 q-7,-4 0,-14Z','#7ec8f0',{stroke:OUT,'stroke-width':1.5});   // Dad sweats on the climb
-      return (me.poses[k] = pg);
     };
     pose('calm');
     // the other two poses are prepared just after this frame (once per speaker), never in the middle of a drop
@@ -1730,6 +1778,12 @@ d3.json('prototype/data/leo.json').then(DATA => {
     };
     me.cart = me.cartEl; me.mode = null; me.drawn = '';
     me.target = me.xOf(line && line[3]);
+    // the line's camera shot, and the two inserts (the view from the front seat at the top, the cart plunging toward us)
+    const ovr = lineOpts(line);
+    me.shot = me.shots[ovr.cam] || (ovr.cam === 'drop' ? me.shots.chase : me.shots.side);
+    me.setInsert(REDUCED ? null : ovr.cam === 'pov' || ovr.cam === 'drop' ? ovr.cam : null);
+    // the first line opens on a wide shot of the track climbing into the sky while the cart rolls in to the station
+    if (li === 0 && !REDUCED && !me.introDone){ me.introDone = true; me.x = -640; me.v = 430; me.intro = 3; me.cam.x = me.x; me.cam.z = .7; me.cam.y = me.camFor(me.x, .7); }
     if (REDUCED){ me.x = me.target; me.v = 0; me.cam.x = me.x; me.cam.y = me.camFor(me.x, 1); me.cam.z = 1; }   // no motion: go straight to the stop
     me.step(0);            // seat the family and draw this frame right away
   }
@@ -1803,16 +1857,14 @@ d3.json('prototype/data/leo.json').then(DATA => {
       d3.select('#rideLayers').remove();
       const box = d3.select('#pageFront').insert('div', '#scene').attr('id', 'rideLayers').attr('class', 'fadeable');
       const skyL = box.append('svg').attr('class', 'ride-sky');                   // the sky and the sun do not move
+      const fxL = box.append('div').attr('class', 'ride-fx');                     // fireworks over the lake at dusk (drawn further down)
       const layer = (x0, y0, x1, y1) => {                                         // a layer covering x0..x1, y0..y1 (layer units)
         const el = box.append('svg').attr('class', 'ride-layer').attr('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`).attr('preserveAspectRatio', 'none');
         return {el, b:[x0, y0, x1 - x0, y1 - y0], g:el.append('g'), q:1};
       };
       R(skyL,-1400,-800,W+2800,H+1600,'url(#rideSky)');
-      const sun = A(skyL,'g',{transform:'translate(1080,214)'});
-      Cc(sun,0,0,86,'#ffe08a',{opacity:.2,class:'a-pulse'});
-      const rays = A(sun,'g',{class:'a-spin'});
-      for (let k=0;k<12;k++) A(rays,'line',{x1:0,y1:-66,x2:0,y2:-86,stroke:'#ffc23d','stroke-width':6,'stroke-linecap':'round',transform:`rotate(${k*30})`});
-      Cc(sun,0,0,54,'#ffc23d'); Cc(sun,-16,-16,19,'#ffe39a',{opacity:.7});
+      const sun = A(skyL,'g',{transform:'translate(1040,330)'});     // a low evening sun (it fades when storm clouds roll in)
+      NG(() => { glow(sun,0,0,280,.8); Cc(sun,0,0,64,'#ffd27a',{opacity:.35}); Cc(sun,0,0,48,'#ffe9b0'); });
       const LFar = layer(-1500, -650, 3100, 950), LMid = layer(-1400, -1450, END.x*.35 + 1900, 250);
       const LFair = layer(-1400, -650, END.x*.5 + 2300, 950), LWd = layer(XS - 2300, -1500, XE + 2300, 1450);
       const far = LFar.g, mid = LMid.g, fair = LFair.g, wd = LWd.g;
@@ -1822,12 +1874,21 @@ d3.json('prototype/data/leo.json').then(DATA => {
       const CULL = [];
       const keep = (el, f, x0, x1) => { CULL.push({el, f, x0, x1, on:true}); return el; };
 
-      // far (moves at 12% of the camera's speed): green hills and Toronto's skyline
-      [[-500,'#9cc77e'],[800,'#a8cf8a'],[2100,'#9cc77e']].forEach(([x,c]) => E(far,x,60,820,150,c));
-      for (let x=-900; x<2700; x += 50 + cr()*70) if (x < 380 || x > 1050){ const h = 50 + cr()*110, w = 34 + cr()*30; R(far,x,-h,w,h+40,cr() < .5 ? '#b4c6dc' : '#a9bdd6'); }
-      skyline(far,560,20,1.1,'#a9bdd6');
-      // mid (35%): clouds at every height and hot-air balloons, so you climb past them
-      for (let i=0, x=-900; x < END.x*.35 + 1300; x += 280 + cr()*260, i++) cloud(keep(A(mid,'g'), .35, x - 170, x + 170), x, -170 - cr()*820, .7 + cr()*.6, '#ffffff', .92, i);
+      // far (moves at 12% of the camera's speed): Toronto's skyline across the water of Lake Ontario, windows lighting up
+      // for the evening; glints of low sunlight on the lake
+      for (let x=-900; x<2700; x += 50 + cr()*70) if (x < 380 || x > 1050){ const h = 50 + cr()*110, w = 34 + cr()*30; R(far,x,-h,w,h+6,cr() < .5 ? '#8a8fb8' : '#7d84ae'); }
+      skyline(far,560,6,1.1,'#7d84ae',true);
+      R(far,-1500,4,4600,150,'#7f8ab4'); R(far,-1500,4,4600,5,'#9aa3c8');
+      for (let k=0;k<30;k++){ const lx = -1400 + cr()*4400, ly = 14 + cr()*120, lw2 = 40 + cr()*130, lo = .3 + cr()*.35; NG(() => R(far,lx,ly,lw2,2.5,'#ffe2b0',{opacity:lo,rx:1})); }
+      R(far,-1500,154,4600,800,'#93a87a');
+      // mid (35%): clouds at every height and hot-air balloons, so you climb past them. The clouds take the weather of the
+      // track below them (the story's weather: the higher the rate, the stormier; the same scale as the sky, see render): white and sparse where rates are low,
+      // darker, bigger and closer together where they are high
+      for (let i=0, x=-900; x < END.x*.35 + 1300; i++){
+        const dk2 = clamp((tv(x/.35) - 4)/10, 0, 1);
+        cloud(keep(A(mid,'g'), .35, x - 220, x + 220), x, -170 - cr()*820, (.7 + cr()*.6)*(1 + dk2*.45), mix('#ffffff', '#4f5866', dk2), .93, i);
+        x += (280 + cr()*260)*(1 - .4*dk2);
+      }
       for (let k=0; k<7; k++){
         const bx = 200 + k*640 + cr()*220, by = -360 - cr()*520;
         const b = A(keep(A(mid,'g',{transform:`translate(${bx},${by})`}), .35, bx - 90, bx + 90),'g',{class:'drift',style:'animation-duration:16s'});
@@ -1885,6 +1946,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
       // ---------- the world, moving with the camera ----------
       R(wd,XS-2200,0,XE-XS+4400,1400,'#93c96f'); R(wd,XS-2200,0,XE-XS+4400,9,'#82b960');
       R(wd,XS-2200,56,XE-XS+4400,30,'#e8d6a8');                                    // the footpath
+      const skyG = A(wd,'g');                                                       // the airships (added further down)
       const shadow = E(wd,0,6,190,13,'#000',{opacity:0});                          // the cart's shadow on the grass
       // the park: a fence, trees, tents, food stands with balloons, lamps and benches
       P(wd, d3.range(XS-1800, XE+1800, 60).map(fx => `M${fx},-34h6v34h-6Z`).join(''), '#c9a273');
@@ -1983,6 +2045,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
         strokes(off, {stroke:'#d63b2a','stroke-width':w,'stroke-linejoin':'round'});
         strokes(off - w*.25, {stroke:'#f98677','stroke-width':Math.max(1.6, w*.28),'stroke-linejoin':'round'});   // = #ff9384 at 85% over the red
       };
+      NG(() => strokes(4, {stroke:'#ffd98a','stroke-width':30,'stroke-linejoin':'round',opacity:.12}));   // evening: a warm glow around the track
       strokes(-8, {stroke:'#8f2219','stroke-width':8,'stroke-linejoin':'round'});            // the back rail, a little further away
       const rungs = segs(16, x => { const [a1,b1] = pt(x, -8), [a2,b2] = pt(x, 0); return `M${a1},${b1}L${a2},${b2}`; });
       const truss = segs(26, x => { const [a1,b1] = pt(x, 2), [a2,b2] = pt(x + 13, 33), [a3,b3] = pt(x + 26, 2); return `M${a1},${b1}L${a2},${b2}L${a3},${b3}`; });
@@ -1991,15 +2054,233 @@ d3.json('prototype/data/leo.json').then(DATA => {
       lines(truss, {stroke:'#c9352a','stroke-width':4.5,'stroke-linejoin':'round'});
       tube(34, 11);                                        // bottom tube
       tube(0, 9);                                          // running rail
+      NG(() => lines(segs(36, x => { const [bx2, by2] = pt(x, 17); return `M${(bx2 - 3.2).toFixed(1)},${by2.toFixed(1)}a3.2,3.2 0 1 0 6.4,0a3.2,3.2 0 1 0 -6.4,0`; }), {fill:'#fff3c4', stroke:'none'}));   // bulbs along the track
       // the lift chain between the rails on every climb (it runs while the cart is pulled up)
       const hills = ST.slice(0, -1).filter((s, i) => ST[i+1].v > s.v).map(s => ({x0:s.x + PH - 10, x1:s.x + SEG - PH + 10}));
       const LChain = layer(XS - 2300, -1500, XE + 2300, 1450);    // same size as the world layer, in front of it
       const chains = LChain.g.selectAll('path').data(hills).join('path').attr('class','chain')
         .attr('d', d => pl(d3.range(d.x0, d.x1, 4).map(x => pt(x, -4)))).attr('fill','none').attr('stroke','#2b2d31').attr('stroke-width',3).attr('stroke-dasharray','6 5');
       chains.each(function(h){ keep(d3.select(this), 1, h.x0, h.x1); });
+      // beyond the end of the built track: a crane still at work and fog where the future would be
+      if (defs.select('#rideFog').empty()){
+        const fgr = defs.append('linearGradient').attr('id','rideFog');
+        [[0,0],[.35,.8],[1,.95]].forEach(([o,a]) => fgr.append('stop').attr('offset',o).attr('stop-color','#eef0f4').attr('stop-opacity',a));
+      }
+      const fog = keep(A(wd,'g'), 1, END.x + 100, XE + 2400), cx2 = XE + 300;
+      R(fog, cx2 - 10, -560, 20, 560, '#e0a83a', {stroke:OUT,'stroke-width':2.5});
+      P(fog, d3.range(-540, 0, 40).map(y => `M${cx2 - 10},${y}L${cx2 + 10},${y + 40}M${cx2 + 10},${y}L${cx2 - 10},${y + 40}`).join(''), 'none', {stroke:'#b8862a','stroke-width':2});
+      R(fog, cx2 - 300, -584, 440, 16, '#e0a83a', {stroke:OUT,'stroke-width':2.5}); R(fog, cx2 + 80, -600, 60, 34, '#5b6068', {stroke:OUT,'stroke-width':2});
+      L(fog, cx2 - 120, -568, cx2 - 120, ey - 150, OUT, 2);
+      R(fog, cx2 - 180, ey - 150, 120, 14, '#d63b2a', {stroke:'#7a1a12','stroke-width':2});            // a new piece of track, swinging on the hook
+      NG(() => Cc(fog, cx2, -604, 6, '#ff5a3c', {class:'a-blink'}));
+      R(fog, XE - 120, -1500, 1500, 1520, 'url(#rideFog)'); R(fog, XE + 1380, -1500, 1200, 1520, '#eef0f4', {opacity:.95});
+
+      const darkEl = box.append('div').attr('class','ride-dark');   // the storm's shadow over the world (its opacity follows the rate)
 
       // ---------- fixed on screen ----------
-      const S = {x: SAFE.x + SAFE.w*.3, y: SAFE.y + SAFE.h*.81};                // where the camera keeps the cart
+      const S = {x: SAFE.x + SAFE.w*.3, y: SAFE.y + SAFE.h*.81};                // where the camera keeps the cart (in the side shot)
+      // ---------- crowds, the near layer, the inserts, fireworks ----------
+      // a crowd cheering along the fence at the low stops
+      const fan = (g2, px, k2, col, skin, hair) => {
+        L(g2, px - 6*k2, 0, px - 6*k2, -38*k2, '#3a3f4a', 7*k2); L(g2, px + 6*k2, 0, px + 6*k2, -38*k2, '#3a3f4a', 7*k2);
+        [-1, 1].forEach(sd => L(g2, px + sd*9*k2, -72*k2, px + sd*20*k2, -108*k2, col, 6.5*k2));
+        R(g2, px - 12*k2, -80*k2, 24*k2, 44*k2, col, {rx:9*k2});
+        [-1, 1].forEach(sd => Cc(g2, px + sd*21*k2, -111*k2, 4.5*k2, skin));
+        Cc(g2, px, -92*k2, 11*k2, skin); P(g2, `M${px - 11*k2},${-94*k2} Q${px},${-112*k2} ${px + 11*k2},${-94*k2}Z`, hair);
+      };
+      ST.filter(s => s.v < 3.6).forEach((s, k) => {
+        const cg = keep(A(wd,'g'), 1, s.x - 360, s.x + 360), rr = seeded(40 + k);
+        for (let j = 0; j < 8; j++) fan(cg, s.x - 300 + j*82 + rr()*24, .9 + rr()*.3, PAL[(j + k) % 5], ['#f1c8a0','#d39b74','#e3b08a','#c98f6a'][j % 4], ['#3b2a20','#262626','#5a3a28','#7a5236'][(j + k) % 4]);
+      });
+
+      // The near layer: big, out-of-focus things right in front of the camera (the track's near support towers, tree
+      // tops) rush past 1.7 times faster than the track, so the ride feels fast. They stand halfway between the stops,
+      // never in front of a waiting cart. Its own layer above the cart, moved by the camera like the others.
+      d3.select('#rideNear').remove();
+      const nearBox = d3.select('#pageFront').insert('div', () => $('depth')).attr('id', 'rideNear').attr('class', 'fadeable');
+      const NF = 1.7, nb = [(XS - 2300)*NF, -2600, (XE - XS + 4600)*NF, 4200];
+      const LNear = {el: nearBox.append('svg').attr('class','ride-layer').attr('viewBox', nb.join(' ')).attr('preserveAspectRatio','none'), b:nb, q:1};
+      LNear.el.append('defs').append('filter').attr('id','nearBlur').attr('x','-40%').attr('y','-5%').attr('width','180%').attr('height','110%')
+        .append('feGaussianBlur').attr('stdDeviation', 8);
+      LNear.g = LNear.el.append('g');
+      const nearY = (xw, dy) => .5*(G - S.y) + 1.5*ty(xw) + dy;          // near-layer height that passes the cart's height (+dy)
+      ST.slice(0, -1).forEach((s, i) => {
+        const xn = (s.x + SEG/2)*NF, yc = nearY(s.x + SEG/2, 0);
+        const tw2 = keep(A(LNear.g,'g',{filter:'url(#nearBlur)', opacity:.86}), NF, xn - 120, xn + 120);
+        [-36, 36].forEach(dx => R(tw2, xn + dx - 15, yc - 1150, 30, 2300, '#55160f'));              // two steel tubes
+        let br = ''; for (let yy = yc - 1150; yy < yc + 1150; yy += 130) br += `M${xn - 36},${yy}L${xn + 36},${yy + 130}M${xn + 36},${yy}L${xn - 36},${yy + 130}`;
+        P(tw2, br, 'none', {stroke:'#46110b','stroke-width':11});                                    // cross-braces
+        if (s.v < 4 && ST[i + 1].v < 4){                                                            // low down: tree tops too
+          const xt = (s.x + SEG*.25)*NF, yt = nearY(s.x + SEG*.25, 330);
+          const tr = keep(A(LNear.g,'g',{filter:'url(#nearBlur)'}), NF, xt - 300, xt + 300);
+          [[-130,10,150],[0,-70,180],[140,20,140]].forEach(([dx,dy,r]) => Cc(tr, xt + dx, yt + dy, r, '#2c5a2c'));
+        }
+      });
+
+      // The inserts: two shots from other angles, cut in by the lines that ask for them. 'pov': the view from the front
+      // seat at the record high. 'drop': the camera on the track at the bottom of the big drop, and the cart plunging
+      // toward it. Each is a picture of its own (1280 x 720, cropped to fill the stage); the dialog covers the bottom,
+      // so what matters sits above y = 530. Both are still pictures: only CSS moves them, which the graphics card does.
+      d3.select('#rideInsert').remove();
+      const ins = d3.select('#pageFront').insert('div', () => $('depth')).attr('id', 'rideInsert');
+      const povSvg = ins.append('svg').attr('class','ins ins-pov').attr('viewBox','0 0 1280 720').attr('preserveAspectRatio','xMidYMid slice');
+      const dropBg = ins.append('svg').attr('class','ins ins-drop').attr('viewBox','0 0 1280 720').attr('preserveAspectRatio','xMidYMid slice');
+      const dropCart = ins.append('svg').attr('class','ins ins-drop ins-cart').attr('viewBox','0 0 1280 720').attr('preserveAspectRatio','xMidYMid slice');
+      const idefs = povSvg.append('defs');
+      [['insSky', [[0,'#121826'],[.55,'#2c3446'],[1,'#69728a']]],                             // the storm at the top
+       ['insSky2', [[0,'#1f2536'],[.45,'#4d566c'],[.8,'#c99a7e'],[1,'#f3c892']]]]              // the storm breaking up
+        .forEach(([id, stops]) => { const gr = idefs.append('linearGradient').attr('id', id).attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+          stops.forEach(([o,c]) => gr.append('stop').attr('offset',o).attr('stop-color',c)); });
+      // a still cloud (the scene's clouds drift, which would repaint these big pictures on every frame)
+      const puff = (g, x, y, s2, col) => { const c = A(g,'g',{transform:`translate(${x},${y}) scale(${s2})`});
+        E(c,4,24,96,18,dk(col,.3)); [[-60,10,34],[-20,-10,44],[30,-2,40],[70,12,30],[0,16,38]].forEach(([dx,dy,r]) => Cc(c,dx,dy,r,col)); return c; };
+      // a row of cloud tops seen from above at a low angle: wide flat puffs, each with a lighter top
+      const cloudRow = (g, y, r, col, rr, op = 1) => {
+        let d = '', hl = '';
+        for (let x = -r*(1 + rr()); x < 1280 + r; x += r*(1.05 + rr()*.5)){
+          const w = r*(.85 + rr()*.45), cy = y + (rr() - .5)*r*.25, h = w*.42;
+          d += `M${(x - w).toFixed(1)},${cy.toFixed(1)}a${w.toFixed(1)},${h.toFixed(1)} 0 1 0 ${(2*w).toFixed(1)},0a${w.toFixed(1)},${h.toFixed(1)} 0 1 0 ${(-2*w).toFixed(1)},0`;
+          hl += `M${(x - w*.7).toFixed(1)},${(cy - h*.35).toFixed(1)}a${(w*.7).toFixed(1)},${(h*.5).toFixed(1)} 0 1 0 ${(1.4*w).toFixed(1)},0a${(w*.7).toFixed(1)},${(h*.5).toFixed(1)} 0 1 0 ${(-1.4*w).toFixed(1)},0`;
+        }
+        P(g, d, col, {opacity:op}); P(g, hl, lt(col,.45), {opacity:.45*op});
+      };
+      // the CN Tower, small and far away (y0: where the clouds or the ground cover its foot; k: its size)
+      const cnTower = (g, x, y0, k, col) => {
+        P(g, `M${x - 8*k},${y0} L${x - 3*k},${y0 - 74*k} L${x + 3*k},${y0 - 74*k} L${x + 8*k},${y0}Z`, col);
+        E(g, x, y0 - 76*k, 12*k, 5*k, col); R(g, x - 8*k, y0 - 84*k, 16*k, 5*k, col, {rx:2*k});
+        P(g, `M${x - 2.2*k},${y0 - 82*k} L${x - 1.2*k},${y0 - 112*k} L${x + 1.2*k},${y0 - 112*k} L${x + 2.2*k},${y0 - 82*k}Z`, col);
+        L(g, x, y0 - 112*k, x, y0 - 138*k, col, Math.max(1, 1.6*k));
+        NG(() => Cc(g, x, y0 - 138*k, Math.max(1.6, 2.4*k), '#ff5a3c', {class:'a-blink'}));      // the red light on top
+      };
+
+      // -- the view from the front seat, at the record high. The track runs ahead to the edge and stops: beyond it there
+      //    is only a sea of storm clouds far below. No ground in sight, just the tip of the CN Tower poking through (we are
+      //    higher) and the city glowing under the clouds. The family grips the lap bar.
+      const povG = povSvg.append('g'), povBack = povG.append('g'), povAir = povG.append('g'), povFront = povG.append('g');
+      (() => {
+        const g = povBack, HZ = 200, rr = seeded(81);                                              // HZ: the horizon, at eye level
+        R(g, 0, 0, 1280, HZ + 4, 'url(#insSky)');
+        [[90,92,2.3],[430,58,1.7],[850,70,2.1],[1220,96,2.4]].forEach(([x,y,s2]) => puff(g, x, y, s2, '#283041'));   // storm clouds overhead
+        NG(() => P(g, 'M352,128 l-24,50 h19 l-28,60 l55,-72 h-21 l24,-38Z', '#fff6c8', {class:'a-lightning'}));     // lightning, far off
+        // the sea of clouds below us: rows of cloud tops, small and hazy at the horizon, big and dark close by
+        const f = povFront;
+        R(f, 0, HZ, 1280, 720 - HZ, '#3a4150');
+        for (let row = 0; row < 9; row++){
+          const u = row/8, y = HZ + 4 + 300*Math.pow(u, 1.45), r = 12 + 118*u*u, col = mix('#7c8497', '#394050', Math.pow(u, .8));
+          if (row === 2) NG(() => [[170,250,130],[760,236,170],[1120,262,120]].forEach(([x,y2,r2]) => glow(f, x, y2, r2, .3)));   // the city's glow under the clouds
+          if (row === 3) cnTower(f, 1006, 274, .5, '#596174');
+          cloudRow(f, y, r, col, rr);
+        }
+        // the track ahead: the spine, the ties and the two rails run to the edge, where they bend down out of sight
+        const CR = 334, wAt = y => 330*(y - HZ)/(720 - HZ), tw = y => 3 + 21*(y - CR)/(720 - CR);
+        P(f, `M${640 - wAt(720)*.2},720 L${640 + wAt(720)*.2},720 L${640 + wAt(CR)*.2},${CR + 9} L${640 - wAt(CR)*.2},${CR + 9}Z`, '#6e1a12');
+        for (let k = 0; k < 15; k++){ const u = Math.pow(k/14, 1.8), y = CR + 8 + (720 - CR - 8)*u; L(f, 640 - wAt(y), y, 640 + wAt(y), y, '#9e2419', 2.5 + 11*u); }
+        [-1, 1].forEach(s => {
+          const xa = 640 + s*wAt(CR), xb = 640 + s*wAt(720);
+          P(f, `M${xa - tw(CR)},${CR} L${xa + tw(CR)},${CR} L${xb + tw(720)},720 L${xb - tw(720)},720Z`, '#d63b2a', {stroke:'#7a1a12','stroke-width':2.5});
+          L(f, xa - s*tw(CR)*.3, CR + 2, xb - s*tw(720)*.3, 720, '#f98677', 2, {opacity:.9});                        // the shine on the tube
+          E(f, xa, CR + 1, tw(CR)*1.6, 4, '#8f2219');                                                        // bending down over the edge
+        });
+        L(f, 640 - wAt(CR) - 14, CR + 10, 640 + wAt(CR) + 14, CR + 10, '#15171d', 3, {opacity:.6});     // the edge
+        // the front of the cart: its curled nose and headlight, then the lap bar with the family's hands on it
+        P(f, 'M500,560 Q506,500 566,488 L714,488 Q774,500 780,560Z', '#3d6fb6', {stroke:OUT,'stroke-width':4});
+        P(f, 'M520,520 L760,520 L766,536 L514,536Z', '#ffc23d');
+        NG(() => { glow(f, 640, 486, 56, .85); Cc(f, 640, 488, 10, '#fff3b0', {stroke:OUT,'stroke-width':2.5}); });
+        const arm = (hx, w, col) => P(f, `M${hx - w*.75},600 L${hx - w*.62},484 L${hx + w*.62},484 L${hx + w*.75},600Z`, col, {stroke:OUT,'stroke-width':3});
+        const fist = (hx, w, skin) => { E(f, hx, 478, w, w*.72, skin, {stroke:OUT,'stroke-width':3});
+          [-.45, 0, .45].forEach(dx => L(f, hx + dx*w, 470, hx + dx*w + 1, 488, dk(skin, .55), 2)); };
+        const HANDS = [[300, 25, MOM.skin, MOM.top], [574, 19, LEO.skin, LEO.skin], [706, 19, LEO.skin, LEO.skin], [984, 27, DAD.skin, DAD.top]];
+        HANDS.forEach(([hx, w, skin, sleeve]) => arm(hx, w, sleeve));
+        R(f, 150, 466, 980, 24, '#c9ced3', {rx:12, stroke:OUT, 'stroke-width':3});                      // the lap bar
+        L(f, 166, 472, 1114, 472, '#ffffff', 3, {opacity:.6});
+        HANDS.forEach(([hx, w, skin]) => fist(hx, w, skin));
+      })();
+      // -- the big drop, seen from the track at the bottom: the hill rises from the camera to the crest, high above the
+      //    fair on its steel towers. The storm is breaking up behind the crest (the rate is falling). The cart (its own
+      //    picture, moved by setInsert) plunges from the crest along the rails, straight at the camera.
+      //    A small 3D view: x right, y up, z ahead (metres); the camera sits above the track and looks up 8 degrees.
+      const DROP = (() => {
+        const f = 640, cy = 360, cb = Math.cos(.14), sb = Math.sin(.14);
+        const pr = (X, Y, Z) => { const yc = Y*cb - Z*sb, zc = Y*sb + Z*cb; return [640 + f*X/zc, cy - f*yc/zc, zc]; };
+        return {f, pr, ramp: Z => -1.5 + (Z - 2)*.5, ZC: 30, HZ: cy + f*Math.tan(.14)};             // the track's height; the crest; the horizon
+      })();
+      (g => {
+        const {pr, ramp, ZC, HZ} = DROP, rr = seeded(23);
+        R(g, 0, 0, 1280, HZ + 2, 'url(#insSky2)');
+        const [cx0, cy0] = pr(0, ramp(ZC), ZC);                                                       // the crest
+        NG(() => {                                                                                   // light breaking through behind it
+          glow(g, cx0, cy0, 340, .95);
+          let rays = ''; for (let k = 0; k < 9; k++){ const a0 = -Math.PI*(.05 + k*.112), a1 = a0 - .05;
+            rays += `M${cx0},${cy0}L${(cx0 + Math.cos(a0)*1000).toFixed(0)},${(cy0 + Math.sin(a0)*1000).toFixed(0)}L${(cx0 + Math.cos(a1)*1000).toFixed(0)},${(cy0 + Math.sin(a1)*1000).toFixed(0)}Z`; }
+          P(g, rays, '#ffe2a6', {opacity:.12});
+        });
+        [[90,100,2.7],[350,30,1.9],[1190,90,2.8],[940,26,2]].forEach(([x,y,s2]) => puff(g, x, y, s2, '#323a4c'));   // the storm, pulling apart
+        // the city on the horizon, the CN Tower, the park
+        let city = ''; for (let x = -10; x < 1290; x += 26 + rr()*30){ const w = 18 + rr()*26, h = 14 + rr()*rr()*58; city += `M${x.toFixed(0)},${HZ}V${(HZ - h).toFixed(0)}h${w.toFixed(0)}V${HZ}Z`; }
+        P(g, city, '#727a90'); cnTower(g, 236, HZ, 1.5, '#6b7388');
+        R(g, 0, HZ, 1280, 720 - HZ, '#4c6a45');
+        let trees = ''; for (let x = 0; x < 1280; x += 22 + rr()*26){ const r = 7 + rr()*8; trees += `M${x - r},${HZ + 4}a${r},${r} 0 1 1 ${2*r},0Z`; }
+        P(g, trees, '#3d5a3a');
+        // the Ferris wheel, out in the park
+        (() => {
+          const [wx, wy] = pr(-24, 6, 80), [, by] = pr(-24, -8, 80), rw = 640*12/80;
+          [-1, 1].forEach(s => L(g, wx, wy, wx + s*rw*.55, by, '#7a6a8a', 4));
+          Cc(g, wx, wy, rw, 'none', {stroke:'#e0a83a', 'stroke-width':4});
+          let sp = ''; for (let k = 0; k < 12; k++){ const a = k*Math.PI/6; sp += `M${wx},${wy}L${(wx + Math.cos(a)*rw).toFixed(1)},${(wy + Math.sin(a)*rw).toFixed(1)}`; }
+          P(g, sp, 'none', {stroke:'#e0a83a', 'stroke-width':1.5, opacity:.8});
+          for (let k = 0; k < 12; k++){ const a = k*Math.PI/6 + .26; Cc(g, wx + Math.cos(a)*rw, wy + Math.sin(a)*rw, 6, PAL[k % 5], {stroke:OUT, 'stroke-width':1.5}); }
+        })();
+        // the steel towers holding up the hill: two legs each with cross-bars, and diagonals from tower to tower along
+        // each side, standing on the ground 8 m below the camera (drawn far to near)
+        const bars = [], TW = d3.range(4.4, ZC, 2.6);
+        TW.forEach(Z => { const top = ramp(Z) - .35;
+          [-1.05, 1.05].forEach(X => { const a = pr(X, top, Z); bars.push({a, b: pr(X, -8, Z), w: 640*.16/a[2]}); });
+          for (let y = top - 3; y > -8; y -= 3.5){ const a = pr(-1.05, y, Z); bars.push({a, b: pr(1.05, y, Z), w: 640*.06/a[2]}); }
+        });
+        TW.slice(1).forEach((Z, i) => [-1.05, 1.05].forEach(X => { const a = pr(X, ramp(TW[i]) - .35, TW[i]); bars.push({a, b: pr(X, Math.max(-8, ramp(Z) - 4), Z), w: 640*.06/a[2]}); }));
+        bars.sort((p, q) => q.a[2] - p.a[2]).forEach(({a, b, w}) => L(g, a[0], a[1], b[0], b[1], '#8a1d14', Math.max(1, w)));
+        // the track: the spine, the ties, the two rails up to the crest
+        const quad = (X, Y0, r, fill, at) => { const [a, b] = [pr(X, ramp(2.4) + Y0, 2.4), pr(X, ramp(ZC) + Y0, ZC)];
+          return P(g, `M${a[0] - 640*r/a[2]},${a[1]} L${a[0] + 640*r/a[2]},${a[1]} L${b[0] + 640*r/b[2]},${b[1]} L${b[0] - 640*r/b[2]},${b[1]}Z`, fill, at); };
+        quad(0, -.45, .2, '#7a1a12');
+        for (let Z = 2.6; Z <= ZC; Z += .9){ const [a, b] = [pr(-.8, ramp(Z), Z), pr(.8, ramp(Z), Z)]; L(g, a[0], a[1], b[0], b[1], '#9e2419', Math.max(1, 640*.09/a[2])); }
+        [-.8, .8].forEach(X => { quad(X, 0, .13, '#d63b2a', {stroke:'#7a1a12','stroke-width':2}); quad(X - .03, .06, .035, '#f98677'); });
+        // the top station's sign at the crest
+        R(g, cx0 - 88, cy0 - 64, 176, 26, '#1d1b33', {rx:4, stroke:'#ffc23d', 'stroke-width':2});
+        NG(() => Tt(g, cx0, cy0 - 45, `${MON[+TOP[0].slice(5) - 1]} ${TOP[0].slice(0,4)} · ${M10.get(TOP[0]).toFixed(2)}%`, {'text-anchor':'middle','font-size':11, fill:'#ffc23d'}));
+        NG(() => { let sp = ''; for (let k = 0; k < 22; k++){ const a = Math.PI*(-.02 + 1.04*k/21);            // speed lines, from the crest
+          sp += `M${(cx0 + Math.cos(a)*150).toFixed(0)},${(cy0 + Math.sin(a)*90).toFixed(0)}L${(cx0 + Math.cos(a)*1100).toFixed(0)},${(cy0 + Math.sin(a)*900).toFixed(0)}`; }
+          P(g, sp, 'none', {stroke:'#ffffff','stroke-width':3, opacity:.14}); });
+      })(dropBg.append('g'));
+      // -- the cart seen from the front, drawn three times larger than at the crest so it stays sharp when it gets close:
+      //    the family in a row with their arms up, behind its rounded nose and headlight. Its bottom sits at y = 700.
+      (g => {
+        RIDERS.forEach((r, i) => {
+          const o = Object.assign({}, r.base, {x:640, mood: r.who === 'DAD' ? 'shocked' : 'happy', idle:false, shadow:false, glasses:false});
+          const gg = A(g,'g',{transform:`translate(${582 + i*58},${228 + (r.who === 'LEO' ? 4 : 0)}) scale(${r.who === 'LEO' ? .34 : .3}) translate(-640,${2 - G})`});
+          armsUp(gg, o); person(gg, o).selectAll('.arm').attr('display','none');
+        });
+        R(g, 564, 194, 152, 9, '#c9ced3', {rx:4, stroke:OUT,'stroke-width':1.5});
+        P(g, 'M560,214 Q560,200 574,200 L706,200 Q720,200 720,214 L720,254 Q720,266 706,266 L574,266 Q560,266 560,254Z', '#3d6fb6', {stroke:OUT,'stroke-width':3});
+        R(g, 560, 226, 160, 11, '#ffc23d');
+        NG(() => { glow(g, 640, 252, 54, .95); Cc(g, 640, 252, 9, '#fff3b0', {stroke:OUT,'stroke-width':2}); });
+        [570, 690].forEach(wx => R(g, wx, 264, 20, 10, '#2b2d31', {rx:3}));
+      })(dropCart.append('g').attr('transform', 'translate(640,700) scale(3) translate(-640,-274)'));
+      // fireworks over the lake once it gets dark (from the 2012 stop on): each burst is its own small picture that the
+      // graphics card scales and fades. They go up left of the fog where the track ends, below the strip at the top.
+      [[37,27,'#ffd166',0],[50,18,'#ff8fb1',.9],[62,30,'#9fe0ff',1.7],[44,36,'#c9a7ff',2.4],[69,21,'#ffb36b',3]].forEach(([lx,ly,col,dl], j) => {
+        const b = fxL.append('svg').attr('class','fw').attr('viewBox','-60 -60 120 120').style('left', lx + '%').style('top', ly + '%').style('animation-delay', dl + 's');
+        const gr = b.append('defs').append('radialGradient').attr('id', 'fwGlow' + j);
+        [[0,.6],[1,0]].forEach(([o,a]) => gr.append('stop').attr('offset', o).attr('stop-color', col).attr('stop-opacity', a));
+        b.append('circle').attr('r', 58).attr('fill', `url(#fwGlow${j})`);
+        for (let k = 0; k < 16; k++){ const a = k*Math.PI/8, a2 = a + Math.PI/16;
+          b.append('line').attr('x1', (Math.cos(a)*12).toFixed(1)).attr('y1', (Math.sin(a)*12).toFixed(1)).attr('x2', (Math.cos(a)*46).toFixed(1)).attr('y2', (Math.sin(a)*46).toFixed(1))
+            .attr('stroke', col).attr('stroke-width', 3.6).attr('stroke-linecap', 'round');
+          b.append('circle').attr('cx', (Math.cos(a)*52).toFixed(1)).attr('cy', (Math.sin(a)*52).toFixed(1)).attr('r', 3.6).attr('fill', '#fffbe8');
+          b.append('circle').attr('cx', (Math.cos(a2)*30).toFixed(1)).attr('cy', (Math.sin(a2)*30).toFixed(1)).attr('r', 2.4).attr('fill', '#fffbe8').attr('opacity', .8); }
+      });
+      const fwFrom = (ST.find(s => s.m === '2012-07') || END).x;
+
       // a foreground layer (moves faster than the track): high up, the cart flies past clouds close to the camera
       const front = A(fg,'g'), pw = A(fg,'g'), streaks = A(fg,'g');
       ST.slice(0, -1).forEach((st, i) => {
@@ -2010,31 +2291,113 @@ d3.json('prototype/data/leo.json').then(DATA => {
         cloud(keep(A(front,'g'), 1.45, cx - 200, cx + 200), cx, S.y - 480 - ground, 1.15, '#ffffff', .55, i);  // well above the family's heads
       });
       // the overview strip: the real monthly yield for the whole ride, the stops as dots, and where the cart is
-      const mx0 = SAFE.x + 70, mx1 = SAFE.x + SAFE.w - 70, my0 = SAFE.y + 2, mh = 58;
-      R(fg,mx0,my0,mx1 - mx0,mh,'#fdfbf4',{rx:12,opacity:.95,stroke:OUT,'stroke-width':2.5});
-      Tt(fg,mx0 + 16,my0 + 25,'HEIGHT = 10-YR YIELD',{'font-size':11,fill:OUT});
-      Tt(fg,mx0 + 16,my0 + 44,`${ST[0].m.slice(0,4)}–${END.m.slice(0,4)} · REAL DATA`,{'font-size':10,fill:'#5a5f6b'});
+      // (a strip of graph paper taped across the top of the picture)
+      const mx0 = SAFE.x + 70, mx1 = SAFE.x + SAFE.w - 70, my0 = SAFE.y + 4, mh = 58;
+      const strip = A(fg,'g',{transform:`rotate(-.6,${(mx0 + mx1)/2},${my0 + mh/2})`});
+      R(strip,mx0 + 4,my0 + 5,mx1 - mx0,mh,'#000',{opacity:.14,rx:3});
+      R(strip,mx0,my0,mx1 - mx0,mh,'#fdfbf4',{rx:3,stroke:'#d8cdb6','stroke-width':1.5});
+      P(strip, d3.range(mx0 + 10, mx1, 12).map(x => `M${x},${my0 + 2}V${my0 + mh - 2}`).join('') + d3.range(my0 + 10, my0 + mh, 12).map(y => `M${mx0 + 2},${y}H${mx1 - 2}`).join(''), 'none', {stroke:'#d6e6f3','stroke-width':.8});
+      [[mx0 - 18, -18],[mx1 - 34, 16]].forEach(([tx, r]) => R(strip,tx,my0 - 9,52,18,'#f0e2b4',{opacity:.85,transform:`rotate(${r},${tx + 26},${my0})`}));
+      hw(strip,mx0 + 14,my0 + 25,'height = 10-yr yield',{'font-size':16,fill:'#2b3a55'});
+      hw(strip,mx0 + 14,my0 + 46,`real monthly data, ${ST[0].m.slice(0,4)}–${END.m.slice(0,4)}`,{'font-size':13,fill:'#6b6258'});
       const data = DATA.us10Monthly.filter(d => d[0] >= ST[0].m && d[0] <= END.m).map(([m, v]) => ({t:parseM(m), v}));
       const mxs = d3.scaleTime().domain([ST[0].t, END.t]).range([mx0 + 214, mx1 - 18]);
       const mys = d3.scaleLinear().domain([0, 16]).range([my0 + mh - 9, my0 + 9]);
       const mline = d3.line().x(d => mxs(d.t)).y(d => mys(d.v));
-      P(fg,mline(data),'none',{stroke:OUT,'stroke-width':1.6,opacity:.45});
-      const prog = P(fg,'','none',{stroke:'#d63b2a','stroke-width':3.2,'stroke-linejoin':'round'});
-      const dots = ST.map(s => Cc(fg,mxs(s.t),mys(s.v),4.5,'#fdfbf4',{stroke:OUT,'stroke-width':1.6}));
-      const mk = Cc(fg,0,0,6.5,'#d63b2a',{stroke:'#ffffff','stroke-width':2.5});
+      P(strip,mline(data),'none',{stroke:OUT,'stroke-width':1.6,opacity:.45});
+      const prog = P(strip,'','none',{stroke:'#d63b2a','stroke-width':3.2,'stroke-linejoin':'round'});
+      const dots = ST.map(s => Cc(strip,mxs(s.t),mys(s.v),4.5,'#fdfbf4',{stroke:OUT,'stroke-width':1.6}));
+      const mk = Cc(strip,0,0,6.5,'#d63b2a',{stroke:'#ffffff','stroke-width':2.5});
+      // the on-ride photo: snapped with a flash on the big drop after the top, handed over at the last stop
+      const photo = A(fg,'g',{display:'none'}), ph = A(A(photo,'g',{transform:'translate(1040,132)'}),'g',{class:'a-ticket'});
+      coasterPhoto(ph, -64, 0, 128, 104);
+      R(ph, -58, 112, 116, 24, '#1d1b33', {rx:6, opacity:.85}); NG(() => hw(ph, 0, 130, 'your on-ride photo!', {'text-anchor':'middle','font-size':15, fill:'#ffd166'}));
 
       // ---------- the ride, frame by frame ----------
       // Simple physics: the lift chain pulls the cart up a climb at a steady speed; on a drop gravity speeds it up and a
       // little friction slows it; the brakes make sure it can always stop exactly at the next station. The family, the
       // camera (it lags, looks ahead, pulls back on fast drops and shakes), the wheels, sparks and wind all follow the speed.
-      const CHAIN = 230, GRAV = 850, FRICTION = 40, CRUISE = 130, BRAKE = 1500, BACK = 520;   // units/s and units/s²
+      const CHAIN = 300, GRAV = 1100, FRICTION = 40, CRUISE = 165, BRAKE = 1700, BACK = 560;   // units/s and units/s²
       const xOf = m => (ST.find(s => s.m === m) || ST[0]).x;
-      const camFor = (x, z) => { const y = ty(x); return Math.min((S.y - G)/z, clamp(.62*y + .38*ty(x + 380), y - 70, y + 10)); };
-      const me = {xOf, camFor, v:0, mode:null, cart:null, riders:null, seat:null, wheels:[], spin:0, shake:0, hard:0};
+      // The camera's shots (each line picks one: the cam option on the coaster's lines): where the cart sits in the picture
+      // (fx, fy: shares of the safe area), how close the camera is (z), how much it leans with the track (k), and how far
+      // above the bottom the ground may rise (gl: a low angle shows the ground and the crowd under the track).
+      const SHOTS = {side:{fx:.30, fy:.81, z:1, k:.3}, wide:{fx:.22, fy:.8, z:.8, k:.18}, close:{fx:.42, fy:.74, z:1.3, k:.38},
+                     low:{fx:.36, fy:.58, z:.95, k:.28, gl:170}, chase:{fx:.24, fy:.79, z:.97, k:.5}, back:{fx:.68, fy:.8, z:.86, k:.22}};
+      const F = {x:S.x, y:S.y};                                                       // where the cart sits in the picture right now
+      let GLIM = G;                                                                   // the lowest the ground may sit on screen
+      const camFor = (x, z) => { const y = ty(x); return Math.min((F.y - GLIM)/z, clamp(.62*y + .38*ty(x + 380), y - 70, y + 10)); };
+      const me = {xOf, camFor, v:0, mode:null, cart:null, riders:null, seat:null, wheels:[], spin:0, shake:0, hard:0, roll:0, nearOp:0, nearShown:null, shots:SHOTS, shot:SHOTS.side, insert:null, fwOn:false, intro:0, flashed:false, photoShown:false};
+      const topX = (ST.find(s => s.m === TOP[0]) || END).x;
       me.target = xOf((sc.lines[li] || sc.lines[0])[3]);
-      if (li === 0 && !REDUCED){ me.x = -640; me.v = 430; }      // the first line: the cart rolls in to the station
-      else me.x = me.target;
+      me.x = me.target;                                         // (the first line's opening shot starts in drawRide, when the scene is shown)
+      me.tv = tv;
+      // switch the inserts on and off (drawRide asks for them line by line)
+      me.setInsert = kind => {
+        if (kind === 'drop' && !(me.target > me.x + 1)) kind = null;      // only as the cart sets off down the drop
+        if (kind === me.insert) return;
+        me.insert = kind;
+        ins.attr('class', kind ? 'on ' + kind : null);
+        (me.dropAnims || []).forEach(a => a.cancel()); me.dropAnims = null;
+        clearTimeout(me.insertT);
+        if (kind !== 'drop') return;
+        // The plunge: the cart's path down the rails, worked out in the same 3D view as the picture, so it stays on them.
+        // It tips slowly over the crest, speeds up, and rushes past just under the camera; then back to the side view.
+        // (u: 0 to 1 over the shot; the cart is drawn 480 wide with its bottom at y = 700; s: its scale)
+        const st = ins.node(), w = st.clientWidth, h = st.clientHeight, k = Math.max(w/1280, h/720);   // (the insert's own box)
+        const x0 = (w - 1280*k)/2, y0 = (h - 720*k)/2, T = 1600;
+        const at = u => { const Z = DROP.ZC - (DROP.ZC - 1.3)*(.28*u + .72*u*u), [, v, zc] = DROP.pr(0, DROP.ramp(Z), Z); return {v, s: DROP.f*2.2/zc/480}; };
+        const frames = d3.range(25).map(i => { const u = i/24, p = at(u); return {offset:u, transform:`translate(0px,${((p.v - 700)*k).toFixed(1)}px) scale(${p.s.toFixed(4)})`}; });
+        const [cx0, cy0] = DROP.pr(0, DROP.ramp(DROP.ZC), DROP.ZC), cart = dropCart.node(), bg = dropBg.node();
+        cart.style.transformOrigin = `${(x0 + 640*k).toFixed(0)}px ${(y0 + 700*k).toFixed(0)}px`;
+        bg.style.transformOrigin = `${(x0 + cx0*k).toFixed(0)}px ${(y0 + cy0*k).toFixed(0)}px`;
+        me.dropAnims = [cart.animate(frames, {duration:T, fill:'forwards'}),
+                        bg.animate([{transform:'scale(1)'}, {transform:'scale(1.08)'}], {duration:T, easing:'ease-in', fill:'forwards'})];   // and the camera pushes in
+        me.insertT = setTimeout(() => { if (me.insert === 'drop'){ me.insert = null; ins.attr('class', null); } }, T + 60);
+      };
+
       me.cam = {x:me.x, y:camFor(me.x, 1), z:1};
+      // History in the sky: at the stops where something big happened, an airship hovers beside the cart with that line's
+      // headline in lights (in 2008 it is losing air). In 2007 a stork flies past carrying a baby: the year Leo is born.
+      const HEAD = {'1970-05':'PRICES RISING FAST', '1971-12':'RECESSION', '1974-08':'OIL SHOCK', '1979-12':'OIL SHOCK #2', [TOP[0]]:'RECORD HIGH',
+                    '1986-08':'INFLATION BEATEN', '1994-11':'BOND MASSACRE', '2000-01':'DOT-COM BOOM', '2008-12':'FINANCIAL CRISIS', '2013-12':'RATES JOLT UP'};
+      const eraCol = m => m < '1980' ? '#d9822b' : m < '1990' ? '#e05d8a' : m < '2000' ? '#2fa3b5' : m < '2008' ? '#7f93b3' : '#8b8f99';
+      const blimp = (b, txt, col, sag) => {
+        [-1, 1].forEach(s => P(b, `M-146,${s*6} L-184,${s*46} L-160,${s*46} L-124,${s*14}Z`, dk(col,.3), {stroke:OUT,'stroke-width':2.5}));   // tail fins
+        E(b, 0, 0, 160, sag ? 38 : 46, col, {stroke:OUT,'stroke-width':3});
+        E(b, -24, -20, 108, 11, lt(col,.6), {opacity:.45});                                                                      // the shine on top
+        if (sag) [[-70,-24,-14],[46,-28,18],[96,16,-8]].forEach(([px,py,a]) => R(b,px-9,py-7,18,14,lt(col,.4),{transform:`rotate(${a},${px},${py})`,stroke:OUT,'stroke-width':1.5}));   // patches
+        L(b,-16,44,-20,52,OUT,2); L(b,16,44,20,52,OUT,2); R(b,-28,50,56,18,'#3a3348',{rx:6,stroke:OUT,'stroke-width':2});      // the gondola
+        R(b, -114, -17, 228, 34, '#1d1b33', {rx:7, stroke:OUT,'stroke-width':2});
+        NG(() => Tt(b, 0, 8, txt, {'text-anchor':'middle','font-size': txt.length > 14 ? 15 : 18, fill:'#ffd166'}));             // lit letters
+      };
+      const stork = b => {
+        P(b, 'M-6,-6 Q-40,-62 -96,-58 Q-56,-34 -14,4Z', '#ffffff', {stroke:OUT,'stroke-width':2.5});                        // a wing
+        P(b, 'M-58,4 Q-20,-14 26,-4 Q46,-2 58,-14 L66,-10 Q56,8 30,12 Q-16,22 -58,4Z', '#ffffff', {stroke:OUT,'stroke-width':2.5});
+        P(b, 'M64,-12 L104,-2 L64,-4Z', '#ff8a3d', {stroke:OUT,'stroke-width':1.5}); Cc(b, 58, -11, 2, OUT);                  // beak and eye
+        L(b,-52,4,-96,16,'#ff8a3d',3); L(b,-50,8,-94,24,'#ff8a3d',3);                                                         // legs trailing behind
+        L(b, 96, 0, 96, 30, OUT, 1.5);
+        E(b, 96, 44, 22, 15, '#bfe0f6', {stroke:OUT,'stroke-width':2.5}); Cc(b, 88, 42, 8, LEO.skin, {stroke:OUT,'stroke-width':1.8});   // the bundle
+        P(b, 'M84,41 q2,2 4,0 M90,41 q2,2 4,0', 'none', {stroke:OUT,'stroke-width':1.5,'stroke-linecap':'round'});
+        NG(() => hw(b, 10, 92, 'special delivery: Leo!', {'text-anchor':'middle','font-size':20, fill:'#fff6e6'}));
+      };
+      ST.forEach(s => {
+        const mx = s.x + 400, my = hY(s.v) - 300;                                         // beside its stop, below the strip at the top
+        const txt = HEAD[s.m];
+        if (!txt && s.m !== '2007-06') return;
+        const outer = keep(A(skyG,'g',{transform:`translate(${mx},${my}) scale(.8)${s.m === '2008-12' ? ' rotate(-9)' : ''}`}), 1, mx - 170, mx + 170);
+        // Performance: no hovering or flapping. They sit in the big track layer, where any animation would make the
+        // browser repaint part of that layer on every frame.
+        if (txt) blimp(outer, txt, eraCol(s.m), s.m === '2008-12'); else stork(outer);
+      });
+      blimp(A(povAir,'g',{transform:'translate(236,180) scale(.4)'}), HEAD[TOP[0]], eraCol(TOP[0]));   // in the front-seat view: level with us
+      // lightning in the distance at the highest stops
+      ST.filter(s => s.v >= 9).forEach((s, k) => [360, 700].forEach((dx, j) => {
+        const bx = s.x*.35 + dx, by = (S.y - G)*.5 - 300 + camFor(s.x, 1)*.5 - j*70;
+        const bolt = keep(A(mid,'g',{class:'a-lightning',style:`animation-delay:-${((k*2.3 + j*3.1) % 7).toFixed(1)}s`}), .35, bx - 80, bx + 80);
+        NG(() => P(bolt, `M${bx},${by - 170} l-28,76 h24 l-32,86 l64,-98 h-26 l28,-64Z`, '#fff6c8', {stroke:'#ffd36b','stroke-width':2}));
+      }));
+
       const sparks = [], wind = d3.range(16).map(() => ({x:Math.random()*W, y:SAFE.y + 90 + Math.random()*SAFE.h*.7, l:70 + Math.random()*110}));
       const windLines = wind.map(() => L(streaks,0,0,0,0,'#ffffff',3,{opacity:0}));
       let stripX = null;
@@ -2056,7 +2419,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
           me.x = Math.max(me.target, me.x + me.v*dt);
         }
         const moving = Math.abs(me.target - me.x) >= .5;
-        if (wasMoving && !moving){ me.shake = Math.max(me.shake, Math.min(7, me.hard/140)); me.hard = 0; me.v = 0; }   // arrived: a jolt
+        if (wasMoving && !moving){ me.shake = Math.max(me.shake, Math.min(7, me.hard/140)); me.hard = 0; me.v = 0; if (dt > 0) SND.sfx('bell'); }   // arrived: a jolt and the station bell
         // 2. how the family feels
         const s = slope(me.x);
         const mode = !moving ? 'stop' : me.v < 0 ? 'roll' : s < -.03 ? 'up' : (s > .03 && me.v > 220) || (me.mode === 'down' && me.v > 120) ? 'down' : 'roll';
@@ -2067,70 +2430,110 @@ d3.json('prototype/data/leo.json').then(DATA => {
         }
         const chainOn = mode === 'up' ? hills.findIndex(h => me.x > h.x0 && me.x < h.x1) : -1;
         if (chainOn !== me.chainOn){ me.chainOn = chainOn; chains.classed('on', (h, i) => i === chainOn); }
-        // 3. the camera: follows with a little lag, looks ahead, pulls back on fast drops, shakes with speed
-        const c = me.cam, look = clamp(me.v*.2, -110, 190);
-        const zT = mode === 'down' ? 1 - Math.min(.17, me.v/5000) : mode === 'up' ? 1.05 : 1;
+        // 3. the camera: it glides to the line's shot (where the cart sits in the picture, how close, how much it leans with
+        //    the track), follows with a little lag, looks ahead, pulls back on fast drops and shakes with speed
+        const c = me.cam, look = clamp(me.v*.2, -110, 190), shot = REDUCED ? SHOTS.side : (me.shot || SHOTS.side), ef = REDUCED ? 1 : Math.min(1, dt*1.4);
+        F.x += (SAFE.x + SAFE.w*shot.fx - F.x)*ef; F.y += (SAFE.y + SAFE.h*shot.fy - F.y)*ef; GLIM += (G - (shot.gl || 0) - GLIM)*ef;
+        // (the first line opens on a wide shot of the track rising into the sky; at the record high the camera moves in)
+        if (me.intro > 0) me.intro -= dt;
+        const atTop = !moving && Math.abs(me.x - topX) < 1;
+        const zShot = me.intro > 0 ? 1 - .3*clamp(me.intro/1.4, 0, 1) : atTop ? Math.max(shot.z, 1.12) : shot.z;
+        const zT = zShot*(mode === 'down' ? 1 - Math.min(.17, me.v/5000) : mode === 'up' ? 1.04 : 1);
         c.z += (zT - c.z)*Math.min(1, dt*2);
         c.x += (me.x + look - c.x)*Math.min(1, dt*4.5);
         c.y += (camFor(me.x, c.z) - c.y)*Math.min(1, dt*4);
+        const rollT = REDUCED ? 0 : clamp(-shot.k*Math.atan(slope(me.x))*180/Math.PI, -11, 11);   // the camera leans with the track
+        me.roll += (rollT - me.roll)*Math.min(1, dt*3);
+        if (Math.abs(me.roll) < .01) me.roll = 0;
         me.shake = Math.max(me.shake*Math.exp(-dt*5), mode === 'down' ? Math.min(3, me.v/350) : mode === 'up' ? .5 : 0);
+        // the out-of-focus towers and tree tops in front of the camera fade in with speed: at a station the picture is clear
+        me.nearOp += ((REDUCED ? 0 : clamp((Math.abs(me.v) - 90)/220, 0, 1)) - me.nearOp)*Math.min(1, dt*5);
+        if (me.nearOp < .01) me.nearOp = 0;
+        const nop = me.nearOp.toFixed(2);
+        if (nop !== me.nearShown){ me.nearShown = nop; LNear.el.style('opacity', nop); }
         me.spin += me.v*dt/11*180/Math.PI;                                              // wheel rotation, in degrees
         // 4. sparks fly from the wheels while the brakes bite hard
         if (braking) [-120, 112].forEach(wx => { for (let k=0;k<2;k++) sparks.push({x:me.x + wx, y:ty(me.x + wx) + 4, vx:-me.v*.25 + (Math.random() - .5)*260, vy:-80 - Math.random()*260, life:.3 + Math.random()*.25}); });
         for (const p of sparks){ p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 1400*dt; p.life -= dt; }
         while (sparks.length && sparks[0].life <= 0) sparks.shift();
+        // 5. the on-ride photo: a flash halfway down the big drop after the top
+        if (me.x < topX) me.flashed = false;
+        else if (!me.flashed && mode === 'down' && me.x > topX + SEG*.45){ me.flashed = true; if (!REDUCED) $('flash').animate([{opacity:0},{opacity:.85},{opacity:0}],{duration:280}); SND.sfx('shutter'); }
+        SND.ride(Math.abs(me.v), mode);                                                 // the rumble, the wind, the lift chain
         me.render(dt);
       };
       // show what is near the camera and hide the rest (re-checked when the camera has moved ~40 units or the stage resized)
       let cullKey = '';
       const cullNow = (c, z) => {
         const vb = VB;                                                          // the part of the scene on screen
-        const key = `${Math.round(c.x/40)}|${z.toFixed(2)}|${Math.round(vb[0])}|${Math.round(vb[2])}`;
+        const key = `${Math.round(c.x/40)}|${Math.round(z*20)}|${Math.round(vb[0])}|${Math.round(vb[2])}`;   // (re-checked every 5% of zoom, not every frame of a zoom)
         if (key === cullKey) return;
         cullKey = key;
         CULL.forEach(it => {
-          const zl = 1 + (z - 1)*it.f, base = S.x - c.x*it.f*zl;               // screen x of the layer's x = 0
+          const zl = 1 + (z - 1)*it.f, base = F.x - c.x*it.f*zl;               // screen x of the layer's x = 0
           // a short margin behind, a long one ahead (the ride mostly goes right): what is coming next is already shown,
           // so the browser can paint it while the cart waits at a station, not in the middle of a fast drop
           const on = it.x1 > (vb[0] - 360 - base)/zl && it.x0 < (vb[0] + vb[2] + 1100 - base)/zl;
           if (on !== it.on){ it.on = on; it.el.attr('display', on ? null : 'none'); }
         });
       };
-      let skyAlt = -1, windOn = false, sparksOn = false, vbStr = '', PX = 1, VB = [0, 0, W, H];
+      let skyAlt = '', windOn = false, sparksOn = false, vbStr = '', PX = 1, VB = [0, 0, W, H], ROLL = '';
       me.drawn = '';
       // Put a layer where the old SVG transform "translate(ox,oy) scale(zz)" (in scene units) would have put it:
       // scene x = ox + layer x * zz, and stage pixels = (scene x - viewBox x) * PX.
-      const place = (L, ox, oy, zz) => L.el.style('transform',
+      // (ROLL, the camera's lean, turns every layer around the cart)
+      const place = (L, ox, oy, zz) => L.el.style('transform', ROLL +
         `translate(${((ox - VB[0])*PX + zz*PX*L.b[0]).toFixed(2)}px,${((oy - VB[1])*PX + zz*PX*L.b[1]).toFixed(2)}px) scale(${(zz*PX/L.q).toFixed(5)})`);
       me.render = dt => {
         const c = me.cam, z = c.z;
         // Nothing moved since the last frame (the cart waits at a station and the camera has settled): change nothing,
         // so the browser has nothing to repaint. Only the small CSS animations near the camera keep running.
         const vbNow = svg.attr('viewBox');
-        const key = `${c.x.toFixed(2)}|${c.y.toFixed(2)}|${z.toFixed(4)}|${me.x.toFixed(2)}|${me.mode}|${vbNow}`;
+        const key = `${c.x.toFixed(2)}|${c.y.toFixed(2)}|${z.toFixed(4)}|${me.x.toFixed(2)}|${me.mode}|${vbNow}|${F.x.toFixed(1)}|${F.y.toFixed(1)}|${me.roll.toFixed(2)}`;
         if (key === me.drawn && me.shake < .05 && !sparks.length && !sparksOn && !windOn) return;
         me.drawn = key;
         if (vbNow !== vbStr){                       // the stage was resized: size the layers for the new scale
           vbStr = vbNow; VB = vbNow.split(' ').map(Number); PX = $('stage').clientWidth / VB[2];
           skyL.attr('viewBox', vbNow); box.style('--k', PX);
-          // painted 6% sharper than needed, so even the closest camera zoom (1.05) never looks blurry
-          [LFar, LMid, LFair, LWd, LChain].forEach(L => { L.q = PX*1.06; L.el.attr('width', L.b[2]*L.q).attr('height', L.b[3]*L.q); });
+          // painted 13% sharper than needed, so even the closest camera zoom (1.12, at the top) never looks blurry
+          [LFar, LMid, LFair, LWd, LChain].forEach(L => { L.q = PX*1.13; L.el.attr('width', L.b[2]*L.q).attr('height', L.b[3]*L.q); });
+          LNear.q = PX*.6; LNear.el.attr('width', LNear.b[2]*LNear.q).attr('height', LNear.b[3]*LNear.q);   // blurred anyway: painted at a lower resolution
         }
         const jx = (Math.random() - .5)*2*me.shake, jy = (Math.random() - .5)*2*me.shake;
-        const ox = S.x - c.x*z + jx, oy = S.y - c.y*z + jy;                         // world → screen
+        const ox = F.x - c.x*z + jx, oy = F.y - c.y*z + jy;                         // world → screen
+        const y = ty(me.x), ang = Math.atan(slope(me.x))*180/Math.PI, Px = ox + me.x*z, Py = oy + y*z;   // the cart on screen: the camera leans around it
+        const rx2 = (Px - VB[0])*PX, ry2 = (Py - VB[1])*PX;
+        ROLL = me.roll ? `translate(${rx2.toFixed(1)}px,${ry2.toFixed(1)}px) rotate(${me.roll.toFixed(2)}deg) translate(${(-rx2).toFixed(1)}px,${(-ry2).toFixed(1)}px) ` : '';
         place(LWd, ox, oy, z); place(LChain, ox, oy, z);
-        [[LFar, .12, .18], [LMid, .35, .5], [LFair, .5, .55]].forEach(([L, f, fy]) => { const zl = 1 + (z - 1)*f; place(L, S.x - c.x*f*zl + jx*f, G + (oy - G)*fy, zl); });
-        pw.attr('transform', `translate(${ox},${oy}) scale(${z})`);                    // sparks and the front clouds stay in the scene
-        const zf = 1 + (z - 1)*1.45; front.attr('transform', `translate(${S.x - c.x*1.45*zf + jx*1.45},${G + (oy - G)*1.3}) scale(${zf})`);
+        [[LFar, .12, .18], [LMid, .35, .5], [LFair, .5, .55], [LNear, NF, 1.5]].forEach(([L, f, fy]) => { const zl = 1 + (z - 1)*f; place(L, F.x - c.x*f*zl + jx*f, G + (oy - G)*fy, zl); });
+        const rot = me.roll ? `rotate(${me.roll.toFixed(2)},${Px.toFixed(1)},${Py.toFixed(1)}) ` : '';
+        pw.attr('transform', `${rot}translate(${ox},${oy}) scale(${z})`);              // sparks and the front clouds stay in the scene
+        const zf = 1 + (z - 1)*1.45; front.attr('transform', `${rot}translate(${F.x - c.x*1.45*zf + jx*1.45},${G + (oy - G)*1.3}) scale(${zf})`);
         cullNow(c, z);
-        const alt = clamp(-c.y/850, 0, 1);                                              // the sky deepens as the cart climbs
-        if (Math.abs(alt - skyAlt) > .015){ skyAlt = alt; skyT.attr('stop-color', mix('#62b6ec', '#2f6fb8', alt)); skyB.attr('stop-color', mix('#d6eefb', '#8fc0e8', alt)); }   // steps too small to see are skipped
-        const y = ty(me.x), ang = Math.atan(slope(me.x))*180/Math.PI;
+        // The light: golden late afternoon at the start, sunset by 2016. The weather follows the rate under the cart (the
+        // story's metaphor: the higher the rate, the stormier). This ride reaches rates far above the rest of the story, so
+        // it stretches the scale: clear below 4%, darker all the way to the 15% record high, rain from about 6.5%, and
+        // lightning only near the top (from 9%). Steps too small to see are skipped.
+        const wv = tv(me.x), dusk = clamp(me.x/END.x, 0, 1), dark = clamp((wv - 4)/10, 0, 1);
+        const sk = Math.round(dusk*50) + '|' + Math.round(dark*60);
+        if (sk !== skyAlt){
+          skyAlt = sk;
+          skyT.attr('stop-color', mix(mix('#5d9bd5', '#3f3d7a', dusk), '#232a3a', dark*.92));
+          skyB.attr('stop-color', mix(mix('#ffcf8a', '#ff8a5c', dusk), '#4f5866', dark*.9));
+          sun.attr('opacity', (1 - dark*.95).toFixed(2));
+          darkEl.style('opacity', (dark*.5).toFixed(3));
+          rainAmt = clamp((dark - .25)/.5, 0, 1);
+          lightning = dark >= .5;
+        }
         if (me.cart){
-          me.cart.attr('transform', `translate(${ox + me.x*z},${oy + y*z}) rotate(${ang}) scale(${z})`);
+          me.cart.attr('transform', `translate(${Px},${Py}) rotate(${ang + me.roll}) scale(${z})`);
           me.riders.attr('transform', me.mode === 'down' ? `translate(0,${-Math.min(10, me.v/90)})` : null);   // airtime
           me.wheels.forEach(w => w.g.attr('transform', `rotate(${me.spin % 360},${w.cx},${w.cy})`));
         }
+        const fwOn = me.x >= fwFrom;                                                     // fireworks once it is dark
+        if (fwOn !== me.fwOn){ me.fwOn = fwOn; fxL.classed('on', fwOn); }
+        const atEnd = me.x === END.x && me.target === END.x;                            // the photo, at the last stop
+        if (atEnd !== me.photoShown){ me.photoShown = atEnd; photo.attr('display', atEnd ? null : 'none'); }
         const sop = .22*clamp(1 + y/650, 0, 1);
         if (sop > .003 || shadow.attr('opacity') !== '0') shadow.attr('cx', me.x).attr('rx', 190 - y*.06).attr('opacity', sop > .003 ? sop : 0);
         if (sparks.length || sparksOn){
@@ -2141,7 +2544,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
         // wind streaks rush past on fast drops
         const wop = clamp((Math.abs(me.v) - 380)/600, 0, .55);
         if (wop > 0 || windOn){
-          const a = Math.atan(slope(me.x));
+          const a = Math.atan(slope(me.x)) + me.roll*Math.PI/180;
           wind.forEach((w, i) => {
             w.x -= Math.cos(a)*me.v*(dt || 0)*1.7; w.y -= Math.sin(a)*me.v*(dt || 0)*1.7;
             if (w.x < -260 || w.y < SAFE.y - 60){ w.x = W + 60 + Math.random()*400; w.y = SAFE.y + 90 + Math.random()*SAFE.h*.75; }
@@ -4525,7 +4928,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   new ResizeObserver(() => { const hgt = document.querySelector('.box').offsetHeight; if (hgt > boxReserve + 2){ boxReserve = hgt; fitScene(); } }).observe(document.querySelector('.box'));
   if (document.fonts) document.fonts.ready.then(refit);
 
-  let SND = {sfx(){}, scene(){}, start(){}};   // sound (see the sound section); silent until it is set up
+  let SND = {sfx(){}, scene(){}, start(){}, ride(){}};   // sound (see the sound section); silent until it is set up
   /* ================= the camera ================= */
   // Each line picks a shot: the whole scene (the first line of a scene, and the DATA and WHAT IF lines), a medium shot
   // on whoever speaks, or a close-up when the feeling is strong (sad, worried, shocked) or the line asks for one
@@ -4533,7 +4936,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
   // on the scene, so the graphics card moves the picture and nothing is redrawn. The blurred foreground (#depth) moves
   // a little more than the scene, so near things slide past far ones. Interactive scenes keep the camera still.
   let SHOT = null;
-  const lineOpts = line => (line && line[3] && typeof line[3] === 'object') ? line[3] : {};
+  const lineOpts = line => !line ? {} : (line[3] && typeof line[3] === 'object') ? line[3] : (line[4] && typeof line[4] === 'object') ? line[4] : {};   // the coaster's lines keep their stop in [3]
   function camShot(sc, line){
     if (!sc || !line || sc.pov || sc.draw || sc.ride || sc.choice || REDUCED) return null;
     const ov = lineOpts(line), who = ov.on || line[0];
@@ -4853,12 +5256,13 @@ d3.json('prototype/data/leo.json').then(DATA => {
     setSky(sc.y, anim);
     WIND = OUTDOOR.has(sc.bg) ? storm(sc.y) : 0;
     gBg.selectAll('*').remove(); gFg.selectAll('*').remove();
-    d3.selectAll('#rideLayers, #cafeLayer, #cityLayer').remove();   // the Yield Coaster's and the café's own layers (if we are leaving them)
+    d3.selectAll('#rideLayers, #rideNear, #rideInsert, #cafeLayer, #cityLayer').remove();   // the Yield Coaster's and the café's own layers (if we are leaving them)
     CTRL = null;                                   // an interactive scene sets its own
     BG[sc.bg](gBg, sc, gFg);
     GRADE = null;
     setLight(sc);
     drawDepth(sc); applyCam(null, true);           // a new scene starts on a wide shot
+    $('pageFront').style.transform = '';           // (and level: the coaster rolls the picture on its drops)
     SND.scene(sc);
     $('stage').classList.toggle('drawing', !!sc.draw);
     const t = storm(sc.y);
@@ -5073,6 +5477,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     const AC = window.AudioContext || window.webkitAudioContext, btn = $('soundBtn');
     let ctx = null, master = null, musicBus = null, ambBus = null, noise = null, on = true, timer = null;
     let nextT = 0, step = 0, minor = false, slow = 0, ambient = [], birds = false, birdT = 0, kind = '', pending = null;
+    let rideN = null, rideK = -1, rideMode = '', clackT = 0;
     try { on = localStorage.getItem('leoSound') !== 'off'; } catch { /* storage blocked: sound stays on */ }
     const label = () => { btn.setAttribute('aria-pressed', String(on)); btn.title = on ? 'Sound on (click to mute)' : 'Sound off (click to turn on)'; btn.classList.toggle('off', !on); };
     label();
@@ -5130,7 +5535,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     function clearAmb(){
       const t = ctx.currentTime;
       ambient.forEach(a => { a.gn.gain.cancelScheduledValues(t); a.gn.gain.setValueAtTime(a.gn.gain.value, t); a.gn.gain.linearRampToValueAtTime(0, t + .6); a.src.stop(t + .7); if (a.lfo) a.lfo.stop(t + .7); });
-      ambient = [];
+      ambient = []; rideN = null;
     }
     function scene(sc){
       if (!ctx){ pending = sc; return; }
@@ -5147,8 +5552,24 @@ d3.json('prototype/data/leo.json').then(DATA => {
       if (sc.bg === 'dominoes' || sc.bg === 'cafe' || sc.bg === 'fair') ambient.push(loopNoise('bandpass', 900, 1.4, .03, [1.7, .7]));   // a room full of people
       if (sc.bg === 'tower' || sc.bg === 'city') ambient.push(loopNoise('lowpass', 380, .8, .05, [.11, .8]));                       // wind at 346 metres
     }
+    // the coaster: a rumble that grows with speed, wind on the drops, the lift chain clacking on the climbs
+    function ride(v, mode){
+      if (!ctx) return;
+      if (!rideN){ rideN = {rum: loopNoise('lowpass', 170, .9, 0), wind: loopNoise('bandpass', 1300, .5, 0)}; ambient.push(rideN.rum, rideN.wind); }
+      const k = Math.round(clamp(v/800, 0, 1)*40)/40, t = ctx.currentTime;
+      if (k !== rideK || mode !== rideMode){
+        rideK = k; rideMode = mode;
+        [[rideN.rum, k > 0 ? .03 + k*.2 : 0], [rideN.wind, mode === 'down' ? k*.15 : 0]].forEach(([a, vol]) => { a.gn.gain.cancelScheduledValues(t); a.gn.gain.setTargetAtTime(vol, t, .15); });
+      }
+      if (on && mode === 'up' && t > clackT){ clackT = t + .11; sfx('clack'); }
+    }
     function sfx(what){
       if (!ctx || !on) return;
+      if (what === 'bell'){                                                                    // a station bell: two bright partials
+        [[1320, .05], [1980, .025]].forEach(([f0, vol]) => { const o = ctx.createOscillator(), gn = ctx.createGain(), t0 = ctx.currentTime;
+          o.frequency.value = f0; gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(.0005, t0 + 1.3); o.connect(gn); gn.connect(master); o.start(t0); o.stop(t0 + 1.35); });
+        return;
+      }
       const t = ctx.currentTime, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), gn = ctx.createGain();
       src.buffer = noise; src.connect(f); f.connect(gn); gn.connect(master);
       if (what === 'page'){                                                                    // paper: a swish sweeping up
@@ -5158,6 +5579,10 @@ d3.json('prototype/data/leo.json').then(DATA => {
       } else if (what === 'tick'){                                                             // a soft pencil tick
         f.type = 'highpass'; f.frequency.value = 2800; gn.gain.setValueAtTime(.018, t); gn.gain.exponentialRampToValueAtTime(.0005, t + .02);
         src.start(t, Math.random()); src.stop(t + .03);
+      } else if (what === 'clack' || what === 'shutter'){                                     // the lift chain, or a camera
+        f.type = 'bandpass'; f.frequency.value = what === 'clack' ? 2100 : 3400; f.Q.value = 3;
+        gn.gain.setValueAtTime(what === 'clack' ? .1 : .3, t); gn.gain.exponentialRampToValueAtTime(.001, t + (what === 'clack' ? .03 : .09));
+        src.start(t, Math.random()); src.stop(t + .1);
       } else if (what === 'thunder'){                                                          // a low rumble after the flash
         f.type = 'lowpass'; f.frequency.value = 150; gn.gain.setValueAtTime(0, t + .15); gn.gain.linearRampToValueAtTime(.5, t + .3); gn.gain.exponentialRampToValueAtTime(.001, t + 2.4);
         src.start(t, Math.random()); src.stop(t + 2.5);
@@ -5178,7 +5603,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
       if (on) ctx.resume();
     });
     document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else if (on) ctx.resume(); });
-    return {start, scene, sfx};
+    return {start, scene, sfx, ride};
   }
   SND = makeSound();
 
