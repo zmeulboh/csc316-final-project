@@ -389,7 +389,7 @@ a.btn{text-decoration:none;display:inline-block}
 .stage.leaving #cafeLayer{transform:translateX(calc(-1 * var(--dx,80px) * var(--k,1)))}
 .stage.entering #cafeLayer{transform:translateX(calc(var(--dx,80px) * var(--k,1)))}
 /* the CN Tower view of Toronto (2026): a big painted map the camera moves with a CSS transform (see BG.city) */
-#cityLayer{position:absolute;inset:0;overflow:hidden;background:#2f5670;touch-action:none;cursor:grab;font-family:var(--body)}
+#cityLayer{position:absolute;inset:0;overflow:hidden;background:#2f5670;touch-action:none;cursor:grab;font-family:var(--body);-webkit-user-select:none;user-select:none}  /* dragging the map never selects its text */
 #cityLayer.dragging,#cityLayer.dragging .dist{cursor:grabbing}
 .cl-hint{position:absolute;top:14px;left:50%;transform:translateX(-50%);padding:.45em 1em;background:rgba(18,16,36,.88);border:2px solid var(--ink);border-radius:999px;box-shadow:3px 3px 0 var(--ink);font:700 .8rem var(--body);color:var(--text);white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .cl-hint b{color:var(--sun)}
