@@ -117,7 +117,7 @@ def build():
         "us10AnnualMin": min(((y, v) for y, v in annual.items() if y <= "2012"), key=lambda x: x[1]),
         "ca5Annual": {y: r2(sum(v) / len(v)) for y, v in ca5.items() if y >= "2007"},
         "canUnemp": latest("EHUPCA"),
-        # the Yield Coaster and Leo's sketchbook: the monthly 10-year yield since 1962
+        # Grandpa's album (2016) and Leo's sketchbook: the monthly 10-year yield since 1962
         "us10Monthly": gs10,
         "mortPeak": rate_weather["mortPeak"],
         # the café dominoes (2024): Canada's 5-year bond yield (monthly) and unemployment rate (quarterly) since 2019
