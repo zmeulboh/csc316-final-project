@@ -279,8 +279,6 @@ button{cursor:pointer}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .btn.ghost{background:var(--frame-3);color:var(--text)}
 a.btn{text-decoration:none;display:inline-block}
-.stats{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:.92rem;margin:0}
-.stats dd{margin:0;font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
 
 /* dialogue: floats over the bottom of the stage */
 .dlg{position:absolute;left:0;right:0;bottom:0;z-index:4;pointer-events:none;
@@ -329,8 +327,8 @@ a.btn{text-decoration:none;display:inline-block}
 .spark{position:absolute;right:16px;top:14px;width:170px;height:62px;overflow:visible}
 .spark[hidden]{display:none}
 .spark .sp-l,.spark .sp-t{font:500 8.5px var(--mono);letter-spacing:.05em;fill:currentColor;opacity:.7}
-.spark .sp-v{font:700 11px var(--mono);fill:#d63b2a}
-.box.whatif .spark .sp-v{fill:#d8c9ff}
+.spark .sp-v{font:700 11px var(--mono);fill:#d63b2a;paint-order:stroke;stroke:#f5eedb;stroke-width:3.5px;stroke-linejoin:round}   /* a halo in the card's colour, so the line never runs through the number */
+.box.whatif .spark .sp-v{fill:#d8c9ff;stroke:#2f2a5c}
 .spark .sp-base{stroke:currentColor;stroke-opacity:.25;stroke-width:1}
 .spark .sp-line{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
 .spark .sp-fut{fill:none;stroke:#a98bff;stroke-width:1.8;stroke-dasharray:4 3}
@@ -364,10 +362,26 @@ a.btn{text-decoration:none;display:inline-block}
 .cork-svg .pol text{font-family:"Gochi Hand","Comic Sans MS",cursive;font-size:13px;fill:#3f4148}
 .cork-svg .cork-note{font-family:var(--mono);font-size:10.5px;fill:#3a2a1a;opacity:.8}
 .cork-svg .pol{filter:drop-shadow(1px 2px 1px rgba(40,20,0,.35))}
-.cork-svg .drop,.cork-svg .pin.last{animation:pinin .7s cubic-bezier(.3,1.5,.5,1) .5s both}
-.cork-svg .futline{stroke-dashoffset:0}
+/* the end card plays out in order: Leo's chapters are pinned up one by one, the red thread is drawn through the real
+   years, the imagined years' dashes appear, then the numbers (--i: each item's place in the order) */
+.cork-svg .pol > g{animation:pinin .55s cubic-bezier(.3,1.5,.5,1) both;animation-delay:calc(.35s + var(--i)*.07s)}
+.cork-svg .pin{transform-box:fill-box;transform-origin:50% 50%;animation:pinpop .3s ease-out both;animation-delay:calc(.5s + var(--i)*.07s)}
+.cork-svg .thread{stroke-dasharray:1;animation:threaddraw 1.5s ease-in-out 1.1s both}
+.cork-svg .futline{animation:fadein .6s ease 2.5s both}
 @keyframes pinin{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){ .cork-svg .drop,.cork-svg .pin.last,.trackwrap.pop{animation:none} }
+@keyframes pinpop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes threaddraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.cork-svg{max-height:min(340px,46vh)}
+/* the end card's numbers, as four tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0}
+.tile{background:var(--frame-3);border:2px solid var(--ink);border-radius:12px;padding:9px 12px 10px;display:grid;gap:3px;align-content:start;
+  animation:tilein .45s ease-out both;animation-delay:calc(2.6s + var(--i)*.12s)}
+.tile dt{font-size:.78rem;line-height:1.25;color:var(--text-2)}
+.tile dd{margin:0;font-family:var(--display);font-size:clamp(1rem,2.2vw,1.3rem);line-height:1.05;font-variant-numeric:tabular-nums}
+@keyframes tilein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (max-width:640px){ .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (prefers-reduced-motion:reduce){ .cork-svg .pol > g,.cork-svg .pin,.cork-svg .thread,.cork-svg .futline,.tile,.trackwrap.pop{animation:none} }
 @media (max-height:600px){
   #line{min-height:2.6em;font-size:1rem}
   .box{padding:20px 16px 10px}
@@ -4097,7 +4111,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
       R(g,-1400,-800,W+2800,G+800,'#cdc3e8'); R(g,-1400,G-16,W+2800,16,'#f1edf8');
       // string lights along the top of the wall on a red cord: the cord is the real 10-year yield from 2007 to 2020 (the red thread)
       const cord = redThread(g, '2007-01', '2020-12', [-312, 62], [1560, 120], {w:2.2, tip:'The red thread: the string lights’ cord is the real US 10-year yield, January 2007 to December 2020'});
-      d3.range(-6,30).forEach(i => { const x = i*52, y = threadY(cord.xy, x), c = ['#ffd166','#ff8a9a','#9fe0c0','#7fc8f8'][i%4];
+      d3.range(-6,30).forEach(i => { const x = i*52, y = threadY(cord.xy, x), c = ['#ffd166','#ff8a9a','#9fe0c0','#7fc8f8'][(i%4 + 4)%4];   // (i%4 is negative for i < 0)
         NG(() => { Cc(g,x,y+8,9,c,{opacity:.25,class:'a-glow',style:`animation-delay:-${((i*.37)%1.8).toFixed(2)}s`}); E(g,x,y+8,4,6,c); }); });
       // posters: the planet and a game poster, taped at the corners
       R(g,90,120,180,240,'#2a2747',{rx:6}); for (let k=0;k<14;k++) Cc(g,104+(k*53)%160,134+(k*37)%210,1.5,'#ffffff',{opacity:.7});
@@ -4324,6 +4338,35 @@ d3.json('prototype/data/leo.json').then(DATA => {
         E(g,x+82,532,96,6,'#000',{opacity:.1});
         if (on) [x+6,x+158].forEach((bx,j) => { const bl = A(g,'g',{class:'a-balloon',style:`animation-delay:-${(k+j)*.7}s`}); const tx = bx + (j ? 6 : -6); L(bl,bx,200,tx,150,'#888',1.2); E(bl,tx,136,13,16,cols[(k+j+1)%5]); E(bl,tx-4,130,3,5,'#ffffff',{opacity:.5}); });
       });
+      // company banners hanging from the truss (grey for the booths that aren't hiring)
+      [[250, 0], [1030, 3], [-90, 4], [1330, 1]].forEach(([x, k]) => { const c = k < n ? cols[k] : '#a9a4b8';
+        L(g, x - 22, 32, x - 22, 60, '#48445c', 2); L(g, x + 22, 32, x + 22, 60, '#48445c', 2);
+        P(g, `M${x - 30},60 H${x + 30} V160 L${x},146 L${x - 30},160Z`, c); R(g, x - 30, 60, 60, 8, dk(c, .3));
+        Tt(g, x, 118, names[k].slice(0, 5), {'text-anchor':'middle', 'font-size':10, fill:'#ffffff', transform:`rotate(-90,${x},114)`}); });
+      // flyers people dropped on the way out
+      [[230, 614, 24], [356, 628, -18], [880, 618, 40], [1080, 630, -8], [-40, 622, 14]].forEach(([x, y, r]) => { const fl = A(g, 'g', {transform:`rotate(${r},${x},${y})`});
+        R(fl, x - 12, y - 15, 24, 30, '#f4f1ea', {stroke:'#cfcac2', 'stroke-width':1}); [0, 1, 2].forEach(i => L(fl, x - 7, y - 8 + i*7, x + 7, y - 8 + i*7, '#b9b3a8', 1.6)); });
+      // other new graduates, résumés in hand: a line at the end booth, and more on the way. Leo isn't the only one
+      // looking. (Muted colours and no outlines, like every background figure, so Leo stays in front.)
+      const seeker = (x, s, col, o={}) => {
+        const f = A(g, 'g', {transform:`translate(${x},${G - 4}) scale(${(o.dir || -1)*s},${s})`});
+        E(f, 0, 0, 26, 5, '#000', {opacity:.12});
+        const v = Math.abs(x), b = A(f, 'g', {class:'a-nod', style:`animation-delay:-${((v % 9)/9).toFixed(2)}s;animation-duration:${(1.5 + (v % 5)*.2).toFixed(1)}s`});
+        const skin = o.skin || '#d9a77e', pants = o.pants || '#3a3f4a', hair = o.hair || '#3b2a20';
+        if (o.long) E(b, -3, -128, 12, 20, hair);
+        [-6, 6].forEach(lx => { L(b, lx, -64, lx, -6, pants, 9); E(b, lx + 3, -4, 8, 4, '#2b2a33'); });
+        if (o.pack) R(b, -24, -116, 14, 36, o.pack, {rx:5});
+        R(b, -13, -124, 26, 64, col, {rx:11});
+        L(b, -4, -112, 14, -90, col, 7); L(b, 6, -112, 18, -92, col, 7);                 // both arms forward
+        if (o.phone){ R(b, 12, -106, 11, 17, '#2b2a33', {rx:2}); R(b, 13.5, -104, 8, 12, '#7fc8f8'); }
+        else { const rs = A(b, 'g', {transform:'rotate(-8,24,-98)'}); R(rs, 12, -114, 24, 32, '#fbfbf7', {stroke:'#cfcac2', 'stroke-width':1});
+          [0, 1, 2, 3].forEach(i => L(rs, 16, -107 + i*6, i ? 32 : 26, -107 + i*6, '#b9b3a8', 1.4)); }       // a résumé
+        Cc(b, 17, -90, 4.5, skin);
+        Cc(b, 0, -138, 13, skin); P(b, 'M-13,-140 Q0,-160 13,-140 Q4,-148 -13,-140Z', hair);
+      };
+      seeker(1170, .92, '#6f7fa0', {pack:'#a0524a'}); seeker(1236, .96, '#8a6f8f', {long:true, hair:'#5a3a28', skin:'#e6b48f'});
+      seeker(1300, .9, '#5f8a78', {phone:true, skin:'#c98f6a', hair:'#262626'}); seeker(1362, .94, '#a07a5c', {pack:'#3d6fb6'});
+      seeker(-86, .93, '#7a6f9a', {dir:1, long:true, hair:'#3b2a20', skin:'#f1c8a0'});
     },
     robarts(g,sc,fg){
       // Robarts Library at night, after the real building: a stair tower with an angled "beak" head on the left,
@@ -5277,8 +5320,10 @@ d3.json('prototype/data/leo.json').then(DATA => {
     if (fut && fut.length > 1) gs.append('path').attr('d', ln(fut)).attr('class','sp-fut');
     const e = all[all.length - 1];
     gs.append('circle').attr('cx', xs(e[0])).attr('cy', ys(e[1])).attr('r', 3.6).attr('class', fut ? 'sp-dotf' : 'sp-dot');
-    const vy = ys(e[1]), above = vy > yT + 12;                                   // the value sits above the dot (below it when the dot is high)
-    gs.append('text').attr('x', xs(e[0]) - 5).attr('y', above ? vy - 7 : vy + 15).attr('text-anchor','end').attr('class','sp-v').text(e[1].toFixed(e[1] >= 10 ? 1 : 2) + '%');
+    // The value sits just left of the end dot, above the stretch of line under it (below that stretch when there's no
+    // room above), so the line doesn't run through the number.
+    const vx = xs(e[0]), under = all.filter(d => xs(d[0]) >= vx - 50), top = d3.min(under, d => ys(d[1])), bot = d3.max(under, d => ys(d[1]));
+    gs.append('text').attr('x', vx - 5).attr('y', top - 4 >= 20 ? top - 4 : Math.min(bot + 12, 57)).attr('text-anchor','end').attr('class','sp-v').text(e[1].toFixed(e[1] >= 10 ? 1 : 2) + '%');
     gs.append('text').attr('x', x0).attr('y', 60).attr('class','sp-t').text(String(Math.floor(all[0][0])));
     gs.append('text').attr('x', x1).attr('y', 60).attr('text-anchor','end').attr('class','sp-t').text(endLabel);
     return true;
@@ -5457,15 +5502,15 @@ d3.json('prototype/data/leo.json').then(DATA => {
     let out = `<svg viewBox="0 0 ${W0} ${H0}" class="cork-svg" role="img" aria-label="Leo's chapters, from 2007 to 2030, pinned at that year's 10-year yield">`;
     list.forEach((c, i) => {
       const [px, py] = pin(c), rot = ((i * 37) % 9) - 4, last = i === n - 1;
-      out += `<g class="pol" transform="translate(${px.toFixed(1)},${(py + 6).toFixed(1)}) rotate(${rot})"><g class="${last ? 'drop' : ''}"><title>${c.year} · ${c.s.age === 0 ? 'Leo is born' : 'Leo, age ' + c.s.age} · 10-yr ${c.s.y.toFixed(2)}%${c.s.future ? ' (imagined)' : ''}</title>
+      out += `<g class="pol" transform="translate(${px.toFixed(1)},${(py + 6).toFixed(1)}) rotate(${rot})"><g class="${last ? 'drop' : ''}" style="--i:${i}"><title>${c.year} · ${c.s.age === 0 ? 'Leo is born' : 'Leo, age ' + c.s.age} · 10-yr ${c.s.y.toFixed(2)}%${c.s.future ? ' (imagined)' : ''}</title>
         <rect x="-29" y="0" width="58" height="72" fill="#fffdf6" stroke="#d8cdb6" stroke-width="1.5"/>
         <rect x="-24" y="5" width="48" height="44" fill="${washOf(c.s)}"/>
         <g transform="translate(0,27)">${POLAROID[key(c)] || POLAROID[c.s.bg] || ''}</g>
         <text x="0" y="65" text-anchor="middle">${c.year}</text></g></g>`;
     });
-    out += `<path d="${ln(real)}" fill="none" stroke="#d63b2a" stroke-width="2.5" stroke-linejoin="round"/>`;
+    out += `<path d="${ln(real)}" fill="none" stroke="#d63b2a" stroke-width="2.5" stroke-linejoin="round" pathLength="1" class="thread"/>`;   // drawn in, pin to pin
     out += `<path d="${ln(fut)}" fill="none" stroke="#7a5cc8" stroke-width="2.5" stroke-dasharray="6 5" class="futline"/>`;
-    list.forEach((c, i) => { const [px, py] = pin(c); out += `<g class="pin${i === n - 1 ? ' last' : ''}"><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6" fill="${c.s.future ? '#8a6bd8' : '#d63b2a'}" stroke="#2b2a33" stroke-width="1.6"/><circle cx="${(px - 2).toFixed(1)}" cy="${(py - 2).toFixed(1)}" r="1.8" fill="#fff" opacity=".7"/></g>`; });
+    list.forEach((c, i) => { const [px, py] = pin(c); out += `<g class="pin${i === n - 1 ? ' last' : ''}" style="--i:${i}"><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6" fill="${c.s.future ? '#8a6bd8' : '#d63b2a'}" stroke="#2b2a33" stroke-width="1.6"/><circle cx="${(px - 2).toFixed(1)}" cy="${(py - 2).toFixed(1)}" r="1.8" fill="#fff" opacity=".7"/></g>`; });
     out += `<text x="12" y="${H0 - 10}" class="cork-note">each pin: that chapter's 10-year yield · red = real · violet dashes = imagined</text></svg>`;
     return out;
   }
@@ -5509,18 +5554,17 @@ d3.json('prototype/data/leo.json').then(DATA => {
       <div class="row"><span class="tag what">YOUR FUTURE</span><span class="tag real">REAL RATES UNTIL OCT 2026</span></div>
       <h2>${f.b.name}: 10-yr yield at ${f.R.toFixed(1)}% by 2030</h2>
       <div class="cork">${corkboard(f)}</div>
-      <dl class="stats">
-        <dt>Parents’ mortgage in 2022</dt><dd>${fmt$(P22)}/mo</dd>
-        <dt>After the 2027 renewal at ${f.m27.toFixed(1)}%</dt><dd style="color:${f.d>0?'var(--hot)':'var(--calm)'}">${fmt$(f.P27)}/mo</dd>
-        <dt>Career-fair booths hiring in 2028</dt><dd>${story[2].props.booths} of 5</dd>
-        <dt>Leo in 2030</dt><dd>${{A:'Bay Street job',B:'Job at a smaller firm',C:'Six-month contract',D:'Moving back home'}[f.b.id]}</dd>
+      <dl class="tiles">
+        <div class="tile" style="--i:0"><dt>Parents’ mortgage in 2022</dt><dd>${fmt$(P22)}/mo</dd></div>
+        <div class="tile" style="--i:1"><dt>After the 2027 renewal at ${f.m27.toFixed(1)}%</dt><dd style="color:${f.d>0?'var(--hot)':'var(--calm)'}">${fmt$(f.P27)}/mo</dd></div>
+        <div class="tile" style="--i:2"><dt>Career-fair booths hiring in 2028</dt><dd>${story[2].props.booths} of 5</dd></div>
+        <div class="tile" style="--i:3"><dt>Leo in 2030</dt><dd>${{A:'Bay Street job',B:'Job at a smaller firm',C:'Six-month contract',D:'Moving back home'}[f.b.id]}</dd></div>
       </dl>
-      <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR); Government of Canada 5-year yield, Bank of Canada Valet API; Canadian jobs by industry and unemployment rate, Statistics Canada Labour Force Survey via Bloomberg (to ${MONTH(JM)}); 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada. Research: Singh, Suda &amp; Zervou (2022) on which industries feel rate hikes most; Romer &amp; Romer (2023) on rate hikes and unemployment.</p>
       <div class="row">
         <button class="btn" id="againBtn">Choose another future</button>
         <button class="btn ghost" id="replayBtn">Replay from 2007</button>
-        <a class="btn ghost" href="prototype/rate-weather.html">See the data ▸</a>
-      </div>`;
+      </div>
+      <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR), and FRED (GS10) before 1990; Government of Canada 5-year yield, Bank of Canada Valet API; Canada’s 1981 mortgage rates, CMHC; Canadian jobs by industry and unemployment rate, Statistics Canada Labour Force Survey via Bloomberg (to ${MONTH(JM)}); 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada. Research: Singh, Suda &amp; Zervou (2022) on which industries feel rate hikes most; Romer &amp; Romer (2023) on rate hikes and unemployment.</p>`;
     $('endInner').classList.add('wide');
     $('endCard').hidden = false; $('stage').classList.add('carded');
     $('againBtn').onclick = () => { $('endCard').hidden = true; $('stage').classList.remove('carded'); goScene(0); };
