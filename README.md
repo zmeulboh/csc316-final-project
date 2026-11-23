@@ -31,7 +31,11 @@ The prototype has two pages, both built with D3 on real data:
   - 2024: push a chain of dominoes from the 10-year yield to Leo's café shifts. Each domino's ticket shows its real data.
   - 2026: look at Canadian industries through the CN Tower's binoculars (rain clouds = more exposed, umbrellas = more sheltered).
 
-  The end card links to Rate Weather.
+  The story is staged like a film. Each year has its own light (a colour grade), the characters act out their lines,
+  the camera moves in on whoever is speaking, and the sketchbook page turns to a chapter page for every new year. The
+  real 10-year yield also appears inside the scenes as a "red thread" (a garland, a kite string, the TV news chart):
+  hover over or tap it to see which months it shows. The end card is a corkboard with one photo per chapter. Sound is
+  generated in the browser and can be muted with the speaker button. The end card links to Rate Weather.
 - **Rate Weather** ([`prototype/rate-weather.html`](prototype/rate-weather.html)): the data side of the story, as a scrolling page:
   - "Draw what happened next" and "Ride the rollercoaster": the yield's history;
   - "The domino chain": how higher rates reach jobs;
