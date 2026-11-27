@@ -1,81 +1,152 @@
 # The 10-Year Treasury Yield Is Going Crazy — What Does That Mean for You?
 
-An interactive scrollytelling story that explains, in plain language, how rising U.S. Treasury yields can reach a Canadian university student's wallet and career.
+An interactive story that explains, in plain language, how the U.S. 10-year Treasury yield can reach a Canadian
+university student's wallet and career.
 
 > **Rising interest rates aren't just Wall Street's problem. They can affect your wallet and your career, but not everyone is affected equally.**
 
 **Bohdan Zmeul · Danyal Shenoda · Humzah Ahmed**
-
 CSC316 Data Visualization · University of Toronto · Fall 2026
 
-<!-- Live demo: add link here once deployed -->
+### ▶ Live site: **https://zmeulboh.github.io/csc316-final-project/**
+
+**Process book:** [Google Doc](https://docs.google.com/document/d/1Sr4uAKbj8h2TRenuFmDX-Hdx7Ws0rbXcnyzvuotItFQ/edit?tab=t.0#heading=h.2xjf980qs23)
+
+![The title screen: the real 10-year yield from 1962 to 2007 drawn across the sky over Toronto](docs/screenshots/01-title.jpg)
 
 ---
 
+## Contents
+
+- [About the project](#about-the-project)
+- [Running the code](#running-the-code)
+- [Libraries and tools](#libraries-and-tools)
+- [Data](#data)
+- [Code](#code)
+- [Research](#research)
+
 ## About the project
 
-The U.S. 10-year Treasury yield is one of the most watched numbers in finance, but most students have barely heard of it. This project answers one question:
+The 10-year Treasury yield is one of the most watched numbers in finance, but most students have barely heard of it.
+The project answers one question: *"Why is everyone on Wall Street worried about a number I have barely heard of, and
+what could it eventually mean for me?"*
 
-*"Why is everyone on Wall Street worried about a number I have barely heard of, and what could it eventually mean for me?"*
+**Audience:** Canadian university students with little or no finance background. The story uses familiar forms (line
+charts, bars drawn to scale, a slider, a map) and focuses on consequences (rent, mortgages, budgets, jobs) rather
+than financial theory.
 
-**Audience:** Canadian university students with little or no finance background. The story uses familiar chart types (line charts, bars, sliders) and focuses on consequences (jobs, rent, mortgages, budgets) rather than financial theory.
+### Leo's Forecast ([`index.html`](index.html))
 
-## What's in the prototype (V1)
+A story game. You follow Leo, a Toronto kid born in 2007, one year at a time. The life bar at the top tracks the real
+10-year yield (click a chapter's dot to jump there). Every scene is lit by that year's rates (sunny when they are low,
+stormy when they are high), and the real yield also appears inside the scenes as a "red thread": a garland, a kite
+string, the TV news. Point at it (or tap it) to see which months it shows. The interactive moments:
 
-The prototype has two pages, both built with D3 on real data:
+| Year | Scene | What you do | What it shows (real data) |
+|------|-------|-------------|---------------------------|
+| 2016 | Grandma's family album | Open the cover, flip the pages, point at Grandpa's graph paper | The monthly 10-year yield since 1962, on the same scale on every page |
+| 2020 | Leo's sketchbook | Draw your guess of where rates go next | The yield up to the 2020 record low, then what really happened |
+| 2022 | Mom's budget pad | Drag the mortgage renewal rate | A family budget drawn to scale (Canadian 5-year rates) |
+| 2024 | Dominoes in the café | Push the first domino | The chain from the 10-year yield to Leo's shifts, each step with its real number |
+| 2026 | The CN Tower's binoculars | Drag, zoom, click a neighbourhood | Canadian jobs by industry since February 2022 (rain clouds = more exposed, sun = more sheltered) |
+| 2026 | The rate slider | Pick where rates go by 2030 | Four imagined futures (2027–2030), drawn with dashed lines so they never look like data |
 
-- **Leo's Forecast** ([`index.html`](index.html)): a story game. You follow Leo from 2007 to 2026 while a life bar at the top tracks the real 10-year yield. Five interactive moments are built into his life:
-  - 2016: leaf through Grandma's family album. Under its photos, Grandpa's graph paper shows the real yield since 1962.
-  - 2020: draw your guess of where the yield goes next in Leo's sketchbook.
-  - 2022: drag the renewal rate on his parents' budget pad. The blocks are drawn to scale, and the summer trip gets cancelled.
-  - 2024: push a chain of dominoes from the 10-year yield to Leo's café shifts. Each domino's ticket shows its real data.
-  - 2026: look at Canadian industries through the CN Tower's binoculars (rain clouds = more exposed, umbrellas = more sheltered).
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/02-red-thread.jpg" alt="2012 playground: the kite string is the real yield from 2007 to 2012"><br><b>The red thread.</b> Leo's kite string is the real yield from 2007 to 2012.</td>
+    <td width="50%"><img src="docs/screenshots/03-album.jpg" alt="2016: Grandma's album open at 1981, Grandpa pointing at the 15.32% record"><br><b>Grandma's album (2016).</b> Grandpa's graph paper: the yield since 1962, here at the September 1981 record.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/04-sketchbook.jpg" alt="2020: the reader's guess drawn in red, then the real line"><br><b>Leo's sketchbook (2020).</b> Draw your guess, then see what really happened.</td>
+    <td><img src="docs/screenshots/05-budget.jpg" alt="2022: the family's monthly budget as blocks drawn to scale, with a rate ruler"><br><b>The budget pad (2022).</b> Drag the renewal rate; every block is drawn to scale.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/06-dominoes.jpg" alt="2024: a fallen domino chain with a real chart on each receipt"><br><b>The dominoes (2024).</b> From higher yields to Leo's shifts, each step with real data.</td>
+    <td><img src="docs/screenshots/07-city-map.jpg" alt="2026: Toronto map with one neighbourhood per industry, a ranked list and a detail card"><br><b>The CN Tower view (2026).</b> Linked views: ranked list, map and detail card for Canadian jobs by industry.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/08-rate-slider.jpg" alt="2026: the rate slider choosing where the yield goes by 2030"><br><b>The rate slider.</b> The campus weather, life bar and rain sound follow your pick.</td>
+    <td><img src="docs/screenshots/09-career-fair.jpg" alt="2028 in a high-rate future: every booth under a hiring freeze"><br><b>One possible future (2028).</b> At 6.5%, every booth is under a hiring freeze.</td>
+  </tr>
+</table>
 
-  The story is staged like a film. Each year has its own light (a colour grade), the characters act out their lines,
-  the camera moves in on whoever is speaking, and the sketchbook page turns to a chapter page for every new year. The
-  real 10-year yield also appears inside the scenes as a "red thread" (a garland, a kite string, the TV news chart):
-  hover over or tap it to see which months it shows. The end card is a corkboard with one photo per chapter. Sound is
-  generated in the browser and can be muted with the speaker button. The end card links to Rate Weather.
-- **Rate Weather** ([`prototype/rate-weather.html`](prototype/rate-weather.html)): the data side of the story, as a scrolling page:
-  - "Draw what happened next" and "Ride the rollercoaster": the yield's history;
-  - "The domino chain": how higher rates reach jobs;
-  - "The budget box": a rate slider for a household and a business budget;
-  - "Weather over the job market": which Canadian industries are more exposed or more sheltered;
-  - "Four years apart": the same graduate in two different rate worlds.
+The story ends on a corkboard: one photo per chapter, each pinned at that year's yield. Below it are the main message
+and three things students can do: build a money cushion, time their next step, and know their industry's exposure.
 
-## The story
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/10-end-card.jpg" alt="The end card: a corkboard with one photo per chapter, pinned at that year's yield, and four outcome tiles"><br><b>The end card.</b> Each chapter pinned at its yield: red = real, violet dashes = imagined.</td>
+    <td width="50%"><img src="docs/screenshots/11-takeaways.jpg" alt="The main message and three takeaways for students"><br><b>The main message</b> and what students can do.</td>
+  </tr>
+</table> Rates are real up to
+October 2026. Leo, his family and every outcome after 2026 are fictional examples. Sound is generated in the
+browser and can be muted with the speaker button.
 
-The planned story (from the storyboard) has six frames, organized as hook → rising insights → main message → solution. The prototype pages above cover most of these frames. The process book explains how they map.
+### Rate Weather ([`prototype/rate-weather.html`](prototype/rate-weather.html))
 
-| # | Stage | Frame | What you do |
-|---|-------|-------|-------------|
-| 1 | Hook | **Will you find a job after graduation?** A graduating student faces two roads, a strong job market or a weak one. The sign that points the way is the 10-year yield. | Scroll |
-| 2 | Rising insights | **What can Treasury yields tell us about the economy?** Aligned charts of the 10-year yield, unemployment, recessions, and the yield-curve "warning light" from 2000 to today. | Scroll, hover to compare years |
-| 3 | Rising insights | **The economic chain reaction.** Dominoes: higher yields → costlier loans → squeezed budgets → less spending → hiring freezes → you. | Scroll |
-| 4 | Rising insights | **The financial squeeze.** A household budget and a business budget side by side. | Drag the interest-rate slider; toggle fixed vs. renewing loans |
-| 5 | Main message | **Not everyone is affected equally.** Industries as buildings in the rain; umbrella size shows how well each industry held up, based on real job data. | Click a building |
-| 6 | Solution | **What can students do to prepare?** Three paths: build a money cushion, time your next step, know your industry's exposure. | Click a path |
+Our earlier data prototype, kept as a second page: a scrolling explainer with the yield's history, a domino chain, a
+household and business budget with a rate slider, and the job-market "weather" by industry. Open it at
+`/prototype/rate-weather.html`.
+
+## Running the code
+
+The site is plain HTML, CSS and JavaScript: no build step and nothing to install. The pages load their data with
+`d3.json`, which browsers block for pages opened by double-clicking (`file://`), so serve the folder with any local web
+server. Python 3 has one built in:
+
+```bash
+git clone https://github.com/zmeulboh/csc316-final-project.git
+cd csc316-final-project
+python -m http.server 8000
+```
+
+Then open **<http://localhost:8000>** (Leo's Forecast) or <http://localhost:8000/prototype/rate-weather.html>. Stop
+the server with `Ctrl+C`. An internet connection is needed for D3 and the fonts, which load from CDNs. VS Code's Live
+Server extension works too.
+
+**Optional, for development:**
+
+```bash
+npm install          # needs Node.js 18+; installs the linters only
+npm run lint         # ESLint (JavaScript) and html-validate (HTML); GitHub Actions also runs it on every pull request
+```
+
+**Deployment:** GitHub Pages serves the `main` branch as it is, so a merge into `main` updates the live site.
+
+## Libraries and tools
+
+| What | Version | Used for |
+|------|---------|----------|
+| [D3.js](https://d3js.org/) | 7.8.5 (from cdnjs) | Loading the data (`d3.json`), scales, lines and areas, axes, transitions, pointer handling |
+| [Google Fonts](https://fonts.google.com/) | — | Bungee (headings), Gochi Hand (handwriting), Nunito (text), DM Mono (numbers) |
+| Web Audio API | built into browsers | The music box, rain and room sounds (generated, no audio files) |
+| SVG, CSS animations | built into browsers | All drawings and characters (no image files) |
+| Python 3.10+ with `sqlite3` | standard library | The data pipeline in [`scripts/`](scripts/) |
+| [openpyxl](https://openpyxl.readthedocs.io/) | see [`scripts/requirements.txt`](scripts/requirements.txt) | Reading the Bloomberg `.xlsx` exports (only to rebuild the database) |
+| ESLint 9, html-validate 9 | see [`package.json`](package.json) | Linting (development only) |
+
+Everything else (the characters, scenes, camera, page turns, sound) is our own code.
 
 ## Data
 
-All data is stored in one SQLite database, [`prototype/data/project.db`](prototype/data/project.db).
+All the data is in one SQLite database, [`prototype/data/project.db`](prototype/data/project.db). A script exports
+what the pages show into two JSON files. **Every table, series and field is described in
+[`prototype/data/README.md`](prototype/data/README.md).**
 
 | Data | Source |
 |------|--------|
-| U.S. 10-year and 2-year Treasury yields (the 10-minus-2 spread is computed) | Bloomberg `USGG10YR`, `USGG2YR` |
-| U.S. and Canadian unemployment rates | Bloomberg `USURTOT`, `EHUPCA` |
-| U.S. 30-year and 15-year mortgage rates | Bloomberg `NMCMFR30`, `NMCMFR15` |
-| S&P 500 | Bloomberg `SPX` |
-| Canadian employment by industry (Labour Force Survey) | Bloomberg |
-| U.S. payroll employment by industry (CES) | Bloomberg |
+| U.S. 10-year Treasury yield (daily since 1990; monthly since 1962) | Bloomberg `USGG10YR`; FRED `GS10` before 1990 |
 | Government of Canada 5- and 10-year bond yields | Bank of Canada Valet API |
-| U.S. recession periods; 10-year yield and 30-year mortgage history before 1990 | FRED `USREC`, `GS10`, `MORTGAGE30US` |
+| Canadian jobs by industry (Labour Force Survey) and unemployment rate | Bloomberg (Statistics Canada) |
+| U.S. recession months, 30-year mortgage rates | FRED `USREC`, `MORTGAGE30US`; Bloomberg `NMCMFR30` |
+| Also stored for analysis: U.S. 2-year yield, U.S. unemployment, S&P 500, U.S. jobs by industry | Bloomberg |
 
-Coverage runs from 1990 to November 2026. The two exceptions are the Bank of Canada series, which start in 2001, and U.S. jobs by industry, which start in Nov 1993.
+Data runs to early November 2026 (jobs to October 2026). Facts that are not series (Canada's 2022 inflation peak, the
+1981 mortgage rate) are cited on the page. The site's sources are listed on its end card.
 
 ### Rebuilding the data
 
-The raw Bloomberg Excel exports are not in the repo; the team keeps them in a shared cloud folder. To rebuild:
+The raw Bloomberg exports are not in the repository (the team keeps them in a shared folder). To rebuild:
 
 ```bash
 pip install -r scripts/requirements.txt
@@ -83,60 +154,71 @@ python scripts/build_db.py path/to/xlsx-folder   # Excel exports + Bank of Canad
 python scripts/export_data.py                    # project.db -> prototype/data/leo.json and weather.json
 ```
 
-The pages load these JSON files with `d3.json`. Don't edit them by hand: change the queries in `export_data.py` and rerun it.
+Don't edit the JSON files by hand: change the queries in `export_data.py` and rerun it. Without the raw exports,
+`export_data.py` still works on the database that is already in the repository.
 
-**Budget scenarios** in frame 4 are illustrative examples, not real households or companies:
-- the household has a $400k mortgage with a 25-year amortization and Canadian semi-annual compounding;
-- the business has a $2M interest-only loan.
+### Exploratory analysis
 
-**A note on interpretation:** the story shows how these indicators have moved *together* historically and what research finds about the links between them. It does not claim that rising yields always cause higher unemployment or recessions.
+[`scripts/explore.py`](scripts/explore.py) holds the checks behind the story's claims. Run it with
+`python scripts/explore.py`; it needs only the Python standard library. It prints:
+1. Data quality: duplicates and missing months.
+2. The yield's record high and lows, and the 2026 peak.
+3. When the yield curve inverted, and the recessions that followed.
+4. How yields and unemployment moved together. The correlation is weak, which is why the story says "can" and never
+   "always".
+5. Canadian jobs by industry since February 2022.
+6. The family's mortgage math.
 
-## Tech stack
+### Assumptions
 
-- [D3.js](https://d3js.org/) v7 (loaded from a CDN): data loading (`d3.json`), scales, axes, shapes, and transitions
-- Plain HTML, CSS, and JavaScript, with no build step and no framework
-- Python 3 + SQLite for the data pipeline (`scripts/`)
-- ESLint and html-validate for linting (development only)
+- The family's mortgage: $320,000 borrowed in 2007 (a $400,000 townhouse, 20% down) and $750,000 in 2017 for a bigger
+  house, both over 25 years with 5-year terms and Canadian semi-annual compounding. The rate for each term is the
+  Government of Canada 5-year yield plus 1.5 points.
+- The story shows how these numbers have moved *together* and what research finds about the links. It never claims
+  that rising yields always cause job losses or recessions.
 
-## Running the project
-
-The pages load their data files (`prototype/data/leo.json`, `prototype/data/weather.json`) with `d3.json`. Browsers block that when a page is opened by double-clicking it (`file://`), so serve the project folder with a local web server. Python 3 has one built in:
-
-```bash
-cd final_project
-python -m http.server 8000
-```
-
-Then open **<http://localhost:8000>** in a browser:
-
-- `index.html` (opens by default): **Leo's Forecast**, the story game
-- <http://localhost:8000/prototype/rate-weather.html>: **Rate Weather**, our data prototype (the game's end card links to it)
-
-Stop the server with `Ctrl+C`. An internet connection is needed for D3 and the Google Fonts. VS Code's Live Server extension or WebStorm's built-in server work too.
-
-To run the linters (needs [Node.js](https://nodejs.org/)): `npm install`, then `npm run lint`.
-
-## Project structure
+## Code
 
 ```
-index.html                  # Leo's Forecast: the story game (start here)
+index.html                 # Leo's Forecast: the whole story game (HTML, CSS and JavaScript in one file)
 prototype/
-  rate-weather.html         # Rate Weather: the data prototype
+  rate-weather.html        # Rate Weather: the earlier data prototype
   data/
-    project.db              # SQLite database with all project data
-    leo.json                # data for index.html (written by export_data.py)
-    weather.json            # data for rate-weather.html (written by export_data.py)
+    README.md              # the data dictionary: every table, series and field
+    project.db             # SQLite database with all project data
+    leo.json               # data for index.html      (written by export_data.py)
+    weather.json           # data for rate-weather.html (written by export_data.py)
 scripts/
-  build_db.py               # raw exports + Bank of Canada + FRED -> project.db
-  export_data.py            # project.db -> leo.json and weather.json
-  requirements.txt          # Python packages for the scripts
-package.json                # lint scripts (ESLint, html-validate)
-CLAUDE.md                   # project context for the AI coding assistant
+  build_db.py              # raw exports + Bank of Canada + FRED -> project.db
+  export_data.py           # project.db -> leo.json and weather.json
+  explore.py               # exploratory analysis: the checks behind the story's claims
+  requirements.txt         # Python packages for the scripts
+.github/workflows/ci.yml   # runs the linters on pull requests and pushes to main
+package.json               # lint scripts (ESLint, html-validate)
+docs/screenshots/          # the screenshots in this README
+CLAUDE.md                  # project context for the AI coding assistant the team used
 ```
+
+**How `index.html` is organised.** The script starts with a map of its sections, each marked by a
+`/* ===== name ===== */` header:
+- **The data:** the real numbers from `leo.json`.
+- **The story:** every scene as plain data (year, place, light, cast, lines), so the story can be edited without
+  touching the drawing code.
+- **The scene kit:** one SVG drawing function per place.
+- **Presentation:** the characters, camera, page turns, the dialogue box with its small DATA chart, playback, the end
+  card, the rate slider and the sound.
+
+Comments explain what each part does and why, including the performance choices, so it runs smoothly on older laptops.
+
+**Honesty rules in the code.**
+- Every number on screen is computed from the data files, with its month or date.
+- Bars and blocks start at zero and are drawn to scale.
+- Imagined futures are always dashed or violet.
+- Fictional people and scenarios are labelled as fictional.
 
 ## Research
 
-The story's explanations draw on the following research:
+The story's explanations draw on:
 
 - Patrabansh, Doerner & Asin (2014). *The Effects of Monetary Policy on Mortgage Rates.* Federal Housing Finance Agency.
 - Estrella & Mishkin (1998). *Predicting U.S. Recessions: Financial Variables as Leading Indicators.* Review of Economics and Statistics.
@@ -145,12 +227,9 @@ The story's explanations draw on the following research:
 - Romer & Romer (2023). *Does Monetary Policy Matter? The Narrative Approach after 35 Years.* American Economic Review.
 - Sarikov & Kuprianov (2020). *The Effect of Monetary Policy on Corporate Bankruptcies: Evidence from the United States.* Applied Economics.
 
-## Design process
-
-The full design process (audience analysis, sketches, sketch selection, data story and storyboard) is documented in the team's process book, which is submitted separately.
-<!-- TODO: add the process book link here -->
-
+The design process (audience, questions, sketches, voting, storyboard, prototypes and the think-aloud test) is
+documented in the team's [process book](https://docs.google.com/document/d/1Sr4uAKbj8h2TRenuFmDX-Hdx7Ws0rbXcnyzvuotItFQ/edit?tab=t.0#heading=h.2xjf980qs23).
 
 ---
 
-Built for CSC316: Data Visualization, Foundations and Advanced Programming (Prof. Carolina Nobre), University of Toronto.
+Built for CSC316: Data Visualization, University of Toronto.
