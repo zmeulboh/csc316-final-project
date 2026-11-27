@@ -37,23 +37,28 @@ con = sqlite3.connect(DB)
 
 
 def rows(sql, *args):
+    """Run a query with ? parameters and return all its rows."""
     return con.execute(sql, args).fetchall()
 
 
 def r2(v):
+    """Round to 2 decimals (keeps the JSON files small)."""
     return round(v, 2)
 
 
 def month_shift(m, k):
+    """Move a 'YYYY-MM' month by k months (k can be negative)."""
     y, mo = int(m[:4]), int(m[5:7]) - 1 + k
     return f"{y + mo // 12:04d}-{mo % 12 + 1:02d}"
 
 
 def monthly(sid, start="0000"):
+    """[['YYYY-MM', monthly average], ...] for one series, from month `start` on."""
     return [[m, r2(v)] for m, v in rows("SELECT month, value FROM monthly WHERE series_id=? AND month>=? ORDER BY month", sid, start)]
 
 
 def latest(sid):
+    """The newest observation of a series, as {'d': 'YYYY-MM-DD', 'v': value}."""
     d, v = rows("SELECT date, value FROM observations WHERE series_id=? ORDER BY date DESC LIMIT 1", sid)[0]
     return {"d": d, "v": r2(v)}
 
@@ -67,6 +72,8 @@ def us10_monthly():
 
 
 def build():
+    """Query everything the two pages show; returns {'DATA': leo.json contents, 'B': weather.json contents}.
+    Every field is described in prototype/data/README.md."""
     last = latest("USGG10YR")
     year_ago = (dt.date.fromisoformat(last["d"]) - dt.timedelta(days=366)).isoformat()
     daily = [[d, r2(v)] for d, v in rows(
@@ -119,7 +126,6 @@ def build():
         "canUnemp": latest("EHUPCA"),
         # Grandpa's album (2016) and Leo's sketchbook: the monthly 10-year yield since 1962
         "us10Monthly": gs10,
-        "mortPeak": rate_weather["mortPeak"],
         # the café dominoes (2024): Canada's 5-year bond yield (monthly) and unemployment rate (quarterly) since 2019
         "ca5Monthly": rate_weather["boc"],
         "canUnempQ": [[d[:7], r2(v)] for d, v in rows(
@@ -131,6 +137,7 @@ def build():
 
 
 def main():
+    """Write both JSON files and print a short summary to check against the DB."""
     out = build()
     for name, fname in OUT.items():
         path = os.path.join(ROOT, "prototype", "data", fname)

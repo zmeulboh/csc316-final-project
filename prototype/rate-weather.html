@@ -322,6 +322,7 @@ svg text{font-family:var(--mono)}
         <li>Government of Canada 5-year benchmark bond yield (BD.CDN.5YR.DQ.YLD): Bank of Canada Valet API.</li>
         <li>Rate exposure ratings (1–5) are our simplified classification of how much each industry depends on borrowing and big financed purchases. Weather intensity is illustrative, not a forecast.</li>
         <li>Yields current to <span data-fact="lastDay"></span>; jobs to <span data-fact="jobsMonth"></span>. The latest month on the yield charts is a month-to-date average.</li>
+        <li>By Bohdan Zmeul, Danyal Shenoda and Humzah Ahmed, for CSC316 Data Visualization at the University of Toronto.</li>
       </ul>
     </div>
   </div>
@@ -399,7 +400,7 @@ d3.json('data/weather.json').then(B => {
       svg.append('text').attr('x',x(new Date(yr,0,1))).attr('y',H-12).attr('text-anchor','middle').attr('font-size',11).attr('fill',C.ink2).text(yr);
     }
     const start = data.findIndex(d => d.m === '2020-12');
-    const zone = svg.append('rect').attr('x',x(data[start].t)).attr('y',M.t).attr('width',W-M.r-x(data[start].t)).attr('height',H-M.b-M.t).attr('fill',C.signal).attr('opacity',.05);
+    svg.append('rect').attr('x',x(data[start].t)).attr('y',M.t).attr('width',W-M.r-x(data[start].t)).attr('height',H-M.b-M.t).attr('fill',C.signal).attr('opacity',.05);
     svg.append('text').attr('x',(x(data[start].t)+W-M.r)/2).attr('y',y(3.5)).attr('text-anchor','middle').attr('font-size',14).attr('fill',C.ink2).attr('class','hint').text('Draw your line here →');
     const line = d3.line().defined(d=>d!=null).x((d,i)=>x(data[i].t)).y(d=>y(d)).curve(d3.curveMonotoneX);
     svg.append('path').datum(data.slice(0,start+1).map(d=>d.v)).attr('fill','none').attr('stroke',C.ink).attr('stroke-width',3).attr('d',line);
@@ -424,7 +425,6 @@ d3.json('data/weather.json').then(B => {
       let i = d3.bisector(d=>d.t).center(data, t);
       i = clamp(i, start+1, data.length-1);
       const v = clamp(y.invert(py), 0, 7);
-      const from = Math.min(last, i);
       if (i > last){
         const v0 = guess[last];
         for (let k=last+1; k<=i; k++) guess[k] = v0 + (v - v0)*(k-last)/(i-last);
@@ -780,7 +780,8 @@ d3.json('data/weather.json').then(B => {
       const I=d.i0, J=d.j0, c=2.5;
       const ends = [[I+c,J+.3],[I+c,J+4.7],[I+.3,J+c],[I+4.7,J+c]];
       for (let k=0;k<n;k++){
-        const e = ends[Math.floor(rnd()*4)], off = (rnd()-.5)*.7;
+        rnd();                                 // an unused draw, kept so the seeded layout stays exactly the same
+        const off = (rnd()-.5)*.7;
         walkers.push({d, ends, I, J, c, off, pos:[I+c+(rnd()-.5)*4*(k%2), J+c+(rnd()-.5)*4*((k+1)%2)], tgt:null, sp:.5+rnd()*.5, hue:rnd()});
       }
     });
@@ -954,7 +955,7 @@ d3.json('data/weather.json').then(B => {
   };
   (function budget(){
     const svg = d3.select('#box');
-    const W=640,H=480, bx=60,bw=240,top=56,bot=446, pileX=380;
+    const W=640, bx=60,bw=240,top=56,bot=446, pileX=380;
     const defs = svg.append('defs');
     const pat = defs.append('pattern').attr('id','hatch').attr('width',8).attr('height',8).attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
     pat.append('rect').attr('width',3).attr('height',8).attr('fill','#ffffff').attr('opacity',.28);

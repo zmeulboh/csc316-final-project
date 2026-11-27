@@ -381,7 +381,17 @@ a.btn{text-decoration:none;display:inline-block}
 .tile dd{margin:0;font-family:var(--display);font-size:clamp(1rem,2.2vw,1.3rem);line-height:1.05;font-variant-numeric:tabular-nums}
 @keyframes tilein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (max-width:640px){ .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} }
-@media (prefers-reduced-motion:reduce){ .cork-svg .pol > g,.cork-svg .pin,.cork-svg .thread,.cork-svg .futline,.tile,.trackwrap.pop{animation:none} }
+/* the title card's subtitle (the hook) and the authors' byline */
+.card .subtitle{font-size:1.04rem;font-weight:800;line-height:1.4;color:var(--text)}
+.card .byline{font-size:.78rem;color:var(--text-2)}
+/* the end card's closing: the main message (crimson, the story's "main message" colour) and what students can do
+   (green, the "solution" colour); it appears after the numbers */
+.takeaway{background:var(--frame-3);border:2px solid var(--ink);border-radius:12px;padding:14px 16px;display:grid;gap:8px;animation:tilein .5s ease-out 3.2s both}
+.takeaway .msg{font-family:var(--display);font-size:clamp(1rem,2.2vw,1.28rem);line-height:1.2;color:#fff;max-width:none;border-left:5px solid #d6354a;padding-left:12px}
+.takeaway h3{margin:2px 0 0;font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--calm)}
+.takeaway ol{margin:0;padding-left:1.25em;display:grid;gap:6px;font-size:.9rem;line-height:1.45;color:var(--text)}
+.takeaway b{color:var(--calm)}
+@media (prefers-reduced-motion:reduce){ .cork-svg .pol > g,.cork-svg .pin,.cork-svg .thread,.cork-svg .futline,.tile,.takeaway,.trackwrap.pop{animation:none} }
 @media (max-height:600px){
   #line{min-height:2.6em;font-size:1rem}
   .box{padding:20px 16px 10px}
@@ -599,12 +609,14 @@ a.btn{text-decoration:none;display:inline-block}
       <div class="card">
         <div class="row"><span class="tag real">REAL RATES 2007–2026</span><span class="tag what">IMAGINED 2027–2030</span></div>
         <h1>Leo's Forecast</h1>
+        <p class="subtitle">The 10-year Treasury yield is going crazy. Why is Wall Street so worried about a number you’ve barely heard of, and what could it mean for you?</p>
         <p>Leo is born in Toronto in 2007. You'll watch him grow up one year at a time while the bar at the top tracks the number Wall Street is worried about: the US 10-year Treasury yield.</p>
         <p class="small">The rates up to October 2026 are real. Leo, his family and their numbers are fictional examples. Use Next, the → key or Space to move through the story.</p>
         <div class="row">
           <button class="btn" id="startBtn">Start the story</button>
           <button class="btn ghost" id="skipBtn">Skip to 2026</button>
         </div>
+        <p class="byline">By Bohdan Zmeul, Danyal Shenoda and Humzah Ahmed · CSC316 Data Visualization, University of Toronto</p>
       </div>
     </div>
 
@@ -643,8 +655,22 @@ a.btn{text-decoration:none;display:inline-block}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
-// Leo's Forecast: everything below runs once the data has loaded. The data file is written from prototype/data/project.db by scripts/export_data.py.
-// Browsers only allow loading it when the page is served (python -m http.server, see README.md).
+// Leo's Forecast: everything below runs once the data has loaded. The data file is written from prototype/data/project.db by scripts/export_data.py
+// (its fields are described in prototype/data/README.md). Browsers only allow loading it when the page is served (python -m http.server, see README.md).
+//
+// How this script is organised (search for the "/* ===" headers):
+//   DATA (real)        the real numbers from leo.json, and small helpers to format them
+//   the family's mortgage, cast, story
+//                      Leo's family (fictional) and every scene: its year, place, light, cast and lines (PAST, then future())
+//   state, life ribbon the story's position and the life bar at the top (click a chapter's dot to go there)
+//   stage drawing, scene kit
+//                      drawing helpers (A, R, P, ...) and BG: one function per scene that draws its background in SVG
+//   characters ... page turns
+//                      the people, fitting the scene to the screen, the camera, the foreground layer, page turns
+//   the dialogue box ... playback
+//                      showing a line (portrait, typing, the DATA card's small chart) and moving through the story
+//   the ending, choice the corkboard end card and the rate slider that picks one of four futures
+//   sound, wiring      generated sound (Web Audio) and the buttons and keys
 d3.json('prototype/data/leo.json').then(DATA => {
   /* ================= DATA (real) ================= */
   const DAY = s => new Date(s+'T12:00:00').toLocaleDateString('en-CA',{month:'long',day:'numeric',year:'numeric'});
@@ -5566,11 +5592,21 @@ d3.json('prototype/data/leo.json').then(DATA => {
         <div class="tile" style="--i:2"><dt>Career-fair booths hiring in 2028</dt><dd>${story[2].props.booths} of 5</dd></div>
         <div class="tile" style="--i:3"><dt>Leo in 2030</dt><dd>${{A:'Bay Street job',B:'Job at a smaller firm',C:'Six-month contract',D:'Moving back home'}[f.b.id]}</dd></div>
       </dl>
+      <section class="takeaway" aria-label="What it means for you">
+        <p class="msg">Rising interest rates aren’t just Wall Street’s problem. They can affect your wallet and your career, but not everyone is affected equally.</p>
+        <h3>What you can do</h3>
+        <ol>
+          <li><b>Build a money cushion.</b> A few months of expenses set aside buys you time if rent jumps or a job search runs long.</li>
+          <li><b>Time your next step.</b> In Canada, graduating into a downturn has been linked to about 9% lower earnings at first, fading over 8 to 10 years (Oreopoulos, von Wachter &amp; Heisz, 2012). More school or new skills can bridge a weak market, but a recovery isn’t guaranteed.</li>
+          <li><b>Know your industry’s exposure.</b> Since rates started rising in February 2022, Canadian jobs grew ${sg(ALLJ)} overall: from ${sg(EXPOSED.since)} in ${EXPOSED.full.toLowerCase()} to ${sg(SHELTERED.since)} in ${SHELTERED.full.toLowerCase()} (Labour Force Survey, to ${MONTH(JM)}). Check where the field you’re aiming for stands.</li>
+        </ol>
+      </section>
       <div class="row">
         <button class="btn" id="againBtn">Choose another future</button>
         <button class="btn ghost" id="replayBtn">Replay from 2007</button>
       </div>
-      <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR), and FRED (GS10) before 1990; Government of Canada 5-year yield, Bank of Canada Valet API; Canada’s 1981 mortgage rates, CMHC; Canadian jobs by industry and unemployment rate, Statistics Canada Labour Force Survey via Bloomberg (to ${MONTH(JM)}); 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada. Research: Singh, Suda &amp; Zervou (2022) on which industries feel rate hikes most; Romer &amp; Romer (2023) on rate hikes and unemployment.</p>`;
+      <p class="small">Leo, his family and every outcome after 2026 are illustrative. Mortgage rates are estimated from Government of Canada 5-year bond yields + 1.5 points. Sources: US 10-year yield, Bloomberg (USGG10YR), and FRED (GS10) before 1990; Government of Canada 5-year yield, Bank of Canada Valet API; Canada’s 1981 mortgage rates, CMHC; Canadian jobs by industry and unemployment rate, Statistics Canada Labour Force Survey via Bloomberg (to ${MONTH(JM)}); 2022 inflation (CPI) and policy-rate facts, Statistics Canada and Bank of Canada. Research: Singh, Suda &amp; Zervou (2022) on which industries feel rate hikes most; Romer &amp; Romer (2023) on rate hikes and unemployment; Oreopoulos, von Wachter &amp; Heisz (2012) on graduating in a recession.</p>
+      <p class="byline">By Bohdan Zmeul, Danyal Shenoda and Humzah Ahmed · CSC316 Data Visualization, University of Toronto</p>`;
     $('endInner').classList.add('wide');
     $('endCard').hidden = false; $('stage').classList.add('carded');
     $('againBtn').onclick = () => { $('endCard').hidden = true; $('stage').classList.remove('carded'); goScene(0); };
