@@ -1034,9 +1034,15 @@ d3.json('prototype/data/leo.json').then(DATA => {
       const st = track.append('g').attr('class','stamp').attr('transform',`translate(${chapX(c.year)},${TY(c.s.y)})`).attr('role','button').attr('tabindex',0)
         .attr('aria-label',`Go to ${c.year}`);
       st.append('title').text(`${c.year} · ${c.s.age === 0 ? 'Leo is born' : 'Leo, age ' + c.s.age} · 10-yr ${c.s.y.toFixed(2)}%${c.s.future ? ' (imagined)' : ''}. Click to go there.`);
-      st.append('circle').attr('r',9).attr('fill','transparent');
+      st.append('circle').attr('r',11).attr('fill','transparent');           // a bigger area to click than the dot
       const dot = st.append('circle').attr('r',4.2).attr('stroke','#120f24').attr('stroke-width',1.6);
-      const go = () => { if (TURN || swapTimer || !$('titleCard').hidden || !$('endCard').hidden || c.i === si) return; goScene(c.i, 0, c.i < si ? -1 : 1); };
+      // On the title card it starts the story right at that chapter; during a page turn it waits for the turn to finish
+      const go = (tries=0) => {
+        if (!$('endCard').hidden) return;
+        if (!$('titleCard').hidden){ startStory(false); goScene(c.i, 0, 1, true); return; }
+        if (TURN || swapTimer){ if (tries < 40) setTimeout(() => go(tries + 1), 150); return; }
+        if (c.i !== si) goScene(c.i, 0, c.i < si ? -1 : 1);
+      };
       st.on('click', ev => { ev.stopPropagation(); go(); }).on('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); ev.stopPropagation(); go(); } });
       return {c, dot};
     });
@@ -5679,6 +5685,7 @@ d3.json('prototype/data/leo.json').then(DATA => {
     function weather(sc){
       if (!ctx) return;
       minor = sc.y >= 4.4; slow = clamp((sc.y - 3)/4, 0, 1);    // the music box: minor and slower when rates are high
+      musicBus.gain.setTargetAtTime(sc.year >= 2026 ? .144 : .12, ctx.currentTime, .5);   // 20% louder from university on (the last part of the story)
       const r = OUTDOOR.has(sc.bg) ? rainOf(sc.y) : 0;
       birds = birdy && r === 0;
       if (breeze) level(breeze, .02*(1 - r));
