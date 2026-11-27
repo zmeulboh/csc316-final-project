@@ -23,6 +23,7 @@ CSC316 Data Visualization · University of Toronto · Fall 2026
 - [Libraries and tools](#libraries-and-tools)
 - [Data](#data)
 - [Code](#code)
+- [Prototype versions](#prototype-versions)
 - [Research](#research)
 
 ## About the project
@@ -196,6 +197,7 @@ scripts/
 .github/workflows/ci.yml   # runs the linters on pull requests and pushes to main
 package.json               # lint scripts (ESLint, html-validate)
 docs/screenshots/          # the screenshots in this README
+docs/v1/, docs/v2/, docs/v3/  # screenshots of each prototype version
 CLAUDE.md                  # project context for the AI coding assistant the team used
 ```
 
@@ -216,6 +218,18 @@ Comments explain what each part does and why, including the performance choices,
 - Imagined futures are always dashed or violet.
 - Fictional people and scenarios are labelled as fictional.
 
+## Prototype versions
+
+Each version is a commit in this repository. Its screenshots were taken by running that commit's code, so they show
+exactly what it looked like. To run an older version: `git checkout <commit>`, then serve the folder as above.
+
+| Version | Commit | Date | What it had | Screenshots |
+|---------|--------|------|-------------|-------------|
+| **V1** | [`2c2c9b6`](https://github.com/zmeulboh/csc316-final-project/tree/2c2c9b6126839f5e0e9cfb9ffeeace828bd82b9b) | Nov 8, 2026 | The first story game (`prototype/leos-forecast.html`): Leo's life from 2007 to 2030 in flat scenes, with the life bar and the dialogue. Plus the Rate Weather data page. Data in one JSON file made by `prep.py`. | [`docs/v1/`](docs/v1/) |
+| **V2** | [`b57b53f`](https://github.com/zmeulboh/csc316-final-project/tree/b57b53fbdf29b73eac07d3f842183c430f5250a3) | Nov 14, 2026 | The SQLite pipeline (`build_db.py`, `export_data.py`). Illustrated, animated scenes. The interactive moments: a roller coaster (2016), the sketchbook (2020), the budget pad (2022), the dominoes (2024), an industry city from the CN Tower (2026), the rate slider with four futures and the corkboard ending. Lint checks on GitHub. | [`docs/v2/`](docs/v2/) |
+| **V3** | [`b64ac29`](https://github.com/zmeulboh/csc316-final-project/tree/b64ac29fbc26084631a70ce2e0d59c90e8d7d014) | Nov 27, 2026 | A film look: a colour grade per year, camera moves, page turns between years, generated sound. Grandma's album replaces the roller coaster. The CN Tower view becomes a Toronto map linked to a ranked list. The life bar is clickable. The main message, takeaways and authors are on the page. | [`docs/v3/`](docs/v3/) |
+| **Final** | `main` | | V3 plus this documentation: the README, the data dictionary, the exploratory analysis script and the screenshots above. | [`docs/screenshots/`](docs/screenshots/) |
+
 ## Research
 
 The story's explanations draw on:
@@ -233,3 +247,4 @@ documented in the team's [process book](https://docs.google.com/document/d/1Sr4u
 ---
 
 Built for CSC316: Data Visualization, University of Toronto.
+
