@@ -1,4 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Leo's Forecast</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -488,7 +492,18 @@ a.btn{text-decoration:none;display:inline-block}
 @keyframes gull{to{transform:translate(var(--gx,200px),-30px)}}
 .a-lightning{opacity:0;animation:lightning 7s linear infinite}
 @keyframes lightning{0%,88%,100%{opacity:0}89%{opacity:1}90%{opacity:.2}91.5%{opacity:.9}93%{opacity:0}}
-@media (max-width:760px){ .cl-legend{display:none} .cl-card{left:12px;right:12px;width:auto;top:10px} }
+/* phones held upright: a hint to turn the phone (see rotateTip) */
+.rotate-tip{position:absolute;z-index:6;top:12px;left:12px;right:12px;margin-inline:auto;display:flex;gap:8px;align-items:center;width:fit-content;max-width:calc(100% - 24px);   /* centred with margins: its pop-in animation sets transform */
+  padding:.5em 1em;background:rgba(18,16,36,.92);color:var(--text);border:2px solid var(--ink);border-radius:999px;box-shadow:3px 3px 0 var(--ink);
+  font:700 .8rem var(--body);text-align:left;transition:opacity .4s;animation:cardin .45s cubic-bezier(.3,1.4,.5,1) both}
+.rotate-tip span{font-size:1.15rem;color:var(--sun)}
+.rotate-tip.gone{opacity:0}
+/* phones: the card sits under the hint and leaves the bottom of the map visible; the hint may wrap onto two lines */
+@media (max-width:760px){
+  .cl-legend{display:none}
+  .cl-card{left:12px;right:12px;width:auto;top:64px;max-height:calc(100% - 260px);overflow-y:auto;padding:12px 14px 10px}
+  .cl-hint{top:10px;font-size:.72rem;white-space:normal;text-align:center;width:max-content;max-width:calc(100% - 24px)}
+}
 .stage.leaving #cityLayer{transform:translateX(calc(-1 * var(--dx,80px)))}
 .stage.entering #cityLayer{transform:translateX(var(--dx,80px))}
 /* the album's turning leaf: its own layer above the scene, turned by the graphics card (see BG.album) */
@@ -566,6 +581,8 @@ a.btn{text-decoration:none;display:inline-block}
   .a-carpass,.a-walkacross,.a-squirrel,.a-flutter,.a-drip,.a-splash,.a-mote,.a-glassdrop,.a-landing,.a-gull{display:none}
 }
 </style>
+</head>
+<body>
 
 <div class="app">
   <header class="hud">
@@ -5472,9 +5489,25 @@ d3.json('prototype/data/leo.json').then(DATA => {
     stage.style.setProperty('--dx', dir < 0 ? '-80px' : '80px');
     stage.classList.add('leaving'); swapTimer = setTimeout(() => { swapTimer = null; swap(); }, 360);
   }
+  // Phones held upright: every scene is a 16:9 picture, so suggest turning the phone, once per visit. It goes away when
+  // tapped, after 7 seconds, or when the phone is turned.
+  function rotateTip(){
+    const mq = matchMedia('(orientation: portrait) and (max-width: 600px)');
+    let seen = false;
+    try { seen = sessionStorage.getItem('leoRotate') === '1'; sessionStorage.setItem('leoRotate', '1'); } catch { /* storage blocked: show it anyway */ }
+    if (!mq.matches || seen) return;
+    const tip = document.createElement('button');
+    tip.type = 'button'; tip.className = 'rotate-tip';
+    tip.innerHTML = '<span aria-hidden="true">⟳</span> Turn your phone sideways for a bigger picture';
+    $('stage').appendChild(tip);
+    const close = () => { mq.removeEventListener('change', close); tip.classList.add('gone'); setTimeout(() => tip.remove(), 450); };
+    tip.addEventListener('click', ev => { ev.stopPropagation(); close(); });
+    mq.addEventListener('change', close);
+    setTimeout(close, 7000);
+  }
   function startStory(intro=true){
     $('titleCard').hidden = true; $('stage').classList.remove('carded');
-    SND.start();
+    SND.start(); rotateTip();
     const tw = document.querySelector('.trackwrap'); tw.classList.remove('pop'); void tw.offsetWidth; tw.classList.add('pop');   // the red line becomes Leo's life ribbon
     if (intro) goScene(0, 0, 1, true);       // turn the cover page over to 2007
   }
@@ -5807,3 +5840,5 @@ d3.json('prototype/data/leo.json').then(DATA => {
   document.body.insertAdjacentHTML('afterbegin', '<p style="position:fixed;left:16px;right:16px;top:16px;z-index:99;margin:0;padding:14px 18px;border-radius:10px;background:#fff3cd;color:#5c4400;border:2px solid #e0a800;font:600 15px/1.45 system-ui,sans-serif">Could not load prototype/data/leo.json. Run the project through a local web server (see README.md) instead of opening the file directly.</p>');
 });
 </script>
+</body>
+</html>
