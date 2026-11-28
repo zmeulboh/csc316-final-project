@@ -1,4 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rate Weather</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -159,6 +163,8 @@ svg text{font-family:var(--mono)}
   .step .card{transition:none}
 }
 </style>
+</head>
+<body>
 
 <header class="hero wrap">
   <div class="eyebrow">US 10-year Treasury yield · 2026 peak, close of <span data-fact="peakDay"></span></div>
@@ -1059,3 +1065,5 @@ d3.json('data/weather.json').then(B => {
   document.body.insertAdjacentHTML('afterbegin', '<p style="position:fixed;left:16px;right:16px;top:16px;z-index:99;margin:0;padding:14px 18px;border-radius:10px;background:#fff3cd;color:#5c4400;border:2px solid #e0a800;font:600 15px/1.45 system-ui,sans-serif">Could not load data/weather.json. Run the project through a local web server (see README.md) instead of opening the file directly.</p>');
 });
 </script>
+</body>
+</html>
