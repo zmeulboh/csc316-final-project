@@ -133,7 +133,8 @@ Interactive scenes set `CTRL = {ready, auto, line(i, step)}`; `waitAt` holds the
 
 - Do data cleaning in a script, not by hand, so it can be rerun when new data comes out.
 - Interactions must work with mouse, touch and keyboard; scroll/click-driven steps must make sense if someone goes fast or skips.
-- Check text and layout at 1280×720, 1920×1080 and phone width (412×915).
+- Check text and layout at 1280×720, 1920×1080 and phone width (412×915). Phones are read upright: a phone turned
+  sideways gets a "turn your phone upright" card (CSS only); tablets and computers stay horizontal.
 - When unsure about a design decision, check the process book before inventing a new direction.
 
 ## Working with the team (role of AI)

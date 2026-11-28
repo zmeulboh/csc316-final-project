@@ -492,12 +492,17 @@ a.btn{text-decoration:none;display:inline-block}
 @keyframes gull{to{transform:translate(var(--gx,200px),-30px)}}
 .a-lightning{opacity:0;animation:lightning 7s linear infinite}
 @keyframes lightning{0%,88%,100%{opacity:0}89%{opacity:1}90%{opacity:.2}91.5%{opacity:.9}93%{opacity:0}}
-/* phones held upright: a hint to turn the phone (see rotateTip) */
-.rotate-tip{position:absolute;z-index:6;top:12px;left:12px;right:12px;margin-inline:auto;display:flex;gap:8px;align-items:center;width:fit-content;max-width:calc(100% - 24px);   /* centred with margins: its pop-in animation sets transform */
-  padding:.5em 1em;background:rgba(18,16,36,.92);color:var(--text);border:2px solid var(--ink);border-radius:999px;box-shadow:3px 3px 0 var(--ink);
-  font:700 .8rem var(--body);text-align:left;transition:opacity .4s;animation:cardin .45s cubic-bezier(.3,1.4,.5,1) both}
-.rotate-tip span{font-size:1.15rem;color:var(--sun)}
-.rotate-tip.gone{opacity:0}
+/* Phones are read upright. A phone turned sideways (touch screen, landscape, short screen) gets a card asking to
+   turn it back; tablets and computers (taller screens, or a mouse) never see it. */
+.turn-upright{display:none}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){
+  .turn-upright{position:fixed;inset:0;z-index:50;display:grid;place-items:center;align-content:center;gap:10px;padding:16px;
+    background:var(--frame);color:var(--text);text-align:center;font:700 1.05rem var(--body)}
+  .turn-upright .ico{font-size:2.6rem;color:var(--sun);animation:tiltback 1.6s ease-in-out infinite}
+  .turn-upright small{font-weight:500;color:var(--text-2)}
+}
+@keyframes tiltback{0%,30%{transform:rotate(-90deg)}60%,100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){ .turn-upright .ico{animation:none} }
 /* phones: the card sits under the hint and leaves the bottom of the map visible; the hint may wrap onto two lines */
 @media (max-width:760px){
   .cl-legend{display:none}
@@ -583,6 +588,7 @@ a.btn{text-decoration:none;display:inline-block}
 </style>
 </head>
 <body>
+<div class="turn-upright" role="alert"><div class="ico" aria-hidden="true">📱</div>Please turn your phone upright<small>Leo's Forecast is made to be read with the phone held vertically.</small></div>
 
 <div class="app">
   <header class="hud">
@@ -5489,25 +5495,9 @@ d3.json('prototype/data/leo.json').then(DATA => {
     stage.style.setProperty('--dx', dir < 0 ? '-80px' : '80px');
     stage.classList.add('leaving'); swapTimer = setTimeout(() => { swapTimer = null; swap(); }, 360);
   }
-  // Phones held upright: every scene is a 16:9 picture, so suggest turning the phone, once per visit. It goes away when
-  // tapped, after 7 seconds, or when the phone is turned.
-  function rotateTip(){
-    const mq = matchMedia('(orientation: portrait) and (max-width: 600px)');
-    let seen = false;
-    try { seen = sessionStorage.getItem('leoRotate') === '1'; sessionStorage.setItem('leoRotate', '1'); } catch { /* storage blocked: show it anyway */ }
-    if (!mq.matches || seen) return;
-    const tip = document.createElement('button');
-    tip.type = 'button'; tip.className = 'rotate-tip';
-    tip.innerHTML = '<span aria-hidden="true">⟳</span> Turn your phone sideways for a bigger picture';
-    $('stage').appendChild(tip);
-    const close = () => { mq.removeEventListener('change', close); tip.classList.add('gone'); setTimeout(() => tip.remove(), 450); };
-    tip.addEventListener('click', ev => { ev.stopPropagation(); close(); });
-    mq.addEventListener('change', close);
-    setTimeout(close, 7000);
-  }
   function startStory(intro=true){
     $('titleCard').hidden = true; $('stage').classList.remove('carded');
-    SND.start(); rotateTip();
+    SND.start();
     const tw = document.querySelector('.trackwrap'); tw.classList.remove('pop'); void tw.offsetWidth; tw.classList.add('pop');   // the red line becomes Leo's life ribbon
     if (intro) goScene(0, 0, 1, true);       // turn the cover page over to 2007
   }
